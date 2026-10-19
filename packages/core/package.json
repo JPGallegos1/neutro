@@ -1,0 +1,19 @@
+{
+  "name": "@neutro/core",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    "./site": "./src/site.ts"
+  },
+  "scripts": {
+    "check": "tsc --noEmit"
+  },
+  "dependencies": {
+    "effect": "4.0.5"
+  },
+  "devDependencies": {
+    "@neutro/typescript-config": "workspace:*",
+    "typescript": "6.0.3"
+  }
+}
