@@ -21,12 +21,14 @@ Se seleccionaron las versiones estables publicadas bajo `latest`, con las excepc
 | `@types/react` / `@types/react-dom` | 19.3.0               |
 | `@types/node`                       | 24.19.2              |
 | Wrangler                            | 4.151.2              |
-| `@cloudflare/workers-types`         | 5.20261019.1         |
 | `class-variance-authority`          | 0.7.1                |
 | `clsx`                              | 2.1.1                |
 | `tailwind-merge`                    | 3.7.0                |
 | `radix-ui`                          | 1.8.1                |
 | `tw-animate-css`                    | 1.4.0                |
+| `@fontsource/geist-sans`            | 5.3.0                |
+| `@fontsource/geist-mono`            | 5.3.0                |
+| `posthog-js`                        | 1.438.12             |
 | Prettier                            | 3.9.10               |
 | `prettier-plugin-astro`             | 1.1.1                |
 | `prettier-plugin-tailwindcss`       | 0.8.1                |
@@ -40,7 +42,9 @@ Se seleccionaron las versiones estables publicadas bajo `latest`, con las excepc
 - React 19.3.1 está dentro de los rangos soportados por Astro React, Radix y Lucide.
 - `oxc-transform-react` es un peer opcional para el compilador React experimental y no es necesario para la integración estándar.
 - No se instala `@astrojs/cloudflare`: la web actual está completamente prerenderizada y Workers Static Assets publica directamente `dist`.
-- Wrangler tiene `@cloudflare/workers-types` como peer opcional. Se declara como devDependency de `@neutro/web` para tipar `apps/web/worker`.
+- Wrangler tiene `@cloudflare/workers-types` como peer opcional. Esta web no tiene código Worker ni bindings; si se añaden, se generarán los tipos desde Wrangler.
+- `posthog-js` arrastra `core-js`, cuyo `postinstall` sólo muestra un mensaje de funding. Se deja **sin** scripts de build (`allowBuilds.core-js: false`).
+- Las fuentes Geist se autoalojan con `@fontsource/geist-sans` y `@fontsource/geist-mono` 5.3.0. `posthog-js` 1.438.12 queda instalado pero no se inicializa salvo flags de entorno.
 - `strictPeerDependencies: true` hace que pnpm rechace conflictos de peers. Los scripts de instalación de binarios se limitan explícitamente a los paquetes necesarios en `pnpm-workspace.yaml`.
 
 ## Resultado de la auditoría
