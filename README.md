@@ -1,6 +1,6 @@
 # Neutro
 
-Monorepositorio con pnpm y Turborepo. Por ahora la única aplicación es la web pública: una página estática **Under construction** en Astro.
+Monorepositorio con pnpm y Turborepo. Por ahora la única aplicación es la web pública: una landing estática en Astro (español rioplatense), con la base de diseño lista y las secciones todavía por armar.
 
 ## Requisitos
 
@@ -31,18 +31,19 @@ apps/
   web/                  # Astro + React + Vite; única aplicación desplegable
     public/             # Archivos estáticos
     src/
+      components/sections/  # Stubs de la landing (Header, Hero, etc.)
       layouts/          # Documento HTML y metadatos
-      lib/              # Configuración y lógica de la aplicación
+      lib/              # Sitio, analytics (PostHog off por defecto)
       pages/            # Inicio y página 404
     astro.config.mjs
     components.json     # shadcn/ui enlazado al paquete compartido
-    worker/             # Redirects QR (/f/*, /t) + PostHog opcional
-    wrangler.jsonc      # Worker neutro-web + Static Assets
+    wrangler.jsonc      # Configuración futura de Cloudflare
 packages/
-  core/                 # Esquemas Effect y mapping QR (puro)
+  core/                 # Esquemas y lógica TypeScript con Effect
   ui/                   # shadcn/ui, utilidades y tema Tailwind compartidos
   typescript-config/    # Configuración estricta compartida
 docs/
+  adr/                  # Decisiones de arquitectura
   dependencies.md       # Versiones verificadas y decisiones de compatibilidad
 ```
 
@@ -56,7 +57,6 @@ Ejecutar desde la raíz con `pnpm` o `corepack pnpm`:
 | -------------------------- | ------------------------------------------------- |
 | `pnpm dev`                 | Desarrollo de la aplicación pública               |
 | `pnpm check`               | Tipos de los paquetes y diagnóstico de Astro      |
-| `pnpm test`                | Tests unitarios (mapping QR en `@neutro/core`)    |
 | `pnpm build`               | Build de la web en `apps/web/dist`                |
 | `pnpm preview`             | Servir el último build con Astro                  |
 | `pnpm format`              | Formatear código, Astro y clases Tailwind         |
@@ -68,7 +68,9 @@ Ejecutar desde la raíz con `pnpm` o `corepack pnpm`:
 
 ## UI y estilos
 
-Tailwind CSS 4 se integra como plugin de Vite en `apps/web/astro.config.mjs`. El tema y los tokens de shadcn/ui se encuentran en `packages/ui/src/styles/globals.css`; el layout de Astro importa ese CSS global. Las fuentes de Tailwind incluyen tanto la aplicación como los componentes compartidos.
+Tailwind CSS 4 se integra como plugin de Vite en `apps/web/astro.config.mjs`. El tema y los tokens de shadcn/ui se encuentran en `packages/ui/src/styles/globals.css` (mapeados a la paleta Neutro, con clase `.dark` en `<html>`). El layout de Astro importa ese CSS global y autoaloja Geist Sans (400/500/700) y Geist Mono. Las fuentes de Tailwind incluyen tanto la aplicación como los componentes compartidos.
+
+PostHog está preparado en `apps/web/src/lib/analytics.ts` y **no carga nada** salvo que existan `PUBLIC_POSTHOG_KEY` y `PUBLIC_ANALYTICS_ENABLED=true`. Ver [`docs/adr/0001-analytics-off-by-default.md`](docs/adr/0001-analytics-off-by-default.md).
 
 shadcn/ui está configurado con estilo `new-york`, base `neutral`, React y `lucide-react` para íconos. `Button` queda incluido como componente inicial. Los componentes son código del proyecto, no un runtime de shadcn.
 
@@ -99,23 +101,25 @@ La configuración compartida activa modo estricto, validación de índices y pro
 
 Effect complementa a TypeScript con validación en ejecución y modelado de efectos y errores; el chequeo estático lo hace TypeScript. No hace falta cargar Effect en el navegador para esta página.
 
-## Cloudflare
+## Cloudflare: siguiente etapa
 
-Worker **`neutro-web`**: Static Assets desde `apps/web/dist` más el script en `apps/web/worker/` para redirects QR (`/f/*`, `/t`). Ver [`docs/adr/0002-qr-redirect-routes.md`](docs/adr/0002-qr-redirect-routes.md).
+La configuración está preparada para **Workers Static Assets** con el nombre `neutro-web`. Astro genera un sitio estático, por lo que no necesita un adaptador SSR ni un script Worker. Wrangler sirve `dist` y utiliza `404.html` para rutas inexistentes.
+
+Cuando se conecte Cloudflare:
 
 ```sh
 corepack pnpm --filter @neutro/web exec wrangler login
 corepack pnpm deploy
 ```
 
-Para Workers Builds, raíz del repo:
+Para Workers Builds, usar la raíz del repositorio como directorio de trabajo:
 
 - Instalación: `pnpm install --frozen-lockfile`.
-- Build: `pnpm check && pnpm test && pnpm build`.
+- Build: `pnpm check && pnpm build`.
 - Despliegue: `pnpm --filter @neutro/web deploy`.
-- Node `24.18.0`; pnpm `12.14.0`.
+- Versión de Node: `24.18.0`; versión de pnpm: `12.14.0`.
 
-Scan logging del Worker: secret `POSTHOG_KEY` + var `ANALYTICS_ENABLED`. Local: `apps/web/.dev.vars` desde `.dev.vars.example`.
+El dominio real y la cuenta se configurarán al conectar Cloudflare. Si más adelante hacen falta rutas SSR o bindings, se añadirá `@astrojs/cloudflare` y se generarán sus tipos con `wrangler types`.
 
 ## Dependencias
 

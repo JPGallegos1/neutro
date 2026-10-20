@@ -9,7 +9,7 @@ Estado registrado el **19 de octubre de 2026**.
 - Repositorio: [JPGallegos1/neutro](https://github.com/JPGallegos1/neutro), privado, rama `main`.
 - Worker desplegado: **`neutro-web`**.
 - URL pública funcionando: **https://neutro-web.jpgallegos20.workers.dev**.
-- Contenido actual: página estática **Under construction**.
+- Contenido actual: página estática de la web pública de Neutro.
 - La página principal y sus estilos respondieron con HTTP 200; las rutas inexistentes, con HTTP 404.
 - Configuración del despliegue: `apps/web/wrangler.jsonc`.
 - Pendiente: añadir o verificar la zona del dominio en Cloudflare, cambiar la delegación en Namecheap y conectar el dominio al Worker.
@@ -131,7 +131,7 @@ Comprobar en el navegador:
 
 | URL                                  | Resultado esperado                         |
 | ------------------------------------ | ------------------------------------------ |
-| `https://neutro.solutions/`          | HTTP 200 y página Under construction       |
+| `https://neutro.solutions/`          | HTTP 200 y página pública de Neutro        |
 | `https://www.neutro.solutions/`      | HTTP 301 hacia `https://neutro.solutions/` |
 | `https://neutro.solutions/no-existe` | HTTP 404 y página de error del proyecto    |
 
