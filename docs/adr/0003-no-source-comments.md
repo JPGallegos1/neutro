@@ -13,7 +13,7 @@ Numbering: this ADR is **0003** so it does not collide with **0001** (analytics,
 ## Decision
 
 - Enforce `neutro/no-comments` via `tools/oxlint/no-comments.js` registered in `.oxlintrc.json`.
-- Root script: `pnpm lint` → `oxlint .`
+- Root script: `pnpm lint` → `oxlint -A all -D neutro/no-comments .` so CI only fails on this policy (not unrelated default oxlint categories).
 - CI runs `pnpm lint` and fails the job on any violation.
 - Scope: JavaScript/TypeScript (`.js`/`.mjs`/`.cjs`/`.ts`/`.tsx`/…) and Astro **script/frontmatter** blocks (oxlint’s Astro support). HTML template text and CSS (including `<style>` in `.astro`) are outside oxlint; do not put prose there either, but this ADR does not claim CSS/HTML enforcement.
 
