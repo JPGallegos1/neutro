@@ -10,6 +10,12 @@
   --landing-ease-accordion: 200ms ease-out;
 }
 
+html,
+body {
+  overflow-x: clip;
+  max-width: 100%;
+}
+
 @media (min-width: 768px) and (max-width: 1023px) {
   :root {
     --landing-gutter: 32px;

@@ -48,15 +48,13 @@ const { navItems } = Astro.props;
             <a
               class="social-link mobile-drawer__social"
               href={social.href}
-              aria-label={`${social.label} (enlace pendiente)`}
+              aria-label={`${social.label} (se abre en una pestaña nueva)`}
+              target="_blank"
+              rel="noopener noreferrer"
               data-drawer-link
             >
               <span class="mobile-drawer__social-icon" aria-hidden="true">
-                {social.id === "x" ? (
-                  <span class="mobile-drawer__social-x">X</span>
-                ) : (
-                  <Icon name={social.icon} size={20} />
-                )}
+                <Icon name={social.icon} size={20} />
               </span>
               <span>{social.label}</span>
               <span class="social-arrow" aria-hidden="true">

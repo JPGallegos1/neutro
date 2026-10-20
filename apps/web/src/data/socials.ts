@@ -1,34 +1,16 @@
 export type SocialLink = {
-  id: "instagram" | "facebook" | "linkedin" | "x";
+  id: "instagram";
   label: string;
   href: string;
-  icon: "instagram" | "facebook" | "linkedin" | "x";
+  icon: "instagram";
 };
 
-/** URLs reales pendientes de Juan — placeholders `#`. */
+/** Placeholder hasta tener el handle oficial. */
 export const socialLinks: SocialLink[] = [
   {
     id: "instagram",
     label: "Instagram",
-    href: "#",
+    href: "https://instagram.com/[INSTAGRAM OFICIAL]",
     icon: "instagram",
-  },
-  {
-    id: "facebook",
-    label: "Facebook",
-    href: "#",
-    icon: "facebook",
-  },
-  {
-    id: "linkedin",
-    label: "LinkedIn",
-    href: "#",
-    icon: "linkedin",
-  },
-  {
-    id: "x",
-    label: "X",
-    href: "#",
-    icon: "x",
   },
 ];
