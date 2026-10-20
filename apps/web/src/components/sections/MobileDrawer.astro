@@ -1,0 +1,321 @@
+---
+import Logo from "@/components/Logo.astro";
+import ThemeToggle from "@/components/ThemeToggle.astro";
+import Icon from "@/components/ui/Icon.astro";
+import { socialLinks } from "@/data/socials";
+
+interface Props {
+  navItems: { label: string; href: string }[];
+}
+
+const { navItems } = Astro.props;
+---
+
+<dialog id="menu-drawer" class="mobile-drawer" aria-label="Menú" data-drawer>
+  <div class="mobile-drawer__panel">
+    <div class="mobile-drawer__top">
+      <Logo />
+      <button
+        type="button"
+        class="mobile-drawer__close"
+        data-drawer-close
+        aria-label="Cerrar menú"
+      >
+        <Icon name="x" size={20} />
+      </button>
+    </div>
+
+    <nav class="mobile-drawer__nav" aria-label="Principal">
+      <ul class="mobile-drawer__nav-list">
+        {navItems.map((item) => (
+          <li>
+            <a
+              class="landing-link mobile-drawer__nav-link"
+              href={item.href}
+              data-drawer-link
+            >
+              {item.label}
+            </a>
+          </li>
+        ))}
+      </ul>
+    </nav>
+
+    <nav class="mobile-drawer__socials" aria-label="Redes">
+      <ul class="mobile-drawer__socials-list">
+        {socialLinks.map((social) => (
+          <li>
+            <a
+              class="social-link mobile-drawer__social"
+              href={social.href}
+              aria-label={`${social.label} (se abre en una pestaña nueva)`}
+              target="_blank"
+              rel="noopener noreferrer"
+              data-drawer-link
+            >
+              <span class="mobile-drawer__social-icon" aria-hidden="true">
+                <Icon name={social.icon} size={20} />
+              </span>
+              <span>{social.label}</span>
+              <span class="social-arrow" aria-hidden="true">
+                <Icon name="arrow-up-right" size={18} />
+              </span>
+            </a>
+          </li>
+        ))}
+      </ul>
+    </nav>
+
+    <div class="mobile-drawer__theme">
+      <ThemeToggle variant="drawer" />
+    </div>
+  </div>
+</dialog>
+
+<script>
+  type DrawerHost = HTMLDialogElement & { _drawerAbort?: AbortController };
+
+  function isDisplayed(el: Element | null): el is HTMLElement {
+    if (!(el instanceof HTMLElement)) return false;
+    return getComputedStyle(el).display !== "none";
+  }
+
+  function focusVisibleControl(openBtn: HTMLButtonElement) {
+    if (isDisplayed(openBtn)) {
+      openBtn.focus();
+      return;
+    }
+    const logo = document.querySelector<HTMLElement>("header a.logo");
+    if (isDisplayed(logo)) {
+      logo.focus();
+      return;
+    }
+    const navLink = document.querySelector<HTMLElement>(
+      ".site-header__nav a.site-header__nav-link",
+    );
+    if (isDisplayed(navLink)) {
+      navLink.focus();
+      return;
+    }
+    const { body } = document;
+    if (!body.hasAttribute("tabindex")) body.tabIndex = -1;
+    body.focus({ preventScroll: true });
+  }
+
+  function initDrawer() {
+    const dialog = document.querySelector<DrawerHost>("[data-drawer]");
+    const openBtn =
+      document.querySelector<HTMLButtonElement>("[data-drawer-open]");
+    if (!dialog || !openBtn) return;
+
+    dialog._drawerAbort?.abort();
+    const ac = new AbortController();
+    dialog._drawerAbort = ac;
+    const { signal } = ac;
+
+    const closeBtns = dialog.querySelectorAll<HTMLButtonElement>(
+      "[data-drawer-close]",
+    );
+    const links =
+      dialog.querySelectorAll<HTMLAnchorElement>("[data-drawer-link]");
+    const desktopMq = window.matchMedia("(min-width: 1024px)");
+
+    const setExpanded = (open: boolean) => {
+      openBtn.setAttribute("aria-expanded", open ? "true" : "false");
+      document.documentElement.classList.toggle("drawer-open", open);
+      document.body.style.overflow = open ? "hidden" : "";
+    };
+
+    const open = () => {
+      if (!dialog.open) {
+        dialog.showModal();
+        setExpanded(true);
+      }
+    };
+
+    const close = () => {
+      if (dialog.open) {
+        dialog.close();
+      }
+    };
+
+    openBtn.addEventListener("click", open, { signal });
+    closeBtns.forEach((btn) =>
+      btn.addEventListener("click", close, { signal }),
+    );
+    links.forEach((link) => link.addEventListener("click", close, { signal }));
+
+    dialog.addEventListener(
+      "close",
+      () => {
+        setExpanded(false);
+        focusVisibleControl(openBtn);
+      },
+      { signal },
+    );
+
+    dialog.addEventListener(
+      "click",
+      (event) => {
+        if (event.target === dialog) close();
+      },
+      { signal },
+    );
+
+    const onDesktopChange = (event: MediaQueryListEvent) => {
+      if (event.matches) close();
+    };
+    desktopMq.addEventListener("change", onDesktopChange, { signal });
+    if (desktopMq.matches && dialog.open) close();
+  }
+
+  initDrawer();
+  document.addEventListener("astro:page-load", initDrawer);
+</script>
+
+<style>
+  .mobile-drawer {
+    width: 100%;
+    max-width: 100%;
+    height: 100%;
+    max-height: 100%;
+    margin: 0;
+    padding: 0;
+    border: 0;
+    background: var(--neutro-bg);
+    color: var(--neutro-text);
+  }
+
+  .mobile-drawer::backdrop {
+    background: transparent;
+  }
+
+  .mobile-drawer[open] {
+    display: block;
+    animation: drawer-in var(--landing-ease-drawer) both;
+  }
+
+  @keyframes drawer-in {
+    from {
+      opacity: 0;
+      transform: translateY(-8px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  .mobile-drawer__panel {
+    display: flex;
+    flex-direction: column;
+    min-height: 100%;
+    padding: 24px var(--landing-gutter) 40px;
+  }
+
+  .mobile-drawer__top {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    min-height: 32px;
+    margin-bottom: 72px;
+  }
+
+  .mobile-drawer__close {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 44px;
+    height: 44px;
+    margin-inline-end: -12px;
+    border: 0;
+    background: transparent;
+    color: var(--neutro-text);
+    cursor: pointer;
+  }
+
+  .mobile-drawer__close:hover {
+    background: color-mix(in srgb, var(--neutro-bg) 92%, var(--neutro-text) 8%);
+    border-radius: 4px;
+  }
+
+  .mobile-drawer__nav-list,
+  .mobile-drawer__socials-list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+  }
+
+  .mobile-drawer__nav-list {
+    display: flex;
+    flex-direction: column;
+    gap: 52px;
+  }
+
+  .mobile-drawer__nav-link {
+    font-size: 32px;
+    font-weight: 500;
+    letter-spacing: -0.64px;
+    color: var(--neutro-text);
+  }
+
+  .mobile-drawer__socials {
+    margin-top: auto;
+    padding-top: 48px;
+  }
+
+  .mobile-drawer__socials-list {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+  }
+
+  .mobile-drawer__social {
+    display: inline-flex;
+    align-items: center;
+    gap: 12px;
+    font-size: 16px;
+    font-weight: 500;
+    color: var(--neutro-text);
+    text-decoration: none;
+  }
+
+  .mobile-drawer__social:hover {
+    text-decoration: underline;
+    text-underline-offset: 4px;
+  }
+
+  .mobile-drawer__social-icon {
+    display: inline-flex;
+    width: 20px;
+    justify-content: center;
+  }
+
+  .mobile-drawer__social-x {
+    font-size: 19px;
+    font-weight: 500;
+    line-height: 1;
+  }
+
+  .mobile-drawer__social :global(.social-arrow) {
+    color: var(--neutro-text-muted);
+  }
+
+  .mobile-drawer__theme {
+    margin-top: 40px;
+    padding-top: 24px;
+    border-top: 0;
+  }
+
+  @media (min-width: 1024px) {
+    .mobile-drawer {
+      display: none !important;
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .mobile-drawer[open] {
+      animation: none;
+    }
+  }
+</style>

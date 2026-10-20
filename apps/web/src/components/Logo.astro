@@ -1,0 +1,101 @@
+---
+interface Props {
+  forceDark?: boolean;
+  class?: string;
+  link?: boolean;
+}
+
+const { forceDark = false, class: className, link = true } = Astro.props;
+
+const LOGO_B_DISPLAY_WIDTH = 53;
+const LOGO_B_DISPLAY_HEIGHT = 32;
+---
+
+{link ? (
+  <a
+    href="/"
+    class:list={["logo", forceDark && "logo--force-dark", className]}
+    aria-label="Neutro Solutions"
+  >
+    <img
+      class="logo__img logo__img--light"
+      src="/images/neutro/ns-logo-b-positivo.svg"
+      alt=""
+      width={LOGO_B_DISPLAY_WIDTH}
+      height={LOGO_B_DISPLAY_HEIGHT}
+      decoding="async"
+    />
+    <img
+      class="logo__img logo__img--dark"
+      src="/images/neutro/ns-logo-b-negativo.svg"
+      alt=""
+      width={LOGO_B_DISPLAY_WIDTH}
+      height={LOGO_B_DISPLAY_HEIGHT}
+      decoding="async"
+    />
+  </a>
+) : (
+  <span
+    class:list={["logo", forceDark && "logo--force-dark", className]}
+    aria-label="Neutro Solutions"
+    role="img"
+  >
+    <img
+      class="logo__img logo__img--light"
+      src="/images/neutro/ns-logo-b-positivo.svg"
+      alt=""
+      width={LOGO_B_DISPLAY_WIDTH}
+      height={LOGO_B_DISPLAY_HEIGHT}
+      decoding="async"
+    />
+    <img
+      class="logo__img logo__img--dark"
+      src="/images/neutro/ns-logo-b-negativo.svg"
+      alt=""
+      width={LOGO_B_DISPLAY_WIDTH}
+      height={LOGO_B_DISPLAY_HEIGHT}
+      decoding="async"
+    />
+  </span>
+)}
+
+<style>
+  .logo {
+    
+    display: inline-flex;
+    padding: 16px;
+    margin: -16px;
+    line-height: 0;
+    text-decoration: none;
+    color: inherit;
+  }
+
+  .logo__img {
+    display: block;
+    width: 53px;
+    height: 32px;
+    
+    object-fit: contain;
+  }
+
+  .logo__img--dark {
+    display: none;
+  }
+
+  :global(html.dark) .logo:not(.logo--force-dark) .logo__img--light {
+    display: none;
+  }
+
+  :global(html.dark) .logo:not(.logo--force-dark) .logo__img--dark {
+    display: block;
+  }
+
+  
+  .logo--force-dark .logo__img--light {
+    display: none;
+  }
+
+  .logo--force-dark .logo__img--dark {
+    display: block;
+  }
+</style>
