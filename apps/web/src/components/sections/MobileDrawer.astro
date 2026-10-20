@@ -80,7 +80,6 @@ const { navItems } = Astro.props;
     return getComputedStyle(el).display !== "none";
   }
 
-  /** Foco en un control visible: openBtn (mobile) o logo/nav (desktop). */
   function focusVisibleControl(openBtn: HTMLButtonElement) {
     if (isDisplayed(openBtn)) {
       openBtn.focus();
@@ -109,7 +108,6 @@ const { navItems } = Astro.props;
       document.querySelector<HTMLButtonElement>("[data-drawer-open]");
     if (!dialog || !openBtn) return;
 
-    // Re-init defensivo (astro:page-load / HMR): abortar listeners previos.
     dialog._drawerAbort?.abort();
     const ac = new AbortController();
     dialog._drawerAbort = ac;
@@ -151,13 +149,11 @@ const { navItems } = Astro.props;
       "close",
       () => {
         setExpanded(false);
-        // No enfocar openBtn en desktop: está display:none.
         focusVisibleControl(openBtn);
       },
       { signal },
     );
 
-    // Clic en backdrop
     dialog.addEventListener(
       "click",
       (event) => {
@@ -166,7 +162,6 @@ const { navItems } = Astro.props;
       { signal },
     );
 
-    // Al entrar en desktop con el drawer abierto: cerrar modal, scroll y foco.
     const onDesktopChange = (event: MediaQueryListEvent) => {
       if (event.matches) close();
     };

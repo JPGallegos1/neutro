@@ -11,10 +11,6 @@ export type ServiceCategory = {
   defaultOpen?: boolean;
 };
 
-/**
- * Contenido del acordeón según v29. Solo «Web» trae cuerpo completo en el .pen;
- * el resto tiene título y panel vacío hasta que llegue el copy.
- */
 export const serviceCategories: ServiceCategory[] = [
   {
     id: "web",
