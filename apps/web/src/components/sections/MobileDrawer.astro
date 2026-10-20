@@ -73,17 +73,54 @@ const { navItems } = Astro.props;
 </dialog>
 
 <script>
+  type DrawerHost = HTMLDialogElement & { _drawerAbort?: AbortController };
+
+  function isDisplayed(el: Element | null): el is HTMLElement {
+    if (!(el instanceof HTMLElement)) return false;
+    return getComputedStyle(el).display !== "none";
+  }
+
+  /** Foco en un control visible: openBtn (mobile) o logo/nav (desktop). */
+  function focusVisibleControl(openBtn: HTMLButtonElement) {
+    if (isDisplayed(openBtn)) {
+      openBtn.focus();
+      return;
+    }
+    const logo = document.querySelector<HTMLElement>("header a.logo");
+    if (isDisplayed(logo)) {
+      logo.focus();
+      return;
+    }
+    const navLink = document.querySelector<HTMLElement>(
+      ".site-header__nav a.site-header__nav-link",
+    );
+    if (isDisplayed(navLink)) {
+      navLink.focus();
+      return;
+    }
+    const { body } = document;
+    if (!body.hasAttribute("tabindex")) body.tabIndex = -1;
+    body.focus({ preventScroll: true });
+  }
+
   function initDrawer() {
-    const dialog = document.querySelector<HTMLDialogElement>("[data-drawer]");
+    const dialog = document.querySelector<DrawerHost>("[data-drawer]");
     const openBtn =
       document.querySelector<HTMLButtonElement>("[data-drawer-open]");
     if (!dialog || !openBtn) return;
+
+    // Re-init defensivo (astro:page-load / HMR): abortar listeners previos.
+    dialog._drawerAbort?.abort();
+    const ac = new AbortController();
+    dialog._drawerAbort = ac;
+    const { signal } = ac;
 
     const closeBtns = dialog.querySelectorAll<HTMLButtonElement>(
       "[data-drawer-close]",
     );
     const links =
       dialog.querySelectorAll<HTMLAnchorElement>("[data-drawer-link]");
+    const desktopMq = window.matchMedia("(min-width: 1024px)");
 
     const setExpanded = (open: boolean) => {
       openBtn.setAttribute("aria-expanded", open ? "true" : "false");
@@ -104,19 +141,37 @@ const { navItems } = Astro.props;
       }
     };
 
-    openBtn.addEventListener("click", open);
-    closeBtns.forEach((btn) => btn.addEventListener("click", close));
-    links.forEach((link) => link.addEventListener("click", close));
+    openBtn.addEventListener("click", open, { signal });
+    closeBtns.forEach((btn) =>
+      btn.addEventListener("click", close, { signal }),
+    );
+    links.forEach((link) => link.addEventListener("click", close, { signal }));
 
-    dialog.addEventListener("close", () => {
-      setExpanded(false);
-      openBtn.focus();
-    });
+    dialog.addEventListener(
+      "close",
+      () => {
+        setExpanded(false);
+        // No enfocar openBtn en desktop: está display:none.
+        focusVisibleControl(openBtn);
+      },
+      { signal },
+    );
 
     // Clic en backdrop
-    dialog.addEventListener("click", (event) => {
-      if (event.target === dialog) close();
-    });
+    dialog.addEventListener(
+      "click",
+      (event) => {
+        if (event.target === dialog) close();
+      },
+      { signal },
+    );
+
+    // Al entrar en desktop con el drawer abierto: cerrar modal, scroll y foco.
+    const onDesktopChange = (event: MediaQueryListEvent) => {
+      if (event.matches) close();
+    };
+    desktopMq.addEventListener("change", onDesktopChange, { signal });
+    if (desktopMq.matches && dialog.open) close();
   }
 
   initDrawer();
