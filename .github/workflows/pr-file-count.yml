@@ -1,0 +1,26 @@
+name: PR file count
+
+on:
+  pull_request:
+
+concurrency:
+  group: pr-file-count-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  pr-file-count:
+    name: Max 10 files
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .node-version
+      - name: Enforce max 10 files per PR
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: node tools/ci/check-pr-file-count.mjs
