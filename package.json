@@ -12,7 +12,7 @@
     "dev": "turbo run dev --filter=@neutro/web",
     "build": "turbo run build --filter=@neutro/web",
     "check": "turbo run check",
-    "lint": "oxlint .",
+    "lint": "oxlint -A all -D neutro/no-comments .",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "preview": "pnpm --filter @neutro/web preview",
