@@ -1,0 +1,327 @@
+---
+import Icon from "@/components/ui/Icon.astro";
+
+const posterSrc = "/video/neutro-poster.jpg";
+const sources = [
+  { src: "/video/neutro.webm", type: "video/webm" },
+  { src: "/video/neutro.mp4", type: "video/mp4" },
+] as const;
+---
+
+<section class="video-section" aria-label="Video">
+  <div class="landing-shell landing-gutter">
+    <div class="video-section__frame" data-video-root>
+      <video
+        class="video-section__video"
+        data-video
+        muted
+        loop
+        playsinline
+        preload="metadata"
+        poster={posterSrc}
+        width="1280"
+        height="720"
+        aria-label="Video de presentación de Neutro Solutions con música instrumental"
+      >
+        {sources.map((source) => (
+          <source src={source.src} type={source.type} />
+        ))}
+      </video>
+
+      
+      <div class="video-section__reduced" data-video-reduced hidden>
+        <button
+          type="button"
+          class="video-section__play"
+          data-video-play
+          aria-label="Reproducir video"
+        >
+          <Icon name="play" size={28} />
+        </button>
+      </div>
+
+      <div class="video-section__controls" data-video-controls>
+        <button
+          type="button"
+          class="video-section__btn"
+          data-video-playback
+          aria-pressed="true"
+          aria-label="Pausar video"
+        >
+          <span
+            class="video-section__icon video-section__icon--pause"
+            aria-hidden="true"
+          >
+            <Icon name="pause" size={18} />
+          </span>
+          <span
+            class="video-section__icon video-section__icon--play"
+            aria-hidden="true"
+          >
+            <Icon name="play" size={18} />
+          </span>
+          <span class="video-section__btn-label" data-video-playback-label>
+            Pausar
+          </span>
+        </button>
+        <button
+          type="button"
+          class="video-section__btn"
+          data-video-mute
+          aria-pressed="true"
+          aria-label="Activar sonido"
+        >
+          <span
+            class="video-section__icon video-section__icon--muted"
+            aria-hidden="true"
+          >
+            <Icon name="volume-x" size={18} />
+          </span>
+          <span
+            class="video-section__icon video-section__icon--unmuted"
+            aria-hidden="true"
+          >
+            <Icon name="volume-2" size={18} />
+          </span>
+          <span class="video-section__btn-label" data-video-mute-label>
+            Activar sonido
+          </span>
+        </button>
+      </div>
+    </div>
+  </div>
+</section>
+
+<script>
+  function prefersReducedMotion(): boolean {
+    return window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  }
+
+  function initVideo() {
+    const root = document.querySelector<HTMLElement>("[data-video-root]");
+    if (!root || root.dataset.ready === "true") return;
+    root.dataset.ready = "true";
+
+    const video = root.querySelector<HTMLVideoElement>("[data-video]");
+    const reduced = root.querySelector<HTMLElement>("[data-video-reduced]");
+    const playBtn = root.querySelector<HTMLButtonElement>("[data-video-play]");
+    const playbackBtn = root.querySelector<HTMLButtonElement>(
+      "[data-video-playback]",
+    );
+    const muteBtn = root.querySelector<HTMLButtonElement>("[data-video-mute]");
+    const playbackLabel = root.querySelector<HTMLElement>(
+      "[data-video-playback-label]",
+    );
+    const muteLabel = root.querySelector<HTMLElement>(
+      "[data-video-mute-label]",
+    );
+    const controls = root.querySelector<HTMLElement>("[data-video-controls]");
+
+    if (
+      !video ||
+      !reduced ||
+      !playBtn ||
+      !playbackBtn ||
+      !muteBtn ||
+      !playbackLabel ||
+      !muteLabel ||
+      !controls
+    ) {
+      return;
+    }
+
+    const syncPlaybackUi = () => {
+      const playing = !video.paused;
+      playbackBtn.setAttribute("aria-pressed", playing ? "true" : "false");
+      playbackBtn.setAttribute(
+        "aria-label",
+        playing ? "Pausar video" : "Reproducir video",
+      );
+      playbackLabel.textContent = playing ? "Pausar" : "Reproducir";
+      root.dataset.playing = playing ? "true" : "false";
+    };
+
+    const syncMuteUi = () => {
+      const muted = video.muted || video.volume === 0;
+      muteBtn.setAttribute("aria-pressed", muted ? "true" : "false");
+      muteBtn.setAttribute(
+        "aria-label",
+        muted ? "Activar sonido" : "Silenciar",
+      );
+      muteLabel.textContent = muted ? "Activar sonido" : "Silenciar";
+      root.dataset.muted = muted ? "true" : "false";
+    };
+
+    const tryAutoplay = async () => {
+      video.muted = true;
+      try {
+        await video.play();
+      } catch {
+        root.dataset.playing = "false";
+        syncPlaybackUi();
+      }
+    };
+
+    if (prefersReducedMotion()) {
+      root.dataset.reduced = "true";
+      reduced.hidden = false;
+      controls.hidden = true;
+      video.removeAttribute("autoplay");
+      video.pause();
+      playBtn.addEventListener("click", async () => {
+        reduced.hidden = true;
+        controls.hidden = false;
+        try {
+          await video.play();
+        } catch {
+          reduced.hidden = false;
+        }
+        syncPlaybackUi();
+      });
+    } else {
+      root.dataset.reduced = "false";
+      reduced.hidden = true;
+      controls.hidden = false;
+      void tryAutoplay();
+    }
+
+    playbackBtn.addEventListener("click", async () => {
+      if (video.paused) {
+        try {
+          await video.play();
+        } catch {
+          void 0;
+        }
+      } else {
+        video.pause();
+      }
+      syncPlaybackUi();
+    });
+
+    muteBtn.addEventListener("click", () => {
+      video.muted = !video.muted;
+      syncMuteUi();
+    });
+
+    video.addEventListener("play", syncPlaybackUi);
+    video.addEventListener("pause", syncPlaybackUi);
+    video.addEventListener("volumechange", syncMuteUi);
+
+    syncPlaybackUi();
+    syncMuteUi();
+  }
+
+  initVideo();
+  document.addEventListener("astro:page-load", initVideo);
+</script>
+
+<style>
+  .video-section {
+    background: var(--neutro-bg);
+    padding-block: 0 64px;
+  }
+
+  @media (min-width: 1024px) {
+    .video-section {
+      padding-block: 0 96px;
+    }
+  }
+
+  .video-section__frame {
+    position: relative;
+    aspect-ratio: 16 / 9;
+    border: 1px solid var(--neutro-border);
+    background: #0a0a0a;
+    overflow: hidden;
+  }
+
+  .video-section__video {
+    display: block;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+
+  .video-section__reduced {
+    position: absolute;
+    inset: 0;
+    display: grid;
+    place-items: center;
+    background: #00000026;
+  }
+
+  .video-section__reduced[hidden] {
+    display: none;
+  }
+
+  .video-section__play {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 52px;
+    height: 52px;
+    border-radius: 999px;
+    border: 1px solid #ffffff66;
+    background: #f6f6f4f2;
+    color: #0a0a0a;
+    cursor: pointer;
+    transition: background-color 150ms ease;
+  }
+
+  .video-section__play:hover {
+    background: color-mix(in srgb, #f6f6f4 92%, #0a0a0a 8%);
+  }
+
+  @media (min-width: 1024px) {
+    .video-section__play {
+      width: 68px;
+      height: 68px;
+    }
+  }
+
+  .video-section__controls {
+    position: absolute;
+    right: 12px;
+    bottom: 12px;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    z-index: 1;
+  }
+
+  .video-section__controls[hidden] {
+    display: none;
+  }
+
+  .video-section__btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    min-height: 44px;
+    padding: 8px 12px;
+    border-radius: 4px;
+    border: 1px solid #ffffff66;
+    background: #f6f6f4f2;
+    color: #0a0a0a;
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: background-color 150ms ease;
+  }
+
+  .video-section__btn:hover {
+    background: color-mix(in srgb, #f6f6f4 92%, #0a0a0a 8%);
+  }
+
+  .video-section__icon {
+    display: none;
+    line-height: 0;
+  }
+
+  .video-section__frame[data-playing="true"] .video-section__icon--pause,
+  .video-section__frame[data-playing="false"] .video-section__icon--play,
+  .video-section__frame[data-muted="true"] .video-section__icon--muted,
+  .video-section__frame[data-muted="false"] .video-section__icon--unmuted {
+    display: inline-flex;
+  }
+</style>
