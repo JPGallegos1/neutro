@@ -21,6 +21,7 @@ Se seleccionaron las versiones estables publicadas bajo `latest`, con las excepc
 | `@types/react` / `@types/react-dom` | 19.3.0               |
 | `@types/node`                       | 24.19.2              |
 | Wrangler                            | 4.151.2              |
+| `@cloudflare/workers-types`         | 5.20261019.1         |
 | `class-variance-authority`          | 0.7.1                |
 | `clsx`                              | 2.1.1                |
 | `tailwind-merge`                    | 3.7.0                |
@@ -39,7 +40,7 @@ Se seleccionaron las versiones estables publicadas bajo `latest`, con las excepc
 - React 19.3.1 está dentro de los rangos soportados por Astro React, Radix y Lucide.
 - `oxc-transform-react` es un peer opcional para el compilador React experimental y no es necesario para la integración estándar.
 - No se instala `@astrojs/cloudflare`: la web actual está completamente prerenderizada y Workers Static Assets publica directamente `dist`.
-- Wrangler tiene `@cloudflare/workers-types` como peer opcional. Esta web no tiene código Worker ni bindings; si se añaden, se generarán los tipos desde Wrangler.
+- Wrangler tiene `@cloudflare/workers-types` como peer opcional. Se declara como devDependency de `@neutro/web` para tipar `apps/web/worker`.
 - `strictPeerDependencies: true` hace que pnpm rechace conflictos de peers. Los scripts de instalación de binarios se limitan explícitamente a los paquetes necesarios en `pnpm-workspace.yaml`.
 
 ## Resultado de la auditoría

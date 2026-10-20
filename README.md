@@ -36,9 +36,10 @@ apps/
       pages/            # Inicio y página 404
     astro.config.mjs
     components.json     # shadcn/ui enlazado al paquete compartido
-    wrangler.jsonc      # Configuración futura de Cloudflare
+    worker/             # Redirects QR (/f/*, /t) + PostHog opcional
+    wrangler.jsonc      # Worker neutro-web + Static Assets
 packages/
-  core/                 # Esquemas y lógica TypeScript con Effect
+  core/                 # Esquemas Effect y mapping QR (puro)
   ui/                   # shadcn/ui, utilidades y tema Tailwind compartidos
   typescript-config/    # Configuración estricta compartida
 docs/
@@ -55,6 +56,7 @@ Ejecutar desde la raíz con `pnpm` o `corepack pnpm`:
 | -------------------------- | ------------------------------------------------- |
 | `pnpm dev`                 | Desarrollo de la aplicación pública               |
 | `pnpm check`               | Tipos de los paquetes y diagnóstico de Astro      |
+| `pnpm test`                | Tests unitarios (mapping QR en `@neutro/core`)    |
 | `pnpm build`               | Build de la web en `apps/web/dist`                |
 | `pnpm preview`             | Servir el último build con Astro                  |
 | `pnpm format`              | Formatear código, Astro y clases Tailwind         |
@@ -97,25 +99,23 @@ La configuración compartida activa modo estricto, validación de índices y pro
 
 Effect complementa a TypeScript con validación en ejecución y modelado de efectos y errores; el chequeo estático lo hace TypeScript. No hace falta cargar Effect en el navegador para esta página.
 
-## Cloudflare: siguiente etapa
+## Cloudflare
 
-La configuración está preparada para **Workers Static Assets** con el nombre `neutro-web`. Astro genera un sitio estático, por lo que no necesita un adaptador SSR ni un script Worker. Wrangler sirve `dist` y utiliza `404.html` para rutas inexistentes.
-
-Cuando se conecte Cloudflare:
+Worker **`neutro-web`**: Static Assets desde `apps/web/dist` más el script en `apps/web/worker/` para redirects QR (`/f/*`, `/t`). Ver [`docs/adr/0002-qr-redirect-routes.md`](docs/adr/0002-qr-redirect-routes.md).
 
 ```sh
 corepack pnpm --filter @neutro/web exec wrangler login
 corepack pnpm deploy
 ```
 
-Para Workers Builds, usar la raíz del repositorio como directorio de trabajo:
+Para Workers Builds, raíz del repo:
 
 - Instalación: `pnpm install --frozen-lockfile`.
-- Build: `pnpm check && pnpm build`.
+- Build: `pnpm check && pnpm test && pnpm build`.
 - Despliegue: `pnpm --filter @neutro/web deploy`.
-- Versión de Node: `24.18.0`; versión de pnpm: `12.14.0`.
+- Node `24.18.0`; pnpm `12.14.0`.
 
-El dominio real y la cuenta se configurarán al conectar Cloudflare. Si más adelante hacen falta rutas SSR o bindings, se añadirá `@astrojs/cloudflare` y se generarán sus tipos con `wrangler types`.
+Scan logging del Worker: secret `POSTHOG_KEY` + var `ANALYTICS_ENABLED`. Local: `apps/web/.dev.vars` desde `.dev.vars.example`.
 
 ## Dependencias
 

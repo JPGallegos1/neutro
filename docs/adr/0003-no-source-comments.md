@@ -21,18 +21,18 @@ Numbering: this ADR is **0003** so it does not collide with **0001** (analytics,
 
 Only tool/runtime directives required for correct tooling. Matched on the trimmed comment body:
 
-| Pattern | Why |
-| --- | --- |
-| `///` / leading `/` (triple-slash references) | TypeScript `/// <reference … />` |
-| `@ts-*` | `@ts-expect-error`, `@ts-ignore`, `@ts-nocheck`, `@ts-check` |
-| `eslint-*` / `oxlint-*` | Inline suppressions |
-| `prettier-ignore` / `oxfmt-ignore` | Formatter directives |
-| `@vite-ignore` / `webpack*` magic comments | Bundler directives |
-| `v8 ignore` / `c8 ignore` / `istanbul ignore` | Coverage directives |
-| `@__PURE__` / `#__PURE__` / `@__NO_SIDE_EFFECTS__` / `#__NO_SIDE_EFFECTS__` | Bundler purity annotations |
-| `@license` / `@preserve` / leading `!` (`/*! … */`) | Legally required or preserve markers |
-| `sourceMappingURL` | Source map footers |
-| `global` / `globals` / `exported` | Legacy ESLint/JSHint globals (if ever needed) |
+| Pattern                                                                     | Why                                                          |
+| --------------------------------------------------------------------------- | ------------------------------------------------------------ |
+| `///` / leading `/` (triple-slash references)                               | TypeScript `/// <reference … />`                             |
+| `@ts-*`                                                                     | `@ts-expect-error`, `@ts-ignore`, `@ts-nocheck`, `@ts-check` |
+| `eslint-*` / `oxlint-*`                                                     | Inline suppressions                                          |
+| `prettier-ignore` / `oxfmt-ignore`                                          | Formatter directives                                         |
+| `@vite-ignore` / `webpack*` magic comments                                  | Bundler directives                                           |
+| `v8 ignore` / `c8 ignore` / `istanbul ignore`                               | Coverage directives                                          |
+| `@__PURE__` / `#__PURE__` / `@__NO_SIDE_EFFECTS__` / `#__NO_SIDE_EFFECTS__` | Bundler purity annotations                                   |
+| `@license` / `@preserve` / leading `!` (`/*! … */`)                         | Legally required or preserve markers                         |
+| `sourceMappingURL`                                                          | Source map footers                                           |
+| `global` / `globals` / `exported`                                           | Legacy ESLint/JSHint globals (if ever needed)                |
 
 No license header is required in this repo today; `@license`/`@preserve` stay allowed if one appears later.
 

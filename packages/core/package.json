@@ -4,16 +4,19 @@
   "private": true,
   "type": "module",
   "exports": {
-    "./site": "./src/site.ts"
+    "./site": "./src/site.ts",
+    "./qr-redirects": "./src/qr-redirects.ts"
   },
   "scripts": {
-    "check": "tsc --noEmit"
+    "check": "tsc --noEmit",
+    "test": "node --test --experimental-strip-types src/qr-redirects.test.ts"
   },
   "dependencies": {
     "effect": "4.0.5"
   },
   "devDependencies": {
     "@neutro/typescript-config": "workspace:*",
+    "@types/node": "24.19.2",
     "typescript": "6.0.3"
   }
 }
