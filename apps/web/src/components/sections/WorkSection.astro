@@ -49,8 +49,10 @@ import { workProjects } from "@/data/work";
 
   .work__grid {
     display: grid;
-    grid-template-columns: 1fr;
+    grid-template-columns: minmax(0, 1fr);
     gap: 0;
+    column-gap: 0;
+    row-gap: 0;
     margin: 0;
     padding: 0;
     list-style: none;
@@ -58,10 +60,10 @@ import { workProjects } from "@/data/work";
 
   @media (min-width: 1024px) {
     .work__grid {
-      grid-template-columns: 1fr 1fr;
-      /* Diseño v29: 2×2 a sangre, sin gap horizontal; separación vertical ~7px del frame */
+      /* 1fr 1fr (no %): evita costura por redondeo en anchos impares */
+      grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
       column-gap: 0;
-      row-gap: 7px;
+      row-gap: 0;
     }
   }
 </style>

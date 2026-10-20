@@ -59,6 +59,7 @@ const { project } = Astro.props;
 <style>
   .work-card {
     list-style: none;
+    min-width: 0;
   }
 
   .work-card__inner {
@@ -75,21 +76,23 @@ const { project } = Astro.props;
     }
   }
 
+  /* v34: sin border (antes 1px --neutro-border creaba costura entre cards). */
   .work-card__preview {
     position: relative;
     aspect-ratio: 16 / 9;
     overflow: hidden;
-    border: 1px solid var(--neutro-border);
-    background: var(--neutro-surface);
+    background: transparent;
   }
 
   .work-card__image {
-    position: relative;
+    position: absolute;
+    inset: 0;
     z-index: 0;
     display: block;
     width: 100%;
     height: 100%;
     object-fit: cover;
+    object-position: center;
     transition: transform 150ms ease;
   }
 
