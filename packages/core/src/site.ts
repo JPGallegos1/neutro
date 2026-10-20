@@ -12,5 +12,4 @@ export const SiteMetadata = Schema.Struct({
 
 export type SiteMetadata = typeof SiteMetadata.Type;
 
-// Keep validation in Effect's typed error channel until the application boundary.
 export const decodeSiteMetadata = Schema.decodeUnknownEffect(SiteMetadata);
