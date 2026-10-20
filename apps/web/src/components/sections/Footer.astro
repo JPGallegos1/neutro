@@ -288,14 +288,17 @@ const legalLinks = [
     }
   }
 
-  /* Ícono C ~28px en mobile (v30); desktop 53×32 */
-  .site-footer__mark :global(.logo__img) {
+  /* Ícono C ~28px en mobile (v30); desktop 53×32.
+     :global supera la especificidad scoped de Logo.astro. */
+  .site-footer :global(a.site-footer__mark.logo img.logo__img),
+  .site-footer :global(span.site-footer__mark.logo img.logo__img) {
     width: 28px;
     height: 17px;
   }
 
   @media (min-width: 1024px) {
-    .site-footer__mark :global(.logo__img) {
+    .site-footer :global(a.site-footer__mark.logo img.logo__img),
+    .site-footer :global(span.site-footer__mark.logo img.logo__img) {
       width: 53px;
       height: 32px;
     }
