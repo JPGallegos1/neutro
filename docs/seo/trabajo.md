@@ -2,7 +2,7 @@
 
 English prose. User-facing strings below are Spanish and must ship as written unless Jake (SEO) revises them.
 
-**Status:** Criteria only. No implementation in this change. Design v31 is pending Juan’s approval. Companion decision: [`docs/adr/0002-trabajo-routing-and-seo.md`](../adr/0002-trabajo-routing-and-seo.md).
+**Status:** Criteria only. No implementation in this change. Design v31 is pending Juan’s approval. Reviewers: Jake (SEO), Melody (design). Companion decision: [`docs/adr/0002-trabajo-routing-and-seo.md`](../adr/0002-trabajo-routing-and-seo.md).
 
 ## Surfaces
 
@@ -50,7 +50,7 @@ Each `?page=N` has its own self-referencing canonical. Do not collapse page 2+ o
 ### Title and structured data
 
 - Document title pattern: `<Cliente>: <qué se resolvió> | Neutro Solutions`
-- Case description: **140–155 characters**, from real approved data only.
+- Meta description: **140–155 characters**, from real approved data only.
 - JSON-LD: `Article` **or** `CreativeWork`, plus `BreadcrumbList`.
 - Breadcrumb trail: Inicio → Trabajo → current case (Spanish labels in the visible breadcrumb if shown).
 - Exactly **one** `<h1>` per case page.
@@ -70,7 +70,7 @@ Each `?page=N` has its own self-referencing canonical. Do not collapse page 2+ o
 | Separator | Hyphen between words                                      |
 | Accents   | Strip (é→e, ü→u, …)                                       |
 | ñ         | Map to `n`                                                |
-| Length    | **Hard maximum 3–4 words**                                |
+| Length    | **Maximum 4 words**                                       |
 | Stopwords | Not allowed                                               |
 | Dates     | Not allowed (no years, months, or numeric date fragments) |
 | Stability | Immutable after publish; renames need a **301**           |
@@ -95,8 +95,8 @@ These are non-negotiable for SEO:
 1. Show **4** cases initially; button only when count **> 4**; each click reveals **4 more**.
 2. **Server HTML** includes an `<a href="/trabajo/<slug>">` for **every** published case, including items beyond the first four.
 3. Items 5+ may be visually hidden (CSS / client reveal state).
-4. The button **only reveals** existing nodes for the incremental UI path. No `fetch` of card HTML as the sole source of those hrefs.
-5. **Scale fallback:** also include a real server-rendered `<a href="/trabajo?page=2">` (and further `?page=N` as needed). JS may intercept for in-place reveal; without JS, navigation loads that page. Each `?page=N` is a real response with its own self-canonical.
+4. The button **only reveals** nodes already present in the server HTML. **No fetch** — never request the network.
+5. **Scale fallback:** also include a real server-rendered `<a href="/trabajo?page=2">` (and further `?page=N` as needed). If JS intercepts that link, it **only reveals nodes already in the page** and **never requests the server**. Without JS, navigation loads that page. Each `?page=N` is a real response with its own self-canonical.
 6. **Sitemap** lists every published case URL and the index (include paginated index URLs if they are part of the public crawl surface).
 
 ### Verification
@@ -106,23 +106,23 @@ These are non-negotiable for SEO:
 curl -sS https://neutro.solutions/trabajo | grep -oE '/trabajo/[a-z0-9-]+' | sort -u
 
 # No Trabajo href may end with a trailing slash.
-curl -sS https://neutro.solutions/trabajo | grep -oE 'href="[^"]*trabajo[^"]*"' | grep '/"' && exit 1 || true
+! curl -sS https://neutro.solutions/trabajo | grep -oE 'href="[^"]*trabajo[^"]*"' | grep -q '/"'
 ```
 
 Local/preview builds use the same checks against the preview origin. A passing case-href check means the set of hrefs equals the set of published slugs.
 
 ## Data and placeholders
 
-Titles, meta descriptions, H1, case descriptions (140–155 chars), and schema text fields **must** come from real case data fields (or the shared work data module once extended).
+Titles, meta descriptions, H1, and schema text fields **must** come from real case data fields (or the shared work data module once extended). Meta description length is **140–155 characters**.
 
 The slug `/trabajo/lina` is **decided**. Lina’s **title and data** (and all other provisional cards’ titles/data) stay **unconfirmed**. Until content is approved, use clearly marked placeholders only, for example:
 
-| Field                       | Placeholder form          |
-| --------------------------- | ------------------------- |
-| Client name                 | `{Cliente}`               |
-| Outcome / “qué se resolvió” | `{qué se resolvió}`       |
-| Short description           | `{Descripción <id>}`      |
-| Meta description            | `{Meta descripción <id>}` |
+| Field                       | Placeholder form                          |
+| --------------------------- | ----------------------------------------- |
+| Client name                 | `{Cliente}`                               |
+| Outcome / “qué se resolvió” | `{qué se resolvió}`                       |
+| Short description           | `{Descripción <id>}`                      |
+| Meta description            | `{Meta descripción <id>}` (140–155 chars) |
 
 Never invent outcome lines solely to fill the title pattern.
 

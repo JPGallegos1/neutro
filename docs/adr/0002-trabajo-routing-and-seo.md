@@ -2,7 +2,7 @@
 
 ## Status
 
-Proposed — docs only. Implementation waits on design v31 approval (Juan). Do not ship routes from this ADR until that approval lands.
+Proposed — docs only. Implementation waits on design v31 approval (Juan). Do not ship routes from this ADR until that approval lands. Reviewers: Jake (SEO), Melody (design).
 
 ## Context
 
@@ -27,7 +27,7 @@ Astro must use exactly `trailingSlash: 'never'`. Emit and link **without** a tra
 
 - Lowercase ASCII only; words joined with hyphens.
 - Strip accents; map `ñ` → `n`.
-- **Hard maximum of 3–4 words** (not a soft preference).
+- **Maximum 4 words** (hard limit, not a soft preference).
 - No stopwords. No dates (no years, months, or numeric date fragments).
 - **Immutable once published.** Any later slug change requires an explicit **301** from the old path to the new one.
 
@@ -58,7 +58,7 @@ No alternate locale URLs in this ADR (site is Spanish-only).
 **Case (`/trabajo/<slug>`)**
 
 - `<title>`: `<Cliente>: <qué se resolvió> | Neutro Solutions` — both segments from approved case data, never invented in templates.
-- Case description (body / meta source): **140–155 characters**, from real approved data only.
+- Meta description: **140–155 characters**, from real approved data only.
 - JSON-LD: `Article` **or** `CreativeWork`, plus `BreadcrumbList` (`Inicio` → `Trabajo` → case).
 - Exactly one `<h1>` on the page.
 - Show **2–3 related cases** (links to other published cases).
@@ -71,11 +71,11 @@ Index behavior:
 
 1. Show **4** cases initially.
 2. Render the **Cargar más** control **only if** there are more than four cases (label ES: `Cargar más`).
-3. Each click reveals **4 more** already-present cases (no fetch of card markup).
+3. Each click reveals **4 more** nodes already present in the server HTML. **No fetch** — the button never requests the network.
 4. Render **every** case `<a href="/trabajo/<slug>">` in the **server HTML** (including items beyond the first four). Items 5+ may be visually hidden with CSS / client state until revealed.
 5. Every published case URL is included in the sitemap.
 
-**Scale fallback (progressive enhancement):** also emit a real server-rendered `<a href="/trabajo?page=2">` (and further `?page=N` as needed). Client JS may intercept that link to reveal the next batch in place; without JS, the link navigates to a server-rendered page for that page of results. Each `?page=N` response has its own self-referencing canonical (see Canonicals).
+**Scale fallback (progressive enhancement):** also emit a real server-rendered `<a href="/trabajo?page=2">` (and further `?page=N` as needed). If JS intercepts that link, it **only reveals nodes already in the page** and **never requests the server**. Without JS, the link navigates to a server-rendered page for that page of results. Each `?page=N` response has its own self-referencing canonical (see Canonicals).
 
 Verification gates (`curl` or equivalent, no JS):
 
