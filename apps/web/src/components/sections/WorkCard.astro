@@ -1,0 +1,181 @@
+---
+import type { WorkProject } from "@/data/work";
+
+interface Props {
+  project: WorkProject;
+}
+
+const { project } = Astro.props;
+---
+
+<li class="work-card">
+  {project.href ? (
+    <a
+      class="work-card__inner"
+      href={project.href}
+      aria-label={`Caso de estudio: ${project.title}`}
+    >
+      <div class="work-card__preview" style={`--work-tint: ${project.tint}`}>
+        <img
+          class="work-card__image"
+          src={project.imageSrc}
+          alt={project.imageAlt}
+          width="720"
+          height="405"
+          loading="eager"
+          decoding="async"
+          fetchpriority="high"
+        />
+        <span class="work-card__tag">{project.tag}</span>
+      </div>
+      <div class="work-card__details">
+        <h3 class="work-card__title">{project.title}</h3>
+        <p class="work-card__desc">{project.description}</p>
+      </div>
+    </a>
+  ) : (
+    <article class="work-card__inner">
+      <div class="work-card__preview" style={`--work-tint: ${project.tint}`}>
+        <img
+          class="work-card__image"
+          src={project.imageSrc}
+          alt={project.imageAlt}
+          width="720"
+          height="405"
+          loading="eager"
+          decoding="async"
+          fetchpriority="high"
+        />
+        <span class="work-card__tag">{project.tag}</span>
+      </div>
+      <div class="work-card__details">
+        <h3 class="work-card__title">{project.title}</h3>
+        <p class="work-card__desc">{project.description}</p>
+      </div>
+    </article>
+  )}
+</li>
+
+<style>
+  .work-card {
+    list-style: none;
+    min-width: 0;
+  }
+
+  .work-card__inner {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    color: inherit;
+    text-decoration: none;
+  }
+
+  @media (min-width: 1024px) {
+    .work-card__inner {
+      gap: 14px;
+    }
+  }
+
+  
+  .work-card__preview {
+    position: relative;
+    aspect-ratio: 16 / 9;
+    overflow: hidden;
+    background: transparent;
+  }
+
+  .work-card__image {
+    position: absolute;
+    inset: 0;
+    z-index: 0;
+    display: block;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    object-position: center;
+    transition: transform 150ms ease;
+  }
+
+  
+  .work-card__preview::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    z-index: 1;
+    background: var(--work-tint);
+    opacity: 0.32;
+    pointer-events: none;
+  }
+
+  a.work-card__inner:hover .work-card__image,
+  a.work-card__inner:focus-visible .work-card__image {
+    transform: scale(1.02);
+  }
+
+  .work-card__tag {
+    position: absolute;
+    z-index: 2;
+    top: 12px;
+    left: 12px;
+    padding: 4px 8px;
+    border-radius: 4px;
+    background: var(--neutro-accent-orange-strong);
+    color: var(--neutro-on-orange);
+    font-family: var(--font-mono);
+    font-size: 12px;
+    letter-spacing: 0.12px;
+    line-height: 1.2;
+  }
+
+  @media (min-width: 1024px) {
+    .work-card__tag {
+      top: 16px;
+      left: 16px;
+    }
+  }
+
+  .work-card__details {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    padding-inline: var(--landing-gutter);
+  }
+
+  @media (min-width: 1024px) {
+    .work-card__details {
+      gap: 5px;
+    }
+  }
+
+  .work-card__title {
+    margin: 0;
+    font-size: 18px;
+    font-weight: 500;
+    letter-spacing: -0.2px;
+    color: var(--neutro-text);
+  }
+
+  @media (min-width: 1024px) {
+    .work-card__title {
+      font-size: 20px;
+    }
+  }
+
+  .work-card__desc {
+    margin: 0;
+    font-size: 14px;
+    line-height: 1.4;
+    color: var(--neutro-text-muted);
+  }
+
+  @media (min-width: 1024px) {
+    .work-card__desc {
+      font-size: 15px;
+    }
+  }
+
+  a.work-card__inner:hover .work-card__title {
+    text-decoration: underline;
+    text-underline-offset: 4px;
+  }
+</style>
