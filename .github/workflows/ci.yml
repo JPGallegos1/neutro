@@ -26,6 +26,8 @@ jobs:
         run: pnpm install --frozen-lockfile
       - name: Lint (no source comments)
         run: pnpm lint
+      - name: Lint rule unit tests
+        run: pnpm test:lint-rules
 
   check:
     name: Check

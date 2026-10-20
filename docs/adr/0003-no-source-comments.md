@@ -21,18 +21,18 @@ Numbering: this ADR is **0003** so it does not collide with **0001** (analytics,
 
 Only tool/runtime directives required for correct tooling. Matched on the trimmed comment body:
 
-| Pattern                                                                     | Why                                                          |
-| --------------------------------------------------------------------------- | ------------------------------------------------------------ |
-| `///` / leading `/` (triple-slash references)                               | TypeScript `/// <reference … />`                             |
-| `@ts-*`                                                                     | `@ts-expect-error`, `@ts-ignore`, `@ts-nocheck`, `@ts-check` |
-| `eslint-*` / `oxlint-*`                                                     | Inline suppressions                                          |
-| `prettier-ignore` / `oxfmt-ignore`                                          | Formatter directives                                         |
-| `@vite-ignore` / `webpack*` magic comments                                  | Bundler directives                                           |
-| `v8 ignore` / `c8 ignore` / `istanbul ignore`                               | Coverage directives                                          |
-| `@__PURE__` / `#__PURE__` / `@__NO_SIDE_EFFECTS__` / `#__NO_SIDE_EFFECTS__` | Bundler purity annotations                                   |
-| `@license` / `@preserve` / leading `!` (`/*! … */`)                         | Legally required or preserve markers                         |
-| `sourceMappingURL`                                                          | Source map footers                                           |
-| `global` / `globals` / `exported`                                           | Legacy ESLint/JSHint globals (if ever needed)                |
+| Pattern                                                                                           | Why                                                                              |
+| ------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------- |
+| Triple-slash directives only: `/// <reference …>`, `/// <amd-module …>`, `/// <amd-dependency …>` | Real TypeScript/AMD directives. Prose like `/// Explain this` is **not** exempt. |
+| `@ts-*`                                                                                           | `@ts-expect-error`, `@ts-ignore`, `@ts-nocheck`, `@ts-check`                     |
+| `eslint-*` / `oxlint-*`                                                                           | Inline suppressions                                                              |
+| `prettier-ignore` / `oxfmt-ignore`                                                                | Formatter directives                                                             |
+| `@vite-ignore` / `webpack*` magic comments                                                        | Bundler directives                                                               |
+| `v8 ignore` / `c8 ignore` / `istanbul ignore`                                                     | Coverage directives                                                              |
+| `@__PURE__` / `#__PURE__` / `@__NO_SIDE_EFFECTS__` / `#__NO_SIDE_EFFECTS__`                       | Bundler purity annotations                                                       |
+| `@license` / `@preserve` / leading `!` (`/*! … */`)                                               | Legally required or preserve markers                                             |
+| `sourceMappingURL`                                                                                | Source map footers                                                               |
+| `global` / `globals` / `exported`                                                                 | Legacy ESLint/JSHint globals (if ever needed)                                    |
 
 No license header is required in this repo today; `@license`/`@preserve` stay allowed if one appears later.
 
@@ -41,5 +41,6 @@ Meaning that would have lived in a comment must go into names, types, tests, or 
 ## Consequences
 
 - Explanatory JSDoc and line/block comments fail lint locally and in CI.
-- `oxlint --fix` can delete disallowed comments; authors must move intent into code or docs first when the comment carried real constraints.
+- `oxlint --fix` deletes disallowed comments but **preserves token boundaries** (inserts a space when bare removal would glue neighbors, e.g. `typeof/* x */value` → `typeof value`). Authors must still move intent into code or docs first when the comment carried real constraints.
 - Parallel feature branches must strip existing comments (or express them elsewhere) before they stay green.
+- Rule helpers are covered by `pnpm test:lint-rules`.
