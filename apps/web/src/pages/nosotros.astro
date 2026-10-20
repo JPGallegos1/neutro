@@ -5,7 +5,7 @@ import Footer from "@/components/sections/Footer.astro";
 
 /**
  * Página Nosotros (v30). Estructura tipo legal: título + tag + secciones.
- * Párrafos de Quiénes somos / Cómo trabajamos son placeholders del .pen.
+ * Copy final del borrador v30 (neutro.v30.pen).
  */
 const services = [
   "Web: tu negocio presentado con claridad, para que te elijan antes de preguntar.",
@@ -35,11 +35,13 @@ const services = [
             Quiénes somos
           </h2>
           <p class="nosotros__p">
-            Somos Neutro Solutions. Diseñamos y construimos sistemas digitales
-            con criterio, para negocios que quieren diferenciarse sin ruido.
+            Somos Neutro Solutions. Creamos, diseñamos e implementamos sistemas
+            para la nueva era inteligente.
           </p>
           <p class="nosotros__p">
-            {"{Párrafo pendiente — completar con el copy final de Nosotros.}"}
+            Trabajamos para que tu negocio se diferencie: con una presencia
+            clara, con herramientas ordenadas y con tecnología que se pueda usar
+            todos los días.
           </p>
         </section>
 
@@ -59,10 +61,14 @@ const services = [
             Cómo trabajamos
           </h2>
           <p class="nosotros__p">
-            {"{Párrafo pendiente — método de trabajo.}"}
+            Definimos con vos qué necesitás antes de construir. Preferimos
+            infraestructura confiable y determinística alrededor de la IA, sin
+            perder la flexibilidad que la hace útil.
           </p>
           <p class="nosotros__p">
-            {"{Párrafo pendiente — referencia a proyectos como Lina.}"}
+            Medimos para decidir mejor, y si una versión no funciona, volvemos a
+            una que sí. Así lo aprendimos en proyectos como Lina, un agente
+            conversacional en WhatsApp.
           </p>
         </section>
 
@@ -155,6 +161,7 @@ const services = [
     margin: 0;
     font-size: 20px;
     font-weight: 500;
+    color: var(--neutro-text);
   }
 
   @media (min-width: 1024px) {
@@ -163,11 +170,12 @@ const services = [
     }
   }
 
+  /* $neutro-text-muted: #62625D light / #B4B4AF dark (AA en ambos temas) */
   .nosotros__p {
     margin: 0;
     font-size: 16px;
     line-height: 1.45;
-    color: var(--neutro-text);
+    color: var(--neutro-text-muted);
   }
 
   @media (min-width: 1024px) {
@@ -178,17 +186,32 @@ const services = [
 
   .nosotros__list {
     margin: 0;
-    padding-left: 1.1em;
+    padding: 0;
+    list-style: none;
     display: flex;
     flex-direction: column;
     gap: 8px;
     font-size: 16px;
     line-height: 1.45;
+    color: var(--neutro-text-muted);
   }
 
   @media (min-width: 1024px) {
     .nosotros__list {
       font-size: 17px;
     }
+  }
+
+  /* Viñeta • con sangría colgante (Legal / Item de lista v30) */
+  .nosotros__list li {
+    position: relative;
+    padding-left: 1.15em;
+  }
+
+  .nosotros__list li::before {
+    content: "•";
+    position: absolute;
+    left: 0;
+    color: var(--neutro-text-muted);
   }
 </style>

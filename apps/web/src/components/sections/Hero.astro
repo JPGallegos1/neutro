@@ -35,15 +35,14 @@
 
   .hero__inner {
     display: grid;
+    grid-template-columns: minmax(0, 1fr);
     gap: 32px;
     padding-block: 40px 64px;
   }
 
   @media (min-width: 1024px) {
     .hero__inner {
-      grid-template-columns: 1fr auto;
-      align-items: end;
-      gap: 48px;
+      gap: 40px;
       padding-block: 56px 96px;
     }
   }
@@ -62,6 +61,7 @@
 
   .hero__title {
     margin: 0;
+    max-width: none;
     font-size: min(61px, 15.6vw);
     font-weight: 700;
     line-height: 0.93;
@@ -91,6 +91,10 @@
     .hero__visual--mobile {
       display: none;
     }
+
+    .hero__visual--desktop .hero__line {
+      white-space: nowrap;
+    }
   }
 
   .hero__line {
@@ -112,7 +116,6 @@
       font-size: 20px;
       text-align: right;
       justify-self: end;
-      padding-bottom: 8px;
     }
   }
 </style>

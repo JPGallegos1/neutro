@@ -22,37 +22,36 @@ const legalLinks = [
         escuchar y colaborar.
       </p>
 
-      <div class="site-footer__columns">
-        <div class="site-footer__contact">
-          <a
-            class="landing-link site-footer__email"
-            href={`mailto:${site.email}`}
-          >
-            {site.email}
-          </a>
-          <nav aria-label="Redes">
-            <ul class="site-footer__list site-footer__list--social">
-              {socialLinks.map((social) => (
-                <li>
-                  <a
-                    class="social-link site-footer__social"
-                    href={social.href}
-                    aria-label={`${social.label} (se abre en una pestaña nueva)`}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                  >
-                    <span>{social.label}</span>
-                    <span class="social-arrow" aria-hidden="true">
-                      <Icon name="arrow-up-right" size={12} />
-                    </span>
-                  </a>
-                </li>
-              ))}
-            </ul>
-          </nav>
-        </div>
+      <div class="site-footer__links">
+        <a
+          class="landing-link site-footer__email"
+          href={`mailto:${site.email}`}
+        >
+          {site.email}
+        </a>
 
-        <nav aria-label="Legales">
+        <nav class="site-footer__socials" aria-label="Redes">
+          <ul class="site-footer__list site-footer__list--social">
+            {socialLinks.map((social) => (
+              <li>
+                <a
+                  class="social-link site-footer__social"
+                  href={social.href}
+                  aria-label={`${social.label} (se abre en una pestaña nueva)`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  <span>{social.label}</span>
+                  <span class="social-arrow" aria-hidden="true">
+                    <Icon name="arrow-up-right" size={12} />
+                  </span>
+                </a>
+              </li>
+            ))}
+          </ul>
+        </nav>
+
+        <nav class="site-footer__legals" aria-label="Legales">
           <ul class="site-footer__list site-footer__list--legal">
             {legalLinks.map((link) => (
               <li>
@@ -121,7 +120,7 @@ const legalLinks = [
     display: flex;
     flex-direction: column;
     align-items: flex-start;
-    gap: 32px;
+    gap: 24px;
     padding-top: 64px;
     padding-bottom: 0;
   }
@@ -148,44 +147,63 @@ const legalLinks = [
     }
   }
 
-  .site-footer__columns {
+  /*
+   * Mobile: mail fila completa; debajo 2 cols (Instagram | legales).
+   * Desktop: mail+Instagram apilados a la izq., legales a la der.
+   */
+  .site-footer__links {
     display: grid;
     grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
-    gap: 48px;
+    column-gap: 48px;
+    row-gap: 24px;
     width: 100%;
     max-width: 100%;
-  }
-
-  @media (min-width: 1024px) {
-    .site-footer__columns {
-      width: auto;
-      gap: 64px;
-    }
-  }
-
-  .site-footer__contact {
-    display: flex;
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 10px;
-  }
-
-  @media (min-width: 1024px) {
-    .site-footer__contact {
-      align-items: center;
-    }
+    align-items: start;
   }
 
   .site-footer__email {
+    grid-column: 1 / -1;
     font-family: var(--font-mono);
     font-size: 15px;
     letter-spacing: 0.01em;
     color: var(--neutro-text);
+    justify-self: start;
+  }
+
+  .site-footer__socials {
+    grid-column: 1;
+  }
+
+  .site-footer__legals {
+    grid-column: 2;
   }
 
   @media (min-width: 1024px) {
+    .site-footer__links {
+      width: auto;
+      grid-template-columns: auto auto;
+      grid-template-rows: auto auto;
+      column-gap: 64px;
+      row-gap: 10px;
+      justify-items: center;
+    }
+
     .site-footer__email {
+      grid-column: 1;
+      grid-row: 1;
       font-size: 17px;
+      justify-self: center;
+    }
+
+    .site-footer__socials {
+      grid-column: 1;
+      grid-row: 2;
+    }
+
+    .site-footer__legals {
+      grid-column: 2;
+      grid-row: 1 / -1;
+      align-self: start;
     }
   }
 
@@ -270,6 +288,19 @@ const legalLinks = [
     }
   }
 
+  /* Ícono C ~28px en mobile (v30); desktop 53×32 */
+  .site-footer__mark :global(.logo__img) {
+    width: 28px;
+    height: 17px;
+  }
+
+  @media (min-width: 1024px) {
+    .site-footer__mark :global(.logo__img) {
+      width: 53px;
+      height: 32px;
+    }
+  }
+
   .site-footer__statement {
     margin: 0;
     max-width: 100%;
@@ -322,7 +353,7 @@ const legalLinks = [
   }
 
   .site-footer__bar {
-    padding-bottom: 32px;
+    padding-bottom: 48px;
   }
 
   @media (min-width: 1024px) {
