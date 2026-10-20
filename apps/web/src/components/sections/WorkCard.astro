@@ -15,7 +15,7 @@ const { project } = Astro.props;
       href={project.href}
       aria-label={`Caso de estudio: ${project.title}`}
     >
-      <div class="work-card__preview">
+      <div class="work-card__preview" style={`--work-tint: ${project.tint}`}>
         <img
           class="work-card__image"
           src={project.imageSrc}
@@ -24,11 +24,7 @@ const { project } = Astro.props;
           height="405"
           loading="eager"
           decoding="async"
-        />
-        <span
-          class="work-card__tint"
-          style={`background:${project.tint}`}
-          aria-hidden="true"
+          fetchpriority="high"
         />
         <span class="work-card__tag">{project.tag}</span>
       </div>
@@ -39,7 +35,7 @@ const { project } = Astro.props;
     </a>
   ) : (
     <article class="work-card__inner">
-      <div class="work-card__preview">
+      <div class="work-card__preview" style={`--work-tint: ${project.tint}`}>
         <img
           class="work-card__image"
           src={project.imageSrc}
@@ -48,11 +44,7 @@ const { project } = Astro.props;
           height="405"
           loading="eager"
           decoding="async"
-        />
-        <span
-          class="work-card__tint"
-          style={`background:${project.tint}`}
-          aria-hidden="true"
+          fetchpriority="high"
         />
         <span class="work-card__tag">{project.tag}</span>
       </div>
@@ -92,6 +84,8 @@ const { project } = Astro.props;
   }
 
   .work-card__image {
+    position: relative;
+    z-index: 0;
     display: block;
     width: 100%;
     height: 100%;
@@ -99,19 +93,25 @@ const { project } = Astro.props;
     transition: transform 150ms ease;
   }
 
+  /* Tint como overlay (no tapa la foto): color sólido + opacity */
+  .work-card__preview::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    z-index: 1;
+    background: var(--work-tint);
+    opacity: 0.32;
+    pointer-events: none;
+  }
+
   a.work-card__inner:hover .work-card__image,
   a.work-card__inner:focus-visible .work-card__image {
     transform: scale(1.02);
   }
 
-  .work-card__tint {
-    position: absolute;
-    inset: 0;
-    pointer-events: none;
-  }
-
   .work-card__tag {
     position: absolute;
+    z-index: 2;
     top: 12px;
     left: 12px;
     padding: 4px 8px;

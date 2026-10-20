@@ -23,33 +23,38 @@ const legalLinks = [
       </p>
 
       <div class="site-footer__links">
-        <a
-          class="landing-link site-footer__email"
-          href={`mailto:${site.email}`}
-        >
-          {site.email}
-        </a>
-
-        <nav class="site-footer__socials" aria-label="Redes">
-          <ul class="site-footer__list site-footer__list--social">
-            {socialLinks.map((social) => (
-              <li>
-                <a
-                  class="social-link site-footer__social"
-                  href={social.href}
-                  aria-label={`${social.label} (se abre en una pestaña nueva)`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                >
-                  <span>{social.label}</span>
-                  <span class="social-arrow" aria-hidden="true">
-                    <Icon name="arrow-up-right" size={12} />
-                  </span>
-                </a>
-              </li>
-            ))}
-          </ul>
-        </nav>
+        {/*
+          Mobile: display:contents → email fila completa, socials|legales.
+          Desktop: contact = columna (email encima de Instagram, gap 10px).
+        */}
+        <div class="site-footer__contact">
+          <a
+            class="landing-link site-footer__email"
+            href={`mailto:${site.email}`}
+          >
+            {site.email}
+          </a>
+          <nav class="site-footer__socials" aria-label="Redes">
+            <ul class="site-footer__list site-footer__list--social">
+              {socialLinks.map((social) => (
+                <li>
+                  <a
+                    class="social-link site-footer__social"
+                    href={social.href}
+                    aria-label={`${social.label} (se abre en una pestaña nueva)`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                  >
+                    <span>{social.label}</span>
+                    <span class="social-arrow" aria-hidden="true">
+                      <Icon name="arrow-up-right" size={12} />
+                    </span>
+                  </a>
+                </li>
+              ))}
+            </ul>
+          </nav>
+        </div>
 
         <nav class="site-footer__legals" aria-label="Legales">
           <ul class="site-footer__list site-footer__list--legal">
@@ -148,8 +153,9 @@ const legalLinks = [
   }
 
   /*
-   * Mobile: mail fila completa; debajo 2 cols (Instagram | legales).
-   * Desktop: mail+Instagram apilados a la izq., legales a la der.
+   * Mobile: contact con display:contents → email fila propia (1 / -1),
+   * debajo Instagram | legales.
+   * Desktop: contact es columna centrada (email → Instagram, gap 10px).
    */
   .site-footer__links {
     display: grid;
@@ -159,6 +165,10 @@ const legalLinks = [
     width: 100%;
     max-width: 100%;
     align-items: start;
+  }
+
+  .site-footer__contact {
+    display: contents;
   }
 
   .site-footer__email {
@@ -180,30 +190,34 @@ const legalLinks = [
 
   @media (min-width: 1024px) {
     .site-footer__links {
+      display: flex;
+      flex-direction: row;
+      justify-content: center;
+      align-items: flex-start;
       width: auto;
-      grid-template-columns: auto auto;
-      grid-template-rows: auto auto;
       column-gap: 64px;
-      row-gap: 10px;
-      justify-items: center;
+      row-gap: 0;
+    }
+
+    .site-footer__contact {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 10px;
     }
 
     .site-footer__email {
-      grid-column: 1;
-      grid-row: 1;
+      grid-column: auto;
       font-size: 17px;
-      justify-self: center;
+      justify-self: auto;
     }
 
     .site-footer__socials {
-      grid-column: 1;
-      grid-row: 2;
+      grid-column: auto;
     }
 
     .site-footer__legals {
-      grid-column: 2;
-      grid-row: 1 / -1;
-      align-self: start;
+      grid-column: auto;
     }
   }
 

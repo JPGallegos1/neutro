@@ -22,7 +22,8 @@ export const workProjects: WorkProject[] = [
     // Provisorias (Unsplash del .pen), hospedadas en public para evitar 404 externos.
     imageSrc: "/images/work/lina.jpg",
     imageAlt: "Vista previa del proyecto Lina",
-    tint: "#073E2652",
+    // RGB sólido; opacity del overlay vive en WorkCard (::after 0.32).
+    tint: "#073E26",
     // Ruta placeholder: no existe página de caso de estudio en el repo.
     href: "/trabajo/lina",
   },
@@ -33,7 +34,7 @@ export const workProjects: WorkProject[] = [
     tag: "En producción",
     imageSrc: "/images/work/clara.jpg",
     imageAlt: "Vista previa del proyecto Clara",
-    tint: "#0A355C52",
+    tint: "#0A355C",
     href: null,
   },
   {
@@ -43,7 +44,7 @@ export const workProjects: WorkProject[] = [
     tag: "En producción",
     imageSrc: "/images/work/luxurycars.jpg",
     imageAlt: "Vista previa del proyecto LuxuryCars",
-    tint: "#5A1F2252",
+    tint: "#5A1F22",
     href: null,
   },
   {
@@ -53,7 +54,8 @@ export const workProjects: WorkProject[] = [
     tag: "En producción",
     imageSrc: "/images/work/h2hi.jpg",
     imageAlt: "Vista previa del proyecto H2HI",
-    tint: "#5A3A0552",
+    // Amber provisional del diseño (antes #5A3A0552 con alpha).
+    tint: "#5A3A05",
     href: null,
   },
 ];
