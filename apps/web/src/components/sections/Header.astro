@@ -1,3 +1,174 @@
 ---
-// TODO: implementar Header
+import Logo from "@/components/Logo.astro";
+import ThemeToggle from "@/components/ThemeToggle.astro";
+import Icon from "@/components/ui/Icon.astro";
+import MobileDrawer from "@/components/sections/MobileDrawer.astro";
+import { socialLinks } from "@/data/socials";
+
+const navItems = [
+  { label: "Servicios", href: "#que-hacemos" },
+  { label: "Trabajo", href: "#trabajo" },
+];
 ---
+
+<header class="site-header">
+  <div class="landing-shell site-header__inner">
+    <Logo />
+
+    <nav class="site-header__nav" aria-label="Principal">
+      <ul class="site-header__nav-list">
+        {navItems.map((item) => (
+          <li>
+            <a class="landing-link site-header__nav-link" href={item.href}>
+              {item.label}
+            </a>
+          </li>
+        ))}
+      </ul>
+    </nav>
+
+    <div class="site-header__actions">
+      <nav class="site-header__socials" aria-label="Redes">
+        <ul class="site-header__socials-list">
+          {socialLinks.map((social) => (
+            <li>
+              <a
+                class="social-link site-header__social"
+                href={social.href}
+                aria-label={`${social.label} (enlace pendiente)`}
+              >
+                {social.id === "x" ? (
+                  <span class="site-header__social-x" aria-hidden="true">
+                    X
+                  </span>
+                ) : (
+                  <Icon name={social.icon} size={20} />
+                )}
+              </a>
+            </li>
+          ))}
+        </ul>
+      </nav>
+      <ThemeToggle class="site-header__theme" />
+    </div>
+
+    <button
+      type="button"
+      class="site-header__menu"
+      data-drawer-open
+      aria-label="Abrir menú"
+      aria-expanded="false"
+      aria-controls="menu-drawer"
+    >
+      <Icon name="menu" size={20} />
+    </button>
+  </div>
+</header>
+
+<MobileDrawer navItems={navItems} />
+
+<style>
+  .site-header {
+    background: var(--neutro-bg);
+  }
+
+  .site-header__inner {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    min-height: 80px;
+    padding-inline: var(--landing-gutter);
+    padding-block: 24px;
+  }
+
+  @media (min-width: 1024px) {
+    .site-header__inner {
+      min-height: 96px;
+      padding-block: 0;
+      position: relative;
+    }
+  }
+
+  .site-header__nav {
+    display: none;
+  }
+
+  .site-header__actions {
+    display: none;
+  }
+
+  .site-header__menu {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 44px;
+    height: 44px;
+    margin-inline-end: -12px;
+    border: 0;
+    background: transparent;
+    color: var(--neutro-text);
+    cursor: pointer;
+  }
+
+  .site-header__menu:hover {
+    background: color-mix(in srgb, var(--neutro-bg) 92%, var(--neutro-text) 8%);
+    border-radius: 4px;
+  }
+
+  @media (min-width: 1024px) {
+    .site-header__menu {
+      display: none;
+    }
+
+    .site-header__nav {
+      display: block;
+      position: absolute;
+      left: 50%;
+      transform: translateX(-50%);
+    }
+
+    .site-header__nav-list {
+      display: flex;
+      gap: 24px;
+      list-style: none;
+      margin: 0;
+      padding: 0;
+    }
+
+    .site-header__nav-link {
+      font-size: 13px;
+      font-weight: 400;
+      color: var(--neutro-text);
+    }
+
+    .site-header__actions {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+    }
+
+    .site-header__socials-list {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      list-style: none;
+      margin: 0;
+      padding: 0;
+    }
+
+    .site-header__social {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--neutro-text);
+      min-width: 20px;
+      min-height: 20px;
+    }
+
+    .site-header__social-x {
+      font-size: 18px;
+      font-weight: 500;
+      line-height: 1;
+    }
+  }
+</style>

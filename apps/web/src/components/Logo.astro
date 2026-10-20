@@ -1,0 +1,64 @@
+---
+interface Props {
+  variant?: "b" | "c";
+  class?: string;
+}
+
+const { variant = "b", class: className } = Astro.props;
+---
+
+{variant === "c" ? (
+  <span class:list={["logo logo--c", className]} aria-hidden="true">
+    <span class="logo__mark">N</span>
+  </span>
+) : (
+  <a
+    href="/"
+    class:list={["logo logo--b", className]}
+    aria-label="Neutro, inicio"
+  >
+    {/* Asset oficial pendiente: /images/neutro/ns-logo-b.svg es placeholder */}
+    <span class="logo__mark">N</span>
+  </a>
+)}
+
+<style>
+  .logo {
+    display: inline-flex;
+    color: var(--neutro-text);
+    line-height: 0;
+    text-decoration: none;
+  }
+
+  .logo__mark {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    box-sizing: border-box;
+    border: 1px solid var(--neutro-text);
+    background: var(--neutro-text);
+    color: var(--neutro-bg);
+    font-weight: 700;
+    font-size: 14px;
+    line-height: 1;
+  }
+
+  .logo--b .logo__mark {
+    width: 53px;
+    height: 32px;
+  }
+
+  .logo--c .logo__mark {
+    width: 57px;
+    height: 57px;
+    font-size: 22px;
+  }
+
+  @media (max-width: 1023px) {
+    .logo--c .logo__mark {
+      width: 37px;
+      height: 37px;
+      font-size: 16px;
+    }
+  }
+</style>

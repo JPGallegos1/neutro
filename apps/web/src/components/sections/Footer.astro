@@ -1,3 +1,229 @@
 ---
-// TODO: implementar Footer
+import Logo from "@/components/Logo.astro";
+import Icon from "@/components/ui/Icon.astro";
+import { socialLinks } from "@/data/socials";
+
+const year = new Date().getFullYear();
+
+const legalLinks = [
+  { label: "Cookies", href: "/cookies" },
+  { label: "Privacidad", href: "/privacidad" },
+  { label: "Términos", href: "/terminos" },
+  { label: "Alerta de estafa", href: "/alerta-de-estafa" },
+];
 ---
+
+<footer class="site-footer dark" data-footer>
+  <div class="landing-shell site-footer__inner">
+    <div class="site-footer__top landing-gutter">
+      <p class="site-footer__invite">
+        Si tenés alguna idea para tu negocio, producto o marca, estamos para
+        escuchar y colaborar.
+      </p>
+
+      <div class="site-footer__columns">
+        <nav aria-label="Redes">
+          <ul class="site-footer__list site-footer__list--social">
+            {socialLinks.map((social) => (
+              <li>
+                <a
+                  class="social-link site-footer__social"
+                  href={social.href}
+                  aria-label={`${social.label} (enlace pendiente)`}
+                >
+                  <span>{social.label}</span>
+                  <span class="social-arrow" aria-hidden="true">
+                    <Icon name="arrow-up-right" size={14} />
+                  </span>
+                </a>
+              </li>
+            ))}
+          </ul>
+        </nav>
+
+        <nav aria-label="Legales">
+          <ul class="site-footer__list site-footer__list--legal">
+            {legalLinks.map((link) => (
+              <li>
+                <a class="landing-link site-footer__legal" href={link.href}>
+                  {link.label}
+                </a>
+              </li>
+            ))}
+          </ul>
+        </nav>
+      </div>
+    </div>
+
+    <div class="site-footer__brand landing-gutter">
+      <Logo variant="c" class="site-footer__mark" />
+      <p class="site-footer__statement">
+        Neutro Solutions creamos, diseñamos e implementamos sistemas para la
+        nueva era inteligente
+      </p>
+    </div>
+
+    <div class="site-footer__bar landing-gutter">
+      <p class="site-footer__copy">© {year} Neutro Solutions</p>
+    </div>
+  </div>
+</footer>
+
+<style>
+  /* Forzado dark en ambos temas: tokens locales del footer */
+  .site-footer {
+    --neutro-bg: #0a0a0a;
+    --neutro-text: #f6f6f4;
+    --neutro-text-muted: #b4b4af;
+    --neutro-border: #262624;
+    background: var(--neutro-bg);
+    color: var(--neutro-text);
+  }
+
+  .site-footer__top {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 32px;
+    padding-top: 64px;
+    padding-bottom: 0;
+  }
+
+  @media (min-width: 1024px) {
+    .site-footer__top {
+      align-items: center;
+      gap: 40px;
+      padding-top: 96px;
+      text-align: center;
+    }
+  }
+
+  .site-footer__invite {
+    margin: 0;
+    max-width: 36rem;
+    font-size: 18px;
+    line-height: 1.45;
+  }
+
+  @media (min-width: 1024px) {
+    .site-footer__invite {
+      font-size: 20px;
+    }
+  }
+
+  .site-footer__columns {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 48px;
+    width: 100%;
+  }
+
+  @media (min-width: 1024px) {
+    .site-footer__columns {
+      width: auto;
+      gap: 64px;
+    }
+  }
+
+  .site-footer__list {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  @media (min-width: 1024px) {
+    .site-footer__list {
+      align-items: center;
+    }
+  }
+
+  .site-footer__social {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-family: var(--font-mono);
+    font-size: 15px;
+    color: var(--neutro-text);
+    text-decoration: none;
+  }
+
+  @media (min-width: 1024px) {
+    .site-footer__social {
+      font-size: 17px;
+      gap: 12px;
+    }
+  }
+
+  .site-footer__social:hover {
+    text-decoration: underline;
+    text-underline-offset: 4px;
+  }
+
+  .site-footer__legal {
+    font-family: var(--font-mono);
+    font-size: 13px;
+    color: var(--neutro-text-muted);
+  }
+
+  @media (min-width: 1024px) {
+    .site-footer__legal {
+      font-size: 15px;
+    }
+  }
+
+  .site-footer__brand {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 16px;
+    padding-block: 48px 80px;
+  }
+
+  @media (min-width: 1024px) {
+    .site-footer__brand {
+      align-items: center;
+      text-align: center;
+      padding-block: 64px 128px;
+    }
+  }
+
+  .site-footer__statement {
+    margin: 0;
+    max-width: 18ch;
+    font-size: 40px;
+    font-weight: 700;
+    line-height: 0.93;
+    letter-spacing: -1.8px;
+    text-transform: uppercase;
+  }
+
+  @media (min-width: 1024px) {
+    .site-footer__statement {
+      max-width: 22ch;
+      font-size: 80px;
+      letter-spacing: -3.6px;
+    }
+  }
+
+  .site-footer__bar {
+    padding-bottom: 32px;
+  }
+
+  @media (min-width: 1024px) {
+    .site-footer__bar {
+      display: flex;
+      justify-content: center;
+      padding-bottom: 40px;
+    }
+  }
+
+  .site-footer__copy {
+    margin: 0;
+    font-family: var(--font-mono);
+    font-size: 12px;
+    color: var(--neutro-text-muted);
+  }
+</style>

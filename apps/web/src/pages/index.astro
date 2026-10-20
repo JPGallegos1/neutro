@@ -1,18 +1,20 @@
 ---
 import Base from "@/layouts/base.astro";
-import { site } from "@/lib/site";
+import Header from "@/components/sections/Header.astro";
+import Hero from "@/components/sections/Hero.astro";
+import VideoSection from "@/components/sections/VideoSection.astro";
+import WorkSection from "@/components/sections/WorkSection.astro";
+import ServicesAccordion from "@/components/sections/ServicesAccordion.astro";
+import Footer from "@/components/sections/Footer.astro";
 ---
 
 <Base>
-  <main
-    id="contenido"
-    class="flex min-h-screen flex-col items-center justify-center gap-4 px-6 text-center"
-  >
-    <p class="text-sm font-medium tracking-widest text-muted-foreground uppercase">
-      {site.name}
-    </p>
-    <h1 class="text-4xl font-semibold tracking-tight sm:text-6xl">
-      Producto digital, sin ruido
-    </h1>
+  <Header />
+  <main id="contenido">
+    <Hero />
+    <VideoSection />
+    <WorkSection />
+    <ServicesAccordion />
   </main>
+  <Footer />
 </Base>
