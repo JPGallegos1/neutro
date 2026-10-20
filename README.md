@@ -1,6 +1,6 @@
 # Neutro
 
-Monorepositorio con pnpm y Turborepo. Por ahora la única aplicación es la web pública: una página estática **Under construction** en Astro.
+Monorepositorio con pnpm y Turborepo. Por ahora la única aplicación es la web pública: una landing estática en Astro (español rioplatense), con la base de diseño lista y las secciones todavía por armar.
 
 ## Requisitos
 
@@ -31,8 +31,9 @@ apps/
   web/                  # Astro + React + Vite; única aplicación desplegable
     public/             # Archivos estáticos
     src/
+      components/sections/  # Stubs de la landing (Header, Hero, etc.)
       layouts/          # Documento HTML y metadatos
-      lib/              # Configuración y lógica de la aplicación
+      lib/              # Sitio, analytics (PostHog off por defecto)
       pages/            # Inicio y página 404
     astro.config.mjs
     components.json     # shadcn/ui enlazado al paquete compartido
@@ -42,6 +43,7 @@ packages/
   ui/                   # shadcn/ui, utilidades y tema Tailwind compartidos
   typescript-config/    # Configuración estricta compartida
 docs/
+  adr/                  # Decisiones de arquitectura
   dependencies.md       # Versiones verificadas y decisiones de compatibilidad
 ```
 
@@ -66,7 +68,9 @@ Ejecutar desde la raíz con `pnpm` o `corepack pnpm`:
 
 ## UI y estilos
 
-Tailwind CSS 4 se integra como plugin de Vite en `apps/web/astro.config.mjs`. El tema y los tokens de shadcn/ui se encuentran en `packages/ui/src/styles/globals.css`; el layout de Astro importa ese CSS global. Las fuentes de Tailwind incluyen tanto la aplicación como los componentes compartidos.
+Tailwind CSS 4 se integra como plugin de Vite en `apps/web/astro.config.mjs`. El tema y los tokens de shadcn/ui se encuentran en `packages/ui/src/styles/globals.css` (mapeados a la paleta Neutro, con clase `.dark` en `<html>`). El layout de Astro importa ese CSS global y autoaloja Geist Sans (400/500/700) y Geist Mono. Las fuentes de Tailwind incluyen tanto la aplicación como los componentes compartidos.
+
+PostHog está preparado en `apps/web/src/lib/analytics.ts` y **no carga nada** salvo que existan `PUBLIC_POSTHOG_KEY` y `PUBLIC_ANALYTICS_ENABLED=true`. Ver [`docs/adr/0001-analytics-off-by-default.md`](docs/adr/0001-analytics-off-by-default.md).
 
 shadcn/ui está configurado con estilo `new-york`, base `neutral`, React y `lucide-react` para íconos. `Button` queda incluido como componente inicial. Los componentes son código del proyecto, no un runtime de shadcn.
 

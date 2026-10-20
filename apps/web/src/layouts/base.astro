@@ -5,9 +5,22 @@ import { site } from "@/lib/site";
 interface Props {
   title?: string;
   description?: string;
+  canonical?: string;
 }
 
-const { title = site.title, description = site.description } = Astro.props;
+const {
+  title = site.title,
+  description = site.description,
+  canonical = site.url,
+} = Astro.props;
+
+const organizationJsonLd = {
+  "@context": "https://schema.org",
+  "@type": "Organization",
+  name: site.name,
+  url: site.url,
+  email: site.email,
+};
 ---
 
 <!doctype html>
@@ -17,11 +30,25 @@ const { title = site.title, description = site.description } = Astro.props;
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="description" content={description} />
     <meta name="generator" content={Astro.generator} />
+    <meta name="color-scheme" content="light dark" />
     <meta property="og:type" content="website" />
+    <meta property="og:locale" content={site.locale} />
     <meta property="og:title" content={title} />
     <meta property="og:description" content={description} />
+    <meta property="og:url" content={canonical} />
+    <link rel="canonical" href={canonical} />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <title>{title}</title>
+    <script is:inline>
+      document.documentElement.classList.toggle(
+        "dark",
+        window.matchMedia("(prefers-color-scheme: dark)").matches,
+      );
+    </script>
+    <script
+      type="application/ld+json"
+      set:html={JSON.stringify(organizationJsonLd)}
+    />
   </head>
   <body class="min-h-screen">
     <a
@@ -31,5 +58,10 @@ const { title = site.title, description = site.description } = Astro.props;
       Saltar al contenido
     </a>
     <slot />
+    <script>
+      import { initAnalytics } from "@/lib/analytics";
+
+      void initAnalytics();
+    </script>
   </body>
 </html>

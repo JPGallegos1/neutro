@@ -5,6 +5,9 @@ export const SiteMetadata = Schema.Struct({
   title: Schema.NonEmptyString,
   description: Schema.NonEmptyString,
   language: Schema.Literal("es"),
+  locale: Schema.Literal("es_AR"),
+  url: Schema.NonEmptyString,
+  email: Schema.NonEmptyString,
 });
 
 export type SiteMetadata = typeof SiteMetadata.Type;
