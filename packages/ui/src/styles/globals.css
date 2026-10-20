@@ -20,6 +20,7 @@
   --neutro-text-muted: #62625d;
   --neutro-border: #d6d6d2;
   --neutro-accent-blue: #2b4bff;
+  --neutro-focus: #2b4bff;
   --neutro-accent-orange: #e8590c;
   --neutro-accent-orange-strong: #c2410c;
   --neutro-on-orange: #fff;
@@ -53,6 +54,7 @@
   --neutro-text-muted: #b4b4af;
   --neutro-border: #262624;
   --neutro-accent-blue: #5c78ff;
+  --neutro-focus: #5c78ff;
 
   --destructive: oklch(0.704 0.191 22.216);
   color-scheme: dark;
@@ -67,6 +69,7 @@
   --color-neutro-text-muted: var(--neutro-text-muted);
   --color-neutro-border: var(--neutro-border);
   --color-neutro-accent-blue: var(--neutro-accent-blue);
+  --color-neutro-focus: var(--neutro-focus);
   --color-neutro-accent-orange: var(--neutro-accent-orange);
   --color-neutro-accent-orange-strong: var(--neutro-accent-orange-strong);
   --color-neutro-on-orange: var(--neutro-on-orange);

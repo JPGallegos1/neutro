@@ -1,64 +1,108 @@
 ---
+/**
+ * Logo B oficial. No recolorear ni distorsionar: se elige el SVG correcto
+ * (positivo / negativo) según el tema. Espacio libre ≥ ½ alto del logo.
+ */
 interface Props {
-  variant?: "b" | "c";
+  /** Forzar variante oscura (footer siempre dark). */
+  forceDark?: boolean;
   class?: string;
+  /** Si es false, renderiza el logo sin link (p. ej. decorativo). */
+  link?: boolean;
 }
 
-const { variant = "b", class: className } = Astro.props;
+const { forceDark = false, class: className, link = true } = Astro.props;
+
+/** 300×180 → 53×32 (mismo ratio 5:3 del diseño desktop). */
+const width = 53;
+const height = 32;
 ---
 
-{variant === "c" ? (
-  <span class:list={["logo logo--c", className]} aria-hidden="true">
-    <span class="logo__mark">N</span>
-  </span>
-) : (
+{link ? (
   <a
     href="/"
-    class:list={["logo logo--b", className]}
-    aria-label="Neutro, inicio"
+    class:list={["logo", forceDark && "logo--force-dark", className]}
+    aria-label="Neutro Solutions"
   >
-    {/* Asset oficial pendiente: /images/neutro/ns-logo-b.svg es placeholder */}
-    <span class="logo__mark">N</span>
+    <img
+      class="logo__img logo__img--light"
+      src="/images/neutro/ns-logo-b-positivo.svg"
+      alt=""
+      width={width}
+      height={height}
+      decoding="async"
+    />
+    <img
+      class="logo__img logo__img--dark"
+      src="/images/neutro/ns-logo-b-negativo.svg"
+      alt=""
+      width={width}
+      height={height}
+      decoding="async"
+    />
   </a>
+) : (
+  <span
+    class:list={["logo", forceDark && "logo--force-dark", className]}
+    aria-label="Neutro Solutions"
+    role="img"
+  >
+    <img
+      class="logo__img logo__img--light"
+      src="/images/neutro/ns-logo-b-positivo.svg"
+      alt=""
+      width={width}
+      height={height}
+      decoding="async"
+    />
+    <img
+      class="logo__img logo__img--dark"
+      src="/images/neutro/ns-logo-b-negativo.svg"
+      alt=""
+      width={width}
+      height={height}
+      decoding="async"
+    />
+  </span>
 )}
 
 <style>
   .logo {
+    /* Espacio libre ≥ ½ del alto (32px → 16px) alrededor del logo */
     display: inline-flex;
-    color: var(--neutro-text);
+    padding: 16px;
+    margin: -16px;
     line-height: 0;
     text-decoration: none;
+    color: inherit;
   }
 
-  .logo__mark {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    box-sizing: border-box;
-    border: 1px solid var(--neutro-text);
-    background: var(--neutro-text);
-    color: var(--neutro-bg);
-    font-weight: 700;
-    font-size: 14px;
-    line-height: 1;
-  }
-
-  .logo--b .logo__mark {
+  .logo__img {
+    display: block;
     width: 53px;
     height: 32px;
+    /* No object-fit: cover — preservar aspect ratio sin recortar */
+    object-fit: contain;
   }
 
-  .logo--c .logo__mark {
-    width: 57px;
-    height: 57px;
-    font-size: 22px;
+  .logo__img--dark {
+    display: none;
   }
 
-  @media (max-width: 1023px) {
-    .logo--c .logo__mark {
-      width: 37px;
-      height: 37px;
-      font-size: 16px;
-    }
+  :global(html.dark) .logo:not(.logo--force-dark) .logo__img--light {
+    display: none;
+  }
+
+  :global(html.dark) .logo:not(.logo--force-dark) .logo__img--dark {
+    display: block;
+  }
+
+  /* Footer / contextos forzados a dark: siempre negativo */
+  .logo--force-dark .logo__img--light {
+    display: none;
+  }
+
+  .logo--force-dark .logo__img--dark {
+    display: block;
   }
 </style>

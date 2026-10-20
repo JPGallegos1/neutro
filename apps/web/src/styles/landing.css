@@ -3,7 +3,8 @@
 :root {
   --landing-max: 1440px;
   --landing-gutter: 24px;
-  --landing-focus: #2b4bff;
+  /* Foco: sigue --neutro-focus (#2B4BFF light / #5C78FF dark) */
+  --landing-focus: var(--neutro-focus);
   --landing-ease-hover: 150ms ease;
   --landing-ease-drawer: 250ms ease;
   --landing-ease-accordion: 200ms ease-out;
@@ -21,7 +22,7 @@
   }
 }
 
-/* Foco visible global (incluye footer oscuro forzado) */
+/* Foco visible global (incluye footer oscuro forzado vía --neutro-focus local) */
 :where(
   a,
   button,

@@ -56,7 +56,7 @@ const legalLinks = [
     </div>
 
     <div class="site-footer__brand landing-gutter">
-      <Logo variant="c" class="site-footer__mark" />
+      <Logo forceDark class="site-footer__mark" />
       <p class="site-footer__statement">
         Neutro Solutions creamos, diseñamos e implementamos sistemas para la
         nueva era inteligente
@@ -70,12 +70,15 @@ const legalLinks = [
 </footer>
 
 <style>
-  /* Forzado dark en ambos temas: tokens locales del footer */
+  /* Forzado dark en ambos temas: tokens locales del footer (foco #5C78FF) */
   .site-footer {
     --neutro-bg: #0a0a0a;
     --neutro-text: #f6f6f4;
     --neutro-text-muted: #b4b4af;
     --neutro-border: #262624;
+    --neutro-accent-blue: #5c78ff;
+    --neutro-focus: #5c78ff;
+    --landing-focus: var(--neutro-focus);
     background: var(--neutro-bg);
     color: var(--neutro-text);
   }
