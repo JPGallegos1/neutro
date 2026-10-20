@@ -19,8 +19,8 @@ export const workProjects: WorkProject[] = [
     title: "Lina",
     description: "{Descripción Lina}",
     tag: "En producción",
-    imageSrc:
-      "https://images.unsplash.com/photo-1785682231847-93265d8e633d?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&q=80&w=1080",
+    // Provisorias (Unsplash del .pen), hospedadas en public para evitar 404 externos.
+    imageSrc: "/images/work/lina.jpg",
     imageAlt: "Vista previa del proyecto Lina",
     tint: "#073E2652",
     // Ruta placeholder: no existe página de caso de estudio en el repo.
@@ -31,8 +31,7 @@ export const workProjects: WorkProject[] = [
     title: "Clara",
     description: "{Descripción Clara}",
     tag: "En producción",
-    imageSrc:
-      "https://images.unsplash.com/photo-1557158077-ad1155133508?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&q=80&w=1080",
+    imageSrc: "/images/work/clara.jpg",
     imageAlt: "Vista previa del proyecto Clara",
     tint: "#0A355C52",
     href: null,
@@ -42,8 +41,7 @@ export const workProjects: WorkProject[] = [
     title: "LuxuryCars",
     description: "{Descripción LuxuryCars}",
     tag: "En producción",
-    imageSrc:
-      "https://images.unsplash.com/photo-1618863099278-75222d755814?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&q=80&w=1080",
+    imageSrc: "/images/work/luxurycars.jpg",
     imageAlt: "Vista previa del proyecto LuxuryCars",
     tint: "#5A1F2252",
     href: null,
@@ -53,8 +51,7 @@ export const workProjects: WorkProject[] = [
     title: "H2HI",
     description: "{Descripción H2HI}",
     tag: "En producción",
-    imageSrc:
-      "https://images.unsplash.com/photo-1784821856280-401b76b03266?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&q=80&w=1080",
+    imageSrc: "/images/work/h2hi.jpg",
     imageAlt: "Vista previa del proyecto H2HI",
     tint: "#5A3A0552",
     href: null,
