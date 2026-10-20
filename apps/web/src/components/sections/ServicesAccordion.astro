@@ -101,7 +101,6 @@ import { serviceCategories } from "@/data/services";
 
       if (open) {
         panel.hidden = false;
-        // Forzar reflow para animar altura
         requestAnimationFrame(() => {
           item.classList.add("is-open");
         });
@@ -113,14 +112,12 @@ import { serviceCategories } from "@/data/services";
           if (item.dataset.open !== "true") panel.hidden = true;
         };
         panel.addEventListener("transitionend", onEnd);
-        // Fallback si no hay transición
         window.setTimeout(() => {
           if (item.dataset.open !== "true") panel.hidden = true;
         }, 220);
       }
     };
 
-    // Estado inicial
     items.forEach((item) => {
       const open = item.dataset.open === "true";
       if (open) {

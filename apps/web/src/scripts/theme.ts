@@ -27,7 +27,7 @@ export function persistTheme(theme: Theme): void {
   try {
     localStorage.setItem(STORAGE_KEY, theme);
   } catch {
-    // Sin cookies ni storage: la preferencia del sistema sigue aplicando.
+    void 0;
   }
 }
 

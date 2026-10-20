@@ -1,21 +1,14 @@
 ---
-/**
- * Logo B oficial. No recolorear ni distorsionar: se elige el SVG correcto
- * (positivo / negativo) según el tema. Espacio libre ≥ ½ alto del logo.
- */
 interface Props {
-  /** Forzar variante oscura (footer siempre dark). */
   forceDark?: boolean;
   class?: string;
-  /** Si es false, renderiza el logo sin link (p. ej. decorativo). */
   link?: boolean;
 }
 
 const { forceDark = false, class: className, link = true } = Astro.props;
 
-/** 300×180 → 53×32 (mismo ratio 5:3 del diseño desktop). */
-const width = 53;
-const height = 32;
+const LOGO_B_DISPLAY_WIDTH = 53;
+const LOGO_B_DISPLAY_HEIGHT = 32;
 ---
 
 {link ? (
@@ -28,16 +21,16 @@ const height = 32;
       class="logo__img logo__img--light"
       src="/images/neutro/ns-logo-b-positivo.svg"
       alt=""
-      width={width}
-      height={height}
+      width={LOGO_B_DISPLAY_WIDTH}
+      height={LOGO_B_DISPLAY_HEIGHT}
       decoding="async"
     />
     <img
       class="logo__img logo__img--dark"
       src="/images/neutro/ns-logo-b-negativo.svg"
       alt=""
-      width={width}
-      height={height}
+      width={LOGO_B_DISPLAY_WIDTH}
+      height={LOGO_B_DISPLAY_HEIGHT}
       decoding="async"
     />
   </a>
@@ -51,16 +44,16 @@ const height = 32;
       class="logo__img logo__img--light"
       src="/images/neutro/ns-logo-b-positivo.svg"
       alt=""
-      width={width}
-      height={height}
+      width={LOGO_B_DISPLAY_WIDTH}
+      height={LOGO_B_DISPLAY_HEIGHT}
       decoding="async"
     />
     <img
       class="logo__img logo__img--dark"
       src="/images/neutro/ns-logo-b-negativo.svg"
       alt=""
-      width={width}
-      height={height}
+      width={LOGO_B_DISPLAY_WIDTH}
+      height={LOGO_B_DISPLAY_HEIGHT}
       decoding="async"
     />
   </span>

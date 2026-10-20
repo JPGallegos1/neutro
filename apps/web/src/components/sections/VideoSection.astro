@@ -157,7 +157,6 @@ const sources = [
       try {
         await video.play();
       } catch {
-        // Autoplay bloqueado: mostrar control de play reducido / leave paused
         root.dataset.playing = "false";
         syncPlaybackUi();
       }
@@ -191,7 +190,7 @@ const sources = [
         try {
           await video.play();
         } catch {
-          /* ignore */
+          void 0;
         }
       } else {
         video.pause();

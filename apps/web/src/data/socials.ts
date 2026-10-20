@@ -5,7 +5,6 @@ export type SocialLink = {
   icon: "instagram";
 };
 
-/** Placeholder hasta tener el handle oficial. */
 export const socialLinks: SocialLink[] = [
   {
     id: "instagram",
