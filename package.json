@@ -19,7 +19,8 @@
     "preview:cloudflare": "pnpm build && pnpm --filter @neutro/web preview:cloudflare",
     "deploy": "pnpm check && pnpm build && pnpm --filter @neutro/web deploy",
     "deploy:check": "pnpm build && pnpm --filter @neutro/web deploy:check",
-    "ui:add": "pnpm --filter @neutro/web exec shadcn add"
+    "ui:add": "pnpm --filter @neutro/web exec shadcn add",
+    "test": "turbo run test"
   },
   "devDependencies": {
     "@oxlint/plugins": "1.89.0",
