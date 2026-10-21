@@ -1,0 +1,69 @@
+---
+import WorkCard from "@/components/sections/WorkCard.astro";
+import { workProjects } from "@/data/work";
+---
+
+<section id="trabajo" class="work" aria-labelledby="trabajo-heading">
+  <div class="landing-shell">
+    <div class="landing-gutter">
+      <h2 id="trabajo-heading" class="work__title">
+        Trabajo
+      </h2>
+    </div>
+    <ul class="work__grid">
+      {workProjects.map((project) => (
+        <WorkCard project={project} />
+      ))}
+    </ul>
+  </div>
+</section>
+
+<style>
+  .work {
+    background: var(--neutro-bg);
+    padding-block: 24px 48px;
+  }
+
+  @media (min-width: 1024px) {
+    .work {
+      padding-block: 0 64px;
+    }
+  }
+
+  .work__title {
+    margin: 0 0 32px;
+    font-size: 40px;
+    font-weight: 500;
+    line-height: 1;
+    letter-spacing: -0.8px;
+    color: var(--neutro-text);
+  }
+
+  @media (min-width: 1024px) {
+    .work__title {
+      margin-bottom: 48px;
+      font-size: 56px;
+      letter-spacing: -1.96px;
+    }
+  }
+
+  .work__grid {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: 0;
+    column-gap: 0;
+    row-gap: 0;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  @media (min-width: 1024px) {
+    .work__grid {
+      
+      grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+      column-gap: 0;
+      row-gap: 0;
+    }
+  }
+</style>
