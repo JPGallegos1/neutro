@@ -1,7 +1,44 @@
 import { definePlugin, defineRule } from "@oxlint/plugins";
 
-const DIRECTIVE_RE =
-  /^(?:\/|!|@ts-|@__PURE__|#__PURE__|@__NO_SIDE_EFFECTS__|#__NO_SIDE_EFFECTS__|eslint-|oxlint-|global\b|globals\b|exported\b|prettier-ignore|oxfmt-ignore|@vite-ignore|webpack[A-Z]|v8 ignore|c8 ignore|istanbul ignore|@license|@preserve|sourceMappingURL|#\s*sourceMappingURL)/;
+const DIRECTIVE_BODY_RE =
+  /^(?:!|@ts-|@__PURE__|#__PURE__|@__NO_SIDE_EFFECTS__|#__NO_SIDE_EFFECTS__|eslint-|oxlint-|global\b|globals\b|exported\b|prettier-ignore|oxfmt-ignore|@vite-ignore|webpack[A-Z]|v8 ignore|c8 ignore|istanbul ignore|@license|@preserve|sourceMappingURL|#\s*sourceMappingURL)/;
+
+const TRIPLE_SLASH_DIRECTIVE_RE =
+  /^\/\s*<(?:reference|amd-module|amd-dependency)\b/;
+
+const TOKEN_CHAR_RE = /[\w$]/;
+
+export function isAllowedCommentValue(rawValue) {
+  const value = rawValue.trim();
+  if (TRIPLE_SLASH_DIRECTIVE_RE.test(value)) {
+    return true;
+  }
+  return DIRECTIVE_BODY_RE.test(value);
+}
+
+export function commentRange(comment) {
+  if (Array.isArray(comment.range) && comment.range.length === 2) {
+    return comment.range;
+  }
+  return [comment.start, comment.end];
+}
+
+export function needsSpaceBetweenNeighbors(before, after) {
+  if (!before || !after) {
+    return false;
+  }
+  if (/\s/.test(before) || /\s/.test(after)) {
+    return false;
+  }
+  return TOKEN_CHAR_RE.test(before) && TOKEN_CHAR_RE.test(after);
+}
+
+export function removalTextForComment(sourceText, comment) {
+  const [start, end] = commentRange(comment);
+  const before = start > 0 ? sourceText[start - 1] : "";
+  const after = end < sourceText.length ? sourceText[end] : "";
+  return needsSpaceBetweenNeighbors(before, after) ? " " : "";
+}
 
 const noComments = defineRule({
   meta: {
@@ -20,15 +57,24 @@ const noComments = defineRule({
   createOnce(context) {
     return {
       Program() {
-        for (const comment of context.sourceCode.getAllComments()) {
-          if (DIRECTIVE_RE.test(comment.value.trim())) {
+        const { sourceCode } = context;
+        for (const comment of sourceCode.getAllComments()) {
+          if (isAllowedCommentValue(comment.value)) {
             continue;
           }
           context.report({
             node: comment,
             messageId: "noComment",
             fix(fixer) {
-              return fixer.remove(comment);
+              const [start, end] = commentRange(comment);
+              const replacement = removalTextForComment(
+                sourceCode.text,
+                comment,
+              );
+              if (replacement === "") {
+                return fixer.remove(comment);
+              }
+              return fixer.replaceTextRange([start, end], replacement);
             },
           });
         }

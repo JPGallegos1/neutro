@@ -13,6 +13,7 @@
     "build": "turbo run build --filter=@neutro/web",
     "check": "turbo run check",
     "lint": "oxlint -A all -D neutro/no-comments .",
+    "test:lint-rules": "node --test tools/oxlint/no-comments.test.js",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "preview": "pnpm --filter @neutro/web preview",
