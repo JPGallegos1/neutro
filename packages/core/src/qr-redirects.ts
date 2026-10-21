@@ -13,6 +13,7 @@ export const FLYER_QR_SLUGS = {
   "5": "sistema",
   "6": "senales",
   "7": "corridas",
+  "8": "excel",
 } as const;
 
 export type FlyerQrId = keyof typeof FLYER_QR_SLUGS;
