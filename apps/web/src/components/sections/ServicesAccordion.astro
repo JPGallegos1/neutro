@@ -1,0 +1,345 @@
+---
+import { ArrowDown, ArrowUp } from "@lucide/astro";
+import { serviceCategories } from "@/data/services";
+---
+
+<section
+  id="que-hacemos"
+  class="services"
+  aria-labelledby="que-hacemos-heading"
+>
+  <div class="landing-shell landing-gutter services__inner">
+    <h2 id="que-hacemos-heading" class="services__title">
+      Qué hacemos
+    </h2>
+
+    <div class="services__list" data-accordion>
+      {serviceCategories.map((category) => {
+        const panelId = `servicio-panel-${category.id}`;
+        const buttonId = `servicio-trigger-${category.id}`;
+        const open = Boolean(category.defaultOpen);
+        return (
+          <div
+            class="accordion-item"
+            data-accordion-item
+            data-open={open ? "true" : "false"}
+          >
+            <h3 class="accordion-item__heading">
+              <button
+                type="button"
+                id={buttonId}
+                class="accordion-item__trigger"
+                aria-expanded={open ? "true" : "false"}
+                aria-controls={panelId}
+                data-accordion-trigger
+              >
+                <span>{category.title}</span>
+                <span class="accordion-item__icon" aria-hidden="true">
+                  <span class="accordion-item__icon-down">
+                    <ArrowDown size={24} />
+                  </span>
+                  <span class="accordion-item__icon-up">
+                    <ArrowUp size={24} />
+                  </span>
+                </span>
+              </button>
+            </h3>
+            <div
+              id={panelId}
+              class="accordion-item__panel"
+              role="region"
+              aria-labelledby={buttonId}
+              data-accordion-panel
+              {...(open ? {} : { hidden: true })}
+            >
+              <div class="accordion-item__panel-inner">
+                {category.summary ? (
+                  <p class="accordion-item__summary">{category.summary}</p>
+                ) : null}
+                {category.services.length > 0 ? (
+                  <ul class="accordion-item__services">
+                    {category.services.map((service) => (
+                      <li class="accordion-item__service">
+                        <p class="accordion-item__service-label">
+                          {service.label}
+                        </p>
+                        <p class="accordion-item__service-benefit">
+                          {service.benefit}
+                        </p>
+                      </li>
+                    ))}
+                  </ul>
+                ) : null}
+              </div>
+            </div>
+          </div>
+        );
+      })}
+    </div>
+  </div>
+</section>
+
+<script>
+  function initAccordion() {
+    const root = document.querySelector<HTMLElement>("[data-accordion]");
+    if (!root || root.dataset.ready === "true") return;
+    root.dataset.ready = "true";
+
+    const items = Array.from(
+      root.querySelectorAll<HTMLElement>("[data-accordion-item]"),
+    );
+
+    const setOpen = (item: HTMLElement, open: boolean) => {
+      const trigger = item.querySelector<HTMLButtonElement>(
+        "[data-accordion-trigger]",
+      );
+      const panel = item.querySelector<HTMLElement>("[data-accordion-panel]");
+      if (!trigger || !panel) return;
+
+      item.dataset.open = open ? "true" : "false";
+      trigger.setAttribute("aria-expanded", open ? "true" : "false");
+
+      if (open) {
+        panel.hidden = false;
+        requestAnimationFrame(() => {
+          item.classList.add("is-open");
+        });
+      } else {
+        item.classList.remove("is-open");
+        const onEnd = (event: TransitionEvent) => {
+          if (event.propertyName !== "grid-template-rows") return;
+          panel.removeEventListener("transitionend", onEnd);
+          if (item.dataset.open !== "true") panel.hidden = true;
+        };
+        panel.addEventListener("transitionend", onEnd);
+        window.setTimeout(() => {
+          if (item.dataset.open !== "true") panel.hidden = true;
+        }, 220);
+      }
+    };
+
+    items.forEach((item) => {
+      const open = item.dataset.open === "true";
+      if (open) {
+        item.classList.add("is-open");
+        const panel = item.querySelector<HTMLElement>("[data-accordion-panel]");
+        if (panel) panel.hidden = false;
+      }
+    });
+
+    items.forEach((item) => {
+      const trigger = item.querySelector<HTMLButtonElement>(
+        "[data-accordion-trigger]",
+      );
+      trigger?.addEventListener("click", () => {
+        const willOpen = item.dataset.open !== "true";
+        items.forEach((other) => {
+          if (other === item) setOpen(other, willOpen);
+          else setOpen(other, false);
+        });
+      });
+    });
+  }
+
+  initAccordion();
+  document.addEventListener("astro:page-load", initAccordion);
+</script>
+
+<style>
+  .services {
+    background: var(--neutro-bg);
+  }
+
+  .services__inner {
+    padding-block: 56px 72px;
+  }
+
+  @media (min-width: 1024px) {
+    .services__inner {
+      padding-block: 96px 120px;
+    }
+  }
+
+  .services__title {
+    margin: 0 0 32px;
+    font-size: 40px;
+    font-weight: 500;
+    line-height: 1;
+    letter-spacing: -0.8px;
+    color: var(--neutro-text);
+  }
+
+  @media (min-width: 1024px) {
+    .services__title {
+      margin-bottom: 48px;
+      font-size: 56px;
+      letter-spacing: -1.96px;
+    }
+  }
+
+  .services__list {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  @media (min-width: 1024px) {
+    .services__list {
+      gap: 16px;
+    }
+  }
+
+  .accordion-item__heading {
+    margin: 0;
+  }
+
+  .accordion-item__trigger {
+    display: flex;
+    width: 100%;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    padding: 26px 0;
+    border: 0;
+    background: transparent;
+    color: var(--neutro-text);
+    font: inherit;
+    font-size: 28px;
+    font-weight: 500;
+    letter-spacing: -0.84px;
+    text-align: left;
+    cursor: pointer;
+    border-radius: 4px;
+    transition: background-color 150ms ease;
+  }
+
+  .accordion-item__trigger:hover {
+    background: color-mix(in srgb, var(--neutro-bg) 92%, var(--neutro-text) 8%);
+  }
+
+  @media (min-width: 1024px) {
+    .accordion-item__trigger {
+      padding: 32px 0;
+      font-size: 48px;
+      letter-spacing: -1.68px;
+    }
+  }
+
+  .accordion-item__icon {
+    display: inline-flex;
+    flex-shrink: 0;
+    line-height: 0;
+  }
+
+  .accordion-item__icon-up {
+    display: none;
+  }
+
+  .accordion-item.is-open .accordion-item__icon-down {
+    display: none;
+  }
+
+  .accordion-item.is-open .accordion-item__icon-up {
+    display: inline-flex;
+  }
+
+  .accordion-item__panel {
+    display: grid;
+    grid-template-rows: 0fr;
+    opacity: 0;
+    transition:
+      grid-template-rows var(--landing-ease-accordion),
+      opacity var(--landing-ease-accordion);
+  }
+
+  .accordion-item.is-open .accordion-item__panel {
+    grid-template-rows: 1fr;
+    opacity: 1;
+  }
+
+  .accordion-item__panel-inner {
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
+    padding: 0 0 40px;
+  }
+
+  @media (min-width: 1024px) {
+    .accordion-item__panel-inner {
+      gap: 32px;
+      padding: 8px 0 56px;
+    }
+  }
+
+  .accordion-item__summary {
+    margin: 0;
+    font-size: 18px;
+    line-height: 1.3;
+    letter-spacing: -0.02em;
+    color: var(--neutro-text);
+  }
+
+  @media (min-width: 1024px) {
+    .accordion-item__summary {
+      font-size: 24px;
+      letter-spacing: -0.48px;
+    }
+  }
+
+  .accordion-item__services {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 8px 48px;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  @media (min-width: 1024px) {
+    .accordion-item__services {
+      grid-template-columns: 1fr 1fr;
+    }
+  }
+
+  .accordion-item__service {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    padding: 16px 0 24px;
+  }
+
+  .accordion-item__service-label {
+    margin: 0;
+    font-family: var(--font-mono);
+    font-size: 12px;
+    letter-spacing: 0.13px;
+    color: var(--neutro-text);
+    text-transform: uppercase;
+  }
+
+  @media (min-width: 1024px) {
+    .accordion-item__service-label {
+      font-size: 13px;
+    }
+  }
+
+  .accordion-item__service-benefit {
+    margin: 0;
+    font-size: 15px;
+    line-height: 1.45;
+    color: var(--neutro-text-muted);
+  }
+
+  @media (min-width: 1024px) {
+    .accordion-item__service-benefit {
+      font-size: 16px;
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .accordion-item__panel {
+      transition: none;
+    }
+  }
+</style>

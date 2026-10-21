@@ -1,0 +1,383 @@
+---
+import Logo from "@/components/Logo.astro";
+import { ArrowUpRight } from "@lucide/astro";
+import { socialLinks } from "@/data/socials";
+import { site } from "@/lib/site";
+
+const year = new Date().getFullYear();
+
+const legalLinks = [
+  { label: "Cookies", href: "/cookies" },
+  { label: "Privacidad", href: "/privacidad" },
+  { label: "Términos", href: "/terminos" },
+  { label: "Alerta de estafa", href: "/alerta-de-estafa" },
+];
+---
+
+<footer class="site-footer dark" data-footer>
+  <div class="landing-shell site-footer__inner">
+    <div class="site-footer__top landing-gutter">
+      <p class="site-footer__invite">
+        Si tenés alguna idea para tu negocio, producto o marca, estamos para
+        escuchar y colaborar.
+      </p>
+
+      <div class="site-footer__links">
+        
+        <div class="site-footer__contact">
+          <a
+            class="landing-link site-footer__email"
+            href={`mailto:${site.email}`}
+          >
+            {site.email}
+          </a>
+          <nav class="site-footer__socials" aria-label="Redes">
+            <ul class="site-footer__list site-footer__list--social">
+              {socialLinks.map((social) => (
+                <li>
+                  <a
+                    class="social-link site-footer__social"
+                    href={social.href}
+                    aria-label={`${social.label} (se abre en una pestaña nueva)`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                  >
+                    <span>{social.label}</span>
+                    <span class="social-arrow" aria-hidden="true">
+                      <ArrowUpRight size={12} />
+                    </span>
+                  </a>
+                </li>
+              ))}
+            </ul>
+          </nav>
+        </div>
+
+        <nav class="site-footer__legals" aria-label="Legales">
+          <ul class="site-footer__list site-footer__list--legal">
+            {legalLinks.map((link) => (
+              <li>
+                <a class="landing-link site-footer__legal" href={link.href}>
+                  {link.label}
+                </a>
+              </li>
+            ))}
+          </ul>
+        </nav>
+      </div>
+    </div>
+
+    <div class="site-footer__brand landing-gutter">
+      <div class="site-footer__mark-row">
+        <Logo forceDark class="site-footer__mark" />
+      </div>
+      <p class="site-footer__statement">
+        <span class="site-footer__sr">
+          Neutro Solutions diseñamos, creamos e implementamos sistemas para la
+          nueva era inteligente
+        </span>
+        <span class="site-footer__visual" aria-hidden="true">
+          <span class="site-footer__visual--desktop">
+            <span class="site-footer__line">Neutro Solutions</span>
+            <span class="site-footer__line">Diseñamos, creamos e</span>
+            <span class="site-footer__line">implementamos sistemas para</span>
+            <span class="site-footer__line">la nueva era inteligente</span>
+          </span>
+          <span class="site-footer__visual--mobile">
+            <span class="site-footer__line">Neutro</span>
+            <span class="site-footer__line">Solutions</span>
+            <span class="site-footer__line">Diseñamos,</span>
+            <span class="site-footer__line">creamos e</span>
+            <span class="site-footer__line">implementamos</span>
+            <span class="site-footer__line">sistemas para</span>
+            <span class="site-footer__line">la nueva era</span>
+            <span class="site-footer__line">inteligente</span>
+          </span>
+        </span>
+      </p>
+    </div>
+
+    <div class="site-footer__bar landing-gutter">
+      <p class="site-footer__copy">© {year} Neutro Solutions</p>
+    </div>
+  </div>
+</footer>
+
+<style>
+  
+  .site-footer {
+    --neutro-bg: #0a0a0a;
+    --neutro-text: #f6f6f4;
+    --neutro-text-muted: #b4b4af;
+    --neutro-border: #262624;
+    --neutro-accent-blue: #5c78ff;
+    --neutro-focus: #5c78ff;
+    --landing-focus: var(--neutro-focus);
+    background: var(--neutro-bg);
+    color: var(--neutro-text);
+    overflow-x: clip;
+  }
+
+  .site-footer__top {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 24px;
+    padding-top: 64px;
+    padding-bottom: 0;
+  }
+
+  @media (min-width: 1024px) {
+    .site-footer__top {
+      align-items: center;
+      gap: 40px;
+      padding-top: 96px;
+      text-align: center;
+    }
+  }
+
+  .site-footer__invite {
+    margin: 0;
+    max-width: 36rem;
+    font-size: 18px;
+    line-height: 1.45;
+  }
+
+  @media (min-width: 1024px) {
+    .site-footer__invite {
+      font-size: 20px;
+    }
+  }
+
+  
+  .site-footer__links {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    column-gap: 48px;
+    row-gap: 24px;
+    width: 100%;
+    max-width: 100%;
+    align-items: start;
+  }
+
+  .site-footer__contact {
+    display: contents;
+  }
+
+  .site-footer__email {
+    grid-column: 1 / -1;
+    font-family: var(--font-mono);
+    font-size: 15px;
+    letter-spacing: 0.01em;
+    color: var(--neutro-text);
+    justify-self: start;
+  }
+
+  .site-footer__socials {
+    grid-column: 1;
+  }
+
+  .site-footer__legals {
+    grid-column: 2;
+  }
+
+  @media (min-width: 1024px) {
+    .site-footer__links {
+      display: flex;
+      flex-direction: row;
+      justify-content: center;
+      align-items: flex-start;
+      width: auto;
+      column-gap: 64px;
+      row-gap: 0;
+    }
+
+    .site-footer__contact {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .site-footer__email {
+      grid-column: auto;
+      font-size: 17px;
+      justify-self: auto;
+    }
+
+    .site-footer__socials {
+      grid-column: auto;
+    }
+
+    .site-footer__legals {
+      grid-column: auto;
+    }
+  }
+
+  .site-footer__list {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  @media (min-width: 1024px) {
+    .site-footer__list {
+      align-items: center;
+    }
+  }
+
+  .site-footer__social {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-family: var(--font-mono);
+    font-size: 15px;
+    letter-spacing: 0.01em;
+    color: var(--neutro-text);
+    text-decoration: none;
+  }
+
+  @media (min-width: 1024px) {
+    .site-footer__social {
+      font-size: 17px;
+      gap: 12px;
+    }
+  }
+
+  .site-footer__social:hover {
+    text-decoration: underline;
+    text-underline-offset: 4px;
+  }
+
+  .site-footer__legal {
+    font-family: var(--font-mono);
+    font-size: 13px;
+    letter-spacing: 0.01em;
+    color: var(--neutro-text-muted);
+  }
+
+  @media (min-width: 1024px) {
+    .site-footer__legal {
+      font-size: 15px;
+    }
+  }
+
+  .site-footer__brand {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0;
+    padding-block: 48px 80px;
+  }
+
+  @media (min-width: 1024px) {
+    .site-footer__brand {
+      align-items: center;
+      text-align: center;
+      padding-block: 64px 128px;
+    }
+  }
+
+  
+  .site-footer__mark-row {
+    display: flex;
+    align-items: center;
+    height: calc(40px * 0.93);
+  }
+
+  @media (min-width: 1024px) {
+    .site-footer__mark-row {
+      height: calc(80px * 0.93);
+      justify-content: center;
+    }
+  }
+
+  
+  .site-footer :global(a.site-footer__mark.logo img.logo__img),
+  .site-footer :global(span.site-footer__mark.logo img.logo__img) {
+    width: 28px;
+    height: 17px;
+  }
+
+  @media (min-width: 1024px) {
+    .site-footer :global(a.site-footer__mark.logo img.logo__img),
+    .site-footer :global(span.site-footer__mark.logo img.logo__img) {
+      width: 53px;
+      height: 32px;
+    }
+  }
+
+  .site-footer__statement {
+    margin: 0;
+    max-width: 100%;
+    font-size: min(40px, 10.8vw);
+    font-weight: 700;
+    line-height: 0.93;
+    letter-spacing: -1.8px;
+    text-transform: uppercase;
+  }
+
+  @media (min-width: 1024px) {
+    .site-footer__statement {
+      font-size: 80px;
+      letter-spacing: -3.6px;
+    }
+  }
+
+  .site-footer__sr {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
+  }
+
+  .site-footer__visual--desktop {
+    display: none;
+  }
+
+  .site-footer__visual--mobile {
+    display: block;
+  }
+
+  @media (min-width: 1024px) {
+    .site-footer__visual--desktop {
+      display: block;
+    }
+
+    .site-footer__visual--mobile {
+      display: none;
+    }
+  }
+
+  .site-footer__line {
+    display: block;
+  }
+
+  .site-footer__bar {
+    padding-bottom: 48px;
+  }
+
+  @media (min-width: 1024px) {
+    .site-footer__bar {
+      display: flex;
+      justify-content: center;
+      padding-bottom: 40px;
+    }
+  }
+
+  .site-footer__copy {
+    margin: 0;
+    font-family: var(--font-mono);
+    font-size: 12px;
+    letter-spacing: 0.01em;
+    color: var(--neutro-text-muted);
+  }
+</style>
