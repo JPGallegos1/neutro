@@ -1,0 +1,213 @@
+---
+import Base from "@/layouts/base.astro";
+import Header from "@/components/sections/Header.astro";
+import Footer from "@/components/sections/Footer.astro";
+
+const services = [
+  "Web: tu negocio presentado con claridad, para que te elijan antes de preguntar.",
+  "Diseño: tu marca y tus pantallas, definidas con vos antes de escribir código.",
+  "Sistemas: lo que hoy vive en tu cabeza y en cuadernos, ordenado en un solo lugar.",
+  "Tienda online: una tienda que vende sola todos los días, con el mismo stock en todos tus canales.",
+  "Automatización con IA: lo que hoy hacés a mano, lo hacemos funcionar solo.",
+];
+---
+
+<Base
+  title="Nosotros — Neutro"
+  description="Quiénes somos, qué hacemos y cómo trabajamos en Neutro Solutions."
+  canonical="https://neutro.solutions/nosotros"
+>
+  <Header />
+  <main id="contenido" class="nosotros">
+    <div class="landing-shell landing-gutter nosotros__inner">
+      <header class="nosotros__title-col">
+        <h1 class="nosotros__title">Nosotros</h1>
+        <p class="nosotros__tag">Borrador de contenido</p>
+      </header>
+
+      <div class="nosotros__body">
+        <section class="nosotros__section" aria-labelledby="quienes-somos">
+          <h2 id="quienes-somos" class="nosotros__subtitle">
+            Quiénes somos
+          </h2>
+          <p class="nosotros__p">
+            Somos Neutro Solutions. Creamos, diseñamos e implementamos sistemas
+            para la nueva era inteligente.
+          </p>
+          <p class="nosotros__p">
+            Trabajamos para que tu negocio se diferencie: con una presencia
+            clara, con herramientas ordenadas y con tecnología que se pueda usar
+            todos los días.
+          </p>
+        </section>
+
+        <section class="nosotros__section" aria-labelledby="que-hacemos-page">
+          <h2 id="que-hacemos-page" class="nosotros__subtitle">
+            Qué hacemos
+          </h2>
+          <ul class="nosotros__list">
+            {services.map((item) => (
+              <li>{item}</li>
+            ))}
+          </ul>
+        </section>
+
+        <section class="nosotros__section" aria-labelledby="como-trabajamos">
+          <h2 id="como-trabajamos" class="nosotros__subtitle">
+            Cómo trabajamos
+          </h2>
+          <p class="nosotros__p">
+            Definimos con vos qué necesitás antes de construir. Preferimos
+            infraestructura confiable y determinística alrededor de la IA, sin
+            perder la flexibilidad que la hace útil.
+          </p>
+          <p class="nosotros__p">
+            Medimos para decidir mejor, y si una versión no funciona, volvemos a
+            una que sí. Así lo aprendimos en proyectos como Lina, un agente
+            conversacional en WhatsApp.
+          </p>
+        </section>
+
+        <section class="nosotros__section" aria-labelledby="contacto">
+          <h2 id="contacto" class="nosotros__subtitle">
+            Contacto
+          </h2>
+          <p class="nosotros__p">
+            Escribinos a{" "}
+            <a class="landing-link" href="mailto:hola@neutro.solutions">
+              hola@neutro.solutions
+            </a>
+            .
+          </p>
+        </section>
+      </div>
+    </div>
+  </main>
+  <Footer />
+</Base>
+
+<style>
+  .nosotros {
+    background: var(--neutro-bg);
+    color: var(--neutro-text);
+  }
+
+  .nosotros__inner {
+    display: grid;
+    gap: 40px;
+    padding-block: 48px 72px;
+  }
+
+  @media (min-width: 1024px) {
+    .nosotros__inner {
+      grid-template-columns: minmax(0, 1fr) minmax(0, 1.2fr);
+      gap: 64px;
+      padding-block: 80px 120px;
+      align-items: start;
+    }
+  }
+
+  .nosotros__title {
+    margin: 0 0 16px;
+    font-size: 56px;
+    font-weight: 700;
+    line-height: 0.93;
+    letter-spacing: -0.04em;
+    text-transform: uppercase;
+  }
+
+  @media (min-width: 1024px) {
+    .nosotros__title {
+      font-size: 104px;
+    }
+  }
+
+  .nosotros__tag {
+    display: inline-block;
+    margin: 0;
+    padding: 6px 10px;
+    border: 1px solid var(--neutro-text-muted);
+    border-radius: 4px;
+    font-family: var(--font-mono);
+    font-size: 12px;
+    letter-spacing: 0.12px;
+    text-transform: uppercase;
+    color: var(--neutro-text);
+  }
+
+  .nosotros__body {
+    display: flex;
+    flex-direction: column;
+    gap: 40px;
+  }
+
+  @media (min-width: 1024px) {
+    .nosotros__body {
+      gap: 48px;
+    }
+  }
+
+  .nosotros__section {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  .nosotros__subtitle {
+    margin: 0;
+    font-size: 20px;
+    font-weight: 500;
+    color: var(--neutro-text);
+  }
+
+  @media (min-width: 1024px) {
+    .nosotros__subtitle {
+      font-size: 24px;
+    }
+  }
+
+  
+  .nosotros__p {
+    margin: 0;
+    font-size: 16px;
+    line-height: 1.45;
+    color: var(--neutro-text-muted);
+  }
+
+  @media (min-width: 1024px) {
+    .nosotros__p {
+      font-size: 17px;
+    }
+  }
+
+  .nosotros__list {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    font-size: 16px;
+    line-height: 1.45;
+    color: var(--neutro-text-muted);
+  }
+
+  @media (min-width: 1024px) {
+    .nosotros__list {
+      font-size: 17px;
+    }
+  }
+
+  
+  .nosotros__list li {
+    position: relative;
+    padding-left: 1.15em;
+  }
+
+  .nosotros__list li::before {
+    content: "•";
+    position: absolute;
+    left: 0;
+    color: var(--neutro-text-muted);
+  }
+</style>
