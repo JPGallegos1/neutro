@@ -9,6 +9,21 @@ import {
   isServerAnalyticsEnabled,
 } from "./posthog.ts";
 
+async function withCapturedLogs(
+  run: (logs: string[]) => Promise<void>,
+): Promise<void> {
+  const logs: string[] = [];
+  const original = console.log;
+  console.log = (...args: unknown[]) => {
+    logs.push(args.map(String).join(" "));
+  };
+  try {
+    await run(logs);
+  } finally {
+    console.log = original;
+  }
+}
+
 const event = {
   slug: "2048",
   id: "1",
@@ -59,9 +74,16 @@ describe("buildQrCapturePayload", () => {
 });
 
 describe("captureAck", () => {
-  it("accepts only a 2xx body that looks like the capture ack", () => {
+  it("accepts only a 2xx body whose parsed status is Ok", () => {
     assert.equal(captureAck(200, '{"status":"Ok"}'), "accepted");
+    assert.equal(captureAck(201, ' {"status":"Ok"} '), "accepted");
     assert.equal(captureAck(200, ""), "rejected");
+    assert.equal(captureAck(200, "not json"), "rejected");
+    assert.equal(captureAck(200, '{"status":"Ok"'), "rejected");
+    assert.equal(
+      captureAck(200, '{"status":"Error","detail":"Ok is not the status"}'),
+      "rejected",
+    );
     assert.equal(captureAck(401, "nope"), "rejected");
     assert.equal(captureAck(302, '{"status":"Ok"}'), "rejected");
     assert.equal(captureAck(500, '{"status":"Ok"}'), "rejected");
@@ -71,15 +93,10 @@ describe("captureAck", () => {
 describe("captureQrScanned", () => {
   it("posts to the EU capture host, drains the body, and does not log the key", async () => {
     const apiKey = "phc_test_secret_value";
-    const logs: string[] = [];
-    const original = console.log;
-    console.log = (...args: unknown[]) => {
-      logs.push(args.map(String).join(" "));
-    };
     let reads = 0;
     const calls: Array<{ url: string; init: RequestInit }> = [];
 
-    try {
+    await withCapturedLogs(async (logs) => {
       await captureQrScanned(apiKey, event, (async (url, init) => {
         calls.push({ url: String(url), init: init ?? {} });
         const response = new Response('{"status":"Ok"}', { status: 200 });
@@ -90,9 +107,18 @@ describe("captureQrScanned", () => {
         };
         return response;
       }) as typeof fetch);
-    } finally {
-      console.log = original;
-    }
+
+      assert.equal(logs.length, 1);
+      assert.match(logs[0] ?? "", /^posthog_capture_accepted /);
+      assert.equal(
+        logs.some((line) => line.includes(apiKey)),
+        false,
+      );
+      assert.equal(
+        logs.some((line) => line.includes("phc_")),
+        false,
+      );
+    });
 
     assert.equal(calls.length, 1);
     const call = calls[0];
@@ -113,58 +139,68 @@ describe("captureQrScanned", () => {
     assert.match(body.timestamp, /Z$/);
     assert.equal(typeof body.timestamp, "string");
     assert.equal(reads, 1);
-
-    assert.equal(logs.length, 1);
-    assert.match(logs[0] ?? "", /^posthog_capture_accepted /);
-    assert.equal(
-      logs.some((line) => line.includes(apiKey)),
-      false,
-    );
-    assert.equal(
-      logs.some((line) => line.includes("phc_")),
-      false,
-    );
   });
 
   it("logs a rejection when capture does not ack, without throwing", async () => {
-    const logs: string[] = [];
-    const original = console.log;
-    console.log = (...args: unknown[]) => {
-      logs.push(args.map(String).join(" "));
-    };
-    try {
+    await withCapturedLogs(async (logs) => {
       await captureQrScanned(
         "phc_test_secret_value",
         event,
         (async () =>
           new Response("upstream down", { status: 503 })) as typeof fetch,
       );
-    } finally {
-      console.log = original;
-    }
-    assert.match(logs[0] ?? "", /^posthog_capture_rejected /);
-    assert.match(logs[0] ?? "", /"status":503/);
+      assert.match(logs[0] ?? "", /^posthog_capture_rejected /);
+      assert.match(logs[0] ?? "", /"status":503/);
+    });
+  });
+
+  it("redacts a key embedded in the response body", async () => {
+    const apiKey = "phc_fake_review_only";
+    await withCapturedLogs(async (logs) => {
+      await captureQrScanned(
+        apiKey,
+        event,
+        (async () =>
+          new Response(
+            `{"error":"Invalid key: ${apiKey} and phc_otherToken999"}`,
+            { status: 401 },
+          )) as typeof fetch,
+      );
+      const line = logs[0] ?? "";
+      assert.match(line, /^posthog_capture_rejected /);
+      assert.equal(line.includes(apiKey), false);
+      assert.equal(line.includes("phc_"), false);
+      assert.match(line, /\[redacted\]/);
+    });
   });
 
   it("swallows fetch failures so the redirect is not blocked", async () => {
-    const logs: string[] = [];
-    const original = console.log;
-    console.log = (...args: unknown[]) => {
-      logs.push(args.map(String).join(" "));
-    };
-    try {
+    await withCapturedLogs(async (logs) => {
       await captureQrScanned("phc_test_secret_value", event, (async () => {
         throw new Error("network down");
       }) as typeof fetch);
-    } finally {
-      console.log = original;
-    }
-    assert.match(logs[0] ?? "", /^posthog_capture_error /);
-    assert.match(logs[0] ?? "", /network down/);
-    assert.equal(
-      logs.some((line) => line.includes("phc_test_secret_value")),
-      false,
-    );
+      assert.match(logs[0] ?? "", /^posthog_capture_error /);
+      assert.match(logs[0] ?? "", /network down/);
+      assert.equal(
+        logs.some((line) => line.includes("phc_test_secret_value")),
+        false,
+      );
+    });
+  });
+
+  it("redacts a key embedded in the fetch error", async () => {
+    const apiKey = "phc_fake_review_only";
+    await withCapturedLogs(async (logs) => {
+      await captureQrScanned(apiKey, event, (async () => {
+        throw new Error(`network down ${apiKey}`);
+      }) as typeof fetch);
+      const line = logs[0] ?? "";
+      assert.match(line, /^posthog_capture_error /);
+      assert.match(line, /network down/);
+      assert.equal(line.includes(apiKey), false);
+      assert.equal(line.includes("phc_"), false);
+      assert.match(line, /\[redacted\]/);
+    });
   });
 });
 

@@ -52,6 +52,16 @@ export function buildQrCapturePayload(
   };
 }
 
+const PHC_TOKEN = /phc_[A-Za-z0-9]+/g;
+
+function ackStatus(value: unknown): string | undefined {
+  if (typeof value !== "object" || value === null || !("status" in value)) {
+    return undefined;
+  }
+  const status = value.status;
+  return typeof status === "string" ? status : undefined;
+}
+
 export function captureAck(
   status: number,
   body: string,
@@ -59,10 +69,20 @@ export function captureAck(
   if (status < 200 || status >= 300) {
     return "rejected";
   }
-  if (!body.includes('"status"') || !body.includes("Ok")) {
+  try {
+    if (ackStatus(JSON.parse(body)) === "Ok") {
+      return "accepted";
+    }
+  } catch {
     return "rejected";
   }
-  return "accepted";
+  return "rejected";
+}
+
+export function redactSecrets(text: string, apiKey: string): string {
+  const withoutKey =
+    apiKey.length > 0 ? text.split(apiKey).join("[redacted]") : text;
+  return withoutKey.replace(PHC_TOKEN, "[redacted]");
 }
 
 function captureLog(
@@ -110,14 +130,15 @@ export async function captureQrScanned(
       {
         ...logged,
         status: response.status,
-        body: body.slice(0, 120),
+        body: redactSecrets(body, apiKey).slice(0, 120),
       },
     );
   } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
     captureLog("posthog_capture_error", {
       ...logged,
       name: error instanceof Error ? error.name : "unknown",
-      message: error instanceof Error ? error.message : String(error),
+      message: redactSecrets(message, apiKey).slice(0, 120),
     });
   }
 }
