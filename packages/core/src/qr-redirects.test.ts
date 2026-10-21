@@ -82,7 +82,7 @@ describe("resolveQrRedirect — tarjeta", () => {
 });
 
 describe("resolveQrRedirect — unknown ids", () => {
-  for (const path of ["/f/99", "/f/abc", "/f/0", "/f/8", "/f/-1", "/f/1a"]) {
+  for (const path of ["/f/99", "/f/abc", "/f/0", "/f/9", "/f/-1", "/f/1a"]) {
     it(`${path} → landing with no UTMs`, () => {
       const result = resolveQrRedirect(path);
       assert.ok(result);
@@ -151,6 +151,26 @@ describe("createQrRedirectResponse — headers", () => {
     );
     assert.equal(response.headers.get("X-Robots-Tag"), "noindex");
     assert.equal(response.headers.get("Cache-Control"), "no-store");
+  });
+
+  it("/f/8 sets Location with utm_content=excel", () => {
+    const redirect = resolveQrRedirect("/f/8");
+    assert.ok(redirect);
+    const response = createQrRedirectResponse(redirect);
+
+    assert.equal(response.status, 302);
+    assert.equal(
+      response.headers.get("Location"),
+      `${QR_LANDING_ORIGIN}/?utm_source=flyer&utm_medium=qr&utm_campaign=calle-oct26&utm_content=excel`,
+    );
+    assert.equal(response.headers.get("X-Robots-Tag"), "noindex");
+    assert.equal(response.headers.get("Cache-Control"), "no-store");
+    assert.deepEqual(redirect.scanEvent, {
+      slug: "excel",
+      id: "8",
+      source: "flyer",
+      campaign: "calle-oct26",
+    });
   });
 
   it("unknown id response has no query string and same safety headers", () => {
