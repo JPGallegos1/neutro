@@ -151,6 +151,11 @@ describe("createQrRedirectResponse — headers", () => {
     );
     assert.equal(response.headers.get("X-Robots-Tag"), "noindex");
     assert.equal(response.headers.get("Cache-Control"), "no-store");
+    assert.equal(response.headers.get("CDN-Cache-Control"), "no-store");
+    assert.equal(
+      response.headers.get("Cloudflare-CDN-Cache-Control"),
+      "no-store",
+    );
   });
 
   it("/f/8 sets Location with utm_content=excel", () => {
@@ -182,5 +187,10 @@ describe("createQrRedirectResponse — headers", () => {
     assert.equal(response.headers.get("Location"), `${QR_LANDING_ORIGIN}/`);
     assert.equal(response.headers.get("X-Robots-Tag"), "noindex");
     assert.equal(response.headers.get("Cache-Control"), "no-store");
+    assert.equal(response.headers.get("CDN-Cache-Control"), "no-store");
+    assert.equal(
+      response.headers.get("Cloudflare-CDN-Cache-Control"),
+      "no-store",
+    );
   });
 });
