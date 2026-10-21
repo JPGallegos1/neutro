@@ -67,7 +67,10 @@ const noComments = defineRule({
             messageId: "noComment",
             fix(fixer) {
               const [start, end] = commentRange(comment);
-              const replacement = removalTextForComment(sourceCode.text, comment);
+              const replacement = removalTextForComment(
+                sourceCode.text,
+                comment,
+              );
               if (replacement === "") {
                 return fixer.remove(comment);
               }

@@ -17,14 +17,8 @@ describe("isAllowedCommentValue — triple-slash directives", () => {
       isAllowedCommentValue('/ <reference path="./types.d.ts" />'),
       true,
     );
-    assert.equal(
-      isAllowedCommentValue('/ <reference lib="esnext" />'),
-      true,
-    );
-    assert.equal(
-      isAllowedCommentValue('/ <amd-module name="app" />'),
-      true,
-    );
+    assert.equal(isAllowedCommentValue('/ <reference lib="esnext" />'), true);
+    assert.equal(isAllowedCommentValue('/ <amd-module name="app" />'), true);
     assert.equal(
       isAllowedCommentValue('/ <amd-dependency path="lib" />'),
       true,
@@ -57,7 +51,9 @@ describe("removalTextForComment — token boundaries", () => {
     const comment = { range: [6, 23], value: " explanation " };
     assert.equal(removalTextForComment(source, comment), " ");
     assert.equal(
-      source.slice(0, 6) + removalTextForComment(source, comment) + source.slice(23),
+      source.slice(0, 6) +
+        removalTextForComment(source, comment) +
+        source.slice(23),
       "typeof value",
     );
   });
@@ -73,7 +69,9 @@ describe("removalTextForComment — token boundaries", () => {
     const comment = { range: [2, 7], value: "x" };
     assert.equal(removalTextForComment(source, comment), "");
     assert.equal(
-      source.slice(0, 2) + removalTextForComment(source, comment) + source.slice(7),
+      source.slice(0, 2) +
+        removalTextForComment(source, comment) +
+        source.slice(7),
       "a+b",
     );
   });
