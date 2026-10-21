@@ -1,9 +1,7 @@
-
-
 :root {
   --landing-max: 1440px;
   --landing-gutter: 24px;
-  
+
   --landing-focus: var(--neutro-focus);
   --landing-ease-hover: 150ms ease;
   --landing-ease-drawer: 250ms ease;

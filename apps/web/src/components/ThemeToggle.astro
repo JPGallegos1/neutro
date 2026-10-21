@@ -9,54 +9,49 @@ interface Props {
 const { variant = "button", class: className } = Astro.props;
 ---
 
-{
-  variant === "button" ? (
-    <button
-      type="button"
-      class:list={["theme-toggle", className]}
-      data-theme-toggle
-      aria-label="Activar tema oscuro"
+{variant === "button" ? (
+  <button
+    type="button"
+    class:list={["theme-toggle", className]}
+    data-theme-toggle
+    aria-label="Activar tema oscuro"
+  >
+    <span
+      class="theme-toggle__icon theme-toggle__icon--moon"
+      aria-hidden="true"
     >
-      <span
-        class="theme-toggle__icon theme-toggle__icon--moon"
-        aria-hidden="true"
+      <Moon size={18} />
+    </span>
+    <span class="theme-toggle__icon theme-toggle__icon--sun" aria-hidden="true">
+      <Sun size={18} />
+    </span>
+  </button>
+) : (
+  <div class:list={["theme-drawer", className]}>
+    <span class="theme-drawer__label">Tema</span>
+    <div class="theme-drawer__controls" role="group" aria-label="Tema">
+      <button
+        type="button"
+        class="theme-drawer__option"
+        data-theme-set="light"
+        aria-pressed="false"
       >
-        <Moon size={18} />
+        Claro
+      </button>
+      <span class="theme-drawer__sep" aria-hidden="true">
+        /
       </span>
-      <span
-        class="theme-toggle__icon theme-toggle__icon--sun"
-        aria-hidden="true"
+      <button
+        type="button"
+        class="theme-drawer__option"
+        data-theme-set="dark"
+        aria-pressed="false"
       >
-        <Sun size={18} />
-      </span>
-    </button>
-  ) : (
-    <div class:list={["theme-drawer", className]}>
-      <span class="theme-drawer__label">Tema</span>
-      <div class="theme-drawer__controls" role="group" aria-label="Tema">
-        <button
-          type="button"
-          class="theme-drawer__option"
-          data-theme-set="light"
-          aria-pressed="false"
-        >
-          Claro
-        </button>
-        <span class="theme-drawer__sep" aria-hidden="true">
-          /
-        </span>
-        <button
-          type="button"
-          class="theme-drawer__option"
-          data-theme-set="dark"
-          aria-pressed="false"
-        >
-          Oscuro
-        </button>
-      </div>
+        Oscuro
+      </button>
     </div>
-  )
-}
+  </div>
+)}
 
 <style>
   .theme-toggle {
