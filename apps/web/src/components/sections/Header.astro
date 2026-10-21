@@ -1,0 +1,175 @@
+---
+import Logo from "@/components/Logo.astro";
+import ThemeToggle from "@/components/ThemeToggle.astro";
+import MobileDrawer from "@/components/sections/MobileDrawer.astro";
+import { Menu } from "@lucide/astro";
+import { navItems } from "@/data/nav";
+import { socialLinks } from "@/data/socials";
+---
+
+<header class="site-header">
+  <div class="landing-shell site-header__inner">
+    <Logo />
+
+    <nav class="site-header__nav" aria-label="Principal">
+      <ul class="site-header__nav-list">
+        {navItems.map((item) => (
+          <li>
+            <a class="landing-link site-header__nav-link" href={item.href}>
+              {item.label}
+            </a>
+          </li>
+        ))}
+      </ul>
+    </nav>
+
+    <div class="site-header__actions">
+      <nav class="site-header__socials" aria-label="Redes">
+        <ul class="site-header__socials-list">
+          {socialLinks.map((social) => (
+            <li>
+              <a
+                class="social-link site-header__social"
+                href={social.href}
+                aria-label={`${social.label} (se abre en una pestaña nueva)`}
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  width="20"
+                  height="20"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  aria-hidden="true"
+                >
+                  <rect width="20" height="20" x="2" y="2" rx="5" ry="5"></rect>
+                  <path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"></path>
+                  <line x1="17.5" x2="17.51" y1="6.5" y2="6.5"></line>
+                </svg>
+              </a>
+            </li>
+          ))}
+        </ul>
+      </nav>
+      <ThemeToggle class="site-header__theme" />
+    </div>
+
+    <button
+      type="button"
+      class="site-header__menu"
+      data-drawer-open
+      aria-label="Abrir menú"
+      aria-expanded="false"
+      aria-controls="menu-drawer"
+    >
+      <Menu size={20} />
+    </button>
+  </div>
+</header>
+
+<MobileDrawer navItems={navItems} />
+
+<style>
+  .site-header {
+    background: var(--neutro-bg);
+  }
+
+  .site-header__inner {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    min-height: 80px;
+    padding-inline: var(--landing-gutter);
+    padding-block: 24px;
+  }
+
+  @media (min-width: 1024px) {
+    .site-header__inner {
+      min-height: 96px;
+      padding-block: 0;
+      position: relative;
+    }
+  }
+
+  .site-header__nav {
+    display: none;
+  }
+
+  .site-header__actions {
+    display: none;
+  }
+
+  .site-header__menu {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 44px;
+    height: 44px;
+    margin-inline-end: -12px;
+    border: 0;
+    background: transparent;
+    color: var(--neutro-text);
+    cursor: pointer;
+  }
+
+  .site-header__menu:hover {
+    background: color-mix(in srgb, var(--neutro-bg) 92%, var(--neutro-text) 8%);
+    border-radius: 4px;
+  }
+
+  @media (min-width: 1024px) {
+    .site-header__menu {
+      display: none;
+    }
+
+    .site-header__nav {
+      display: block;
+      position: absolute;
+      left: 50%;
+      transform: translateX(-50%);
+    }
+
+    .site-header__nav-list {
+      display: flex;
+      gap: 35px;
+      list-style: none;
+      margin: 0;
+      padding: 0;
+    }
+
+    .site-header__nav-link {
+      font-size: 13px;
+      font-weight: 400;
+      color: var(--neutro-text);
+    }
+
+    .site-header__actions {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+    }
+
+    .site-header__socials-list {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      list-style: none;
+      margin: 0;
+      padding: 0;
+    }
+
+    .site-header__social {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--neutro-text);
+      min-width: 20px;
+      min-height: 20px;
+    }
+  }
+</style>

@@ -1,0 +1,136 @@
+---
+import { Moon, Sun } from "@lucide/astro";
+
+interface Props {
+  variant?: "button" | "drawer";
+  class?: string;
+}
+
+const { variant = "button", class: className } = Astro.props;
+---
+
+{
+  variant === "button" ? (
+    <button
+      type="button"
+      class:list={["theme-toggle", className]}
+      data-theme-toggle
+      aria-label="Activar tema oscuro"
+    >
+      <span
+        class="theme-toggle__icon theme-toggle__icon--moon"
+        aria-hidden="true"
+      >
+        <Moon size={18} />
+      </span>
+      <span
+        class="theme-toggle__icon theme-toggle__icon--sun"
+        aria-hidden="true"
+      >
+        <Sun size={18} />
+      </span>
+    </button>
+  ) : (
+    <div class:list={["theme-drawer", className]}>
+      <span class="theme-drawer__label">Tema</span>
+      <div class="theme-drawer__controls" role="group" aria-label="Tema">
+        <button
+          type="button"
+          class="theme-drawer__option"
+          data-theme-set="light"
+          aria-pressed="false"
+        >
+          Claro
+        </button>
+        <span class="theme-drawer__sep" aria-hidden="true">
+          /
+        </span>
+        <button
+          type="button"
+          class="theme-drawer__option"
+          data-theme-set="dark"
+          aria-pressed="false"
+        >
+          Oscuro
+        </button>
+      </div>
+    </div>
+  )
+}
+
+<style>
+  .theme-toggle {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 45px;
+    height: 45px;
+    border-radius: 4px;
+    border: 1px solid var(--neutro-border);
+    background: var(--neutro-bg);
+    color: var(--neutro-text);
+    cursor: pointer;
+    transition: background-color 150ms ease;
+  }
+
+  .theme-toggle:hover {
+    background: color-mix(in srgb, var(--neutro-bg) 92%, var(--neutro-text) 8%);
+  }
+
+  .theme-toggle__icon {
+    display: none;
+    line-height: 0;
+  }
+
+  :global(html:not(.dark)) .theme-toggle__icon--moon {
+    display: inline-flex;
+  }
+
+  :global(html.dark) .theme-toggle__icon--sun {
+    display: inline-flex;
+  }
+
+  .theme-drawer {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    width: 100%;
+  }
+
+  .theme-drawer__label {
+    font-family: var(--font-mono);
+    font-size: 15px;
+    color: var(--neutro-text-muted);
+  }
+
+  .theme-drawer__controls {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    font-family: var(--font-mono);
+    font-size: 14px;
+  }
+
+  .theme-drawer__option {
+    background: transparent;
+    border: 0;
+    padding: 0;
+    cursor: pointer;
+    color: var(--neutro-text-muted);
+    transition: color 150ms ease;
+  }
+
+  .theme-drawer__option[aria-pressed="true"] {
+    color: var(--neutro-text);
+  }
+
+  .theme-drawer__option:hover {
+    text-decoration: underline;
+    text-underline-offset: 4px;
+  }
+
+  .theme-drawer__sep {
+    color: var(--neutro-text-muted);
+  }
+</style>
