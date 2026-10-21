@@ -10,7 +10,8 @@
     "preview": "astro preview",
     "preview:cloudflare": "wrangler dev",
     "deploy": "wrangler deploy",
-    "deploy:check": "wrangler deploy --dry-run"
+    "deploy:check": "wrangler deploy --dry-run",
+    "test": "node --experimental-strip-types --test worker/posthog.test.ts"
   },
   "dependencies": {
     "@astrojs/react": "7.1.0",

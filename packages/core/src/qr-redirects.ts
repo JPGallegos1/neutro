@@ -3,6 +3,8 @@ export const QR_LANDING_ORIGIN = "https://neutro.solutions";
 export const QR_REDIRECT_HEADERS = {
   "X-Robots-Tag": "noindex",
   "Cache-Control": "no-store",
+  "CDN-Cache-Control": "no-store",
+  "Cloudflare-CDN-Cache-Control": "no-store",
 } as const;
 
 export const FLYER_QR_SLUGS = {
@@ -138,9 +140,10 @@ export function resolveQrRedirect(pathname: string): QrRedirectTarget | null {
 export function createQrRedirectResponse(redirect: QrRedirectTarget): Response {
   const headers = new Headers({
     Location: redirect.location,
-    "X-Robots-Tag": redirect.headers["X-Robots-Tag"],
-    "Cache-Control": redirect.headers["Cache-Control"],
   });
+  for (const [name, value] of Object.entries(redirect.headers)) {
+    headers.set(name, value);
+  }
   return new Response(null, {
     status: redirect.status,
     headers,
