@@ -1,5 +1,6 @@
 ---
 import "@neutro/ui/globals.css";
+import "@/styles/landing.css";
 import { site } from "@/lib/site";
 
 interface Props {
@@ -39,29 +40,75 @@ const organizationJsonLd = {
     <link rel="canonical" href={canonical} />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <title>{title}</title>
+    
     <script is:inline>
-      document.documentElement.classList.toggle(
-        "dark",
-        window.matchMedia("(prefers-color-scheme: dark)").matches,
-      );
+      (function () {
+        try {
+          const stored = localStorage.getItem("neutro-theme");
+          const dark =
+            stored === "dark" ||
+            (stored !== "light" &&
+              window.matchMedia("(prefers-color-scheme: dark)").matches);
+          document.documentElement.classList.toggle("dark", dark);
+        } catch {
+          document.documentElement.classList.toggle(
+            "dark",
+            window.matchMedia("(prefers-color-scheme: dark)").matches,
+          );
+        }
+      })();
     </script>
     <script
       type="application/ld+json"
       set:html={JSON.stringify(organizationJsonLd)}
     />
   </head>
-  <body class="min-h-screen">
-    <a
-      href="#contenido"
-      class="sr-only rounded-md bg-primary p-3 text-primary-foreground focus:not-sr-only focus:fixed focus:top-4 focus:left-4 focus:z-50"
-    >
-      Saltar al contenido
+  <body class="min-h-screen bg-neutro-bg text-neutro-text">
+    <a href="#contenido" class="skip-link">
+      {" "}
+      Saltar al contenido{" "}
     </a>
     <slot />
     <script>
       import { initAnalytics } from "@/lib/analytics";
+      import { initThemeControls } from "@/scripts/theme";
 
+      initThemeControls();
+      document.addEventListener("astro:page-load", initThemeControls);
       void initAnalytics();
     </script>
   </body>
 </html>
+
+<style is:global>
+  .skip-link {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
+  }
+
+  .skip-link:focus,
+  .skip-link:focus-visible {
+    position: fixed;
+    top: 1rem;
+    left: 1rem;
+    z-index: 100;
+    width: auto;
+    height: auto;
+    margin: 0;
+    padding: 0.75rem 1rem;
+    overflow: visible;
+    clip: auto;
+    white-space: normal;
+    background: var(--neutro-accent-blue);
+    color: var(--neutro-on-blue);
+    border-radius: 4px;
+    text-decoration: none;
+  }
+</style>
