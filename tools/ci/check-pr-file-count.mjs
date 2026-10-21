@@ -37,8 +37,12 @@ function main() {
   }
 
   const changed = listedFiles(baseSha, headSha);
-  const excluded = changed.filter((path) => EXCLUDED_BASENAMES.has(basename(path)));
-  const counted = changed.filter((path) => !EXCLUDED_BASENAMES.has(basename(path)));
+  const excluded = changed.filter((path) =>
+    EXCLUDED_BASENAMES.has(basename(path)),
+  );
+  const counted = changed.filter(
+    (path) => !EXCLUDED_BASENAMES.has(basename(path)),
+  );
 
   console.log(`PR file count (excluding lockfiles): ${counted.length}`);
   console.log(`Limit: ${MAX_FILES}`);

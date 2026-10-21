@@ -23,11 +23,9 @@ const sources = [
         height="720"
         aria-label="Video de presentación de Neutro Solutions con música instrumental"
       >
-        {
-          sources.map((source) => (
-            <source data-src={source.src} type={source.type} />
-          ))
-        }
+        {sources.map((source) => (
+          <source data-src={source.src} type={source.type} />
+        ))}
       </video>
 
       <div class="video-section__reduced" data-video-reduced hidden>
@@ -100,7 +98,8 @@ const sources = [
 
   function attachSources(video: HTMLVideoElement) {
     if (video.dataset.sourcesReady === "true") return;
-    const sources = video.querySelectorAll<HTMLSourceElement>("source[data-src]");
+    const sources =
+      video.querySelectorAll<HTMLSourceElement>("source[data-src]");
     sources.forEach((source) => {
       const src = source.dataset.src;
       if (src) source.src = src;
