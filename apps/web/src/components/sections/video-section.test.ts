@@ -55,9 +55,10 @@ describe("video section contract", () => {
     );
   });
 
-  it("uses icon-only 44px controls in a corner below 768px", () => {
+  it("uses icon-only 32px controls with a 44px hit target below 768px", () => {
     assert.match(mobileFlat, /\.video-section__controls \{[^}]*right: 8px/);
     assert.match(mobileFlat, /\.video-section__controls \{[^}]*bottom: 8px/);
+    assert.match(mobileFlat, /\.video-section__controls \{[^}]*gap: 8px/);
     assert.match(
       mobileFlat,
       /\.video-section__controls \{[^}]*flex-wrap: nowrap/,
@@ -66,10 +67,12 @@ describe("video section contract", () => {
       mobileFlat,
       /\.video-section__controls \{[^}]*background: rgb\(246 246 244 \/ 72%\)/,
     );
-    assert.match(mobileFlat, /\.video-section__btn \{[^}]*width: 44px/);
-    assert.match(mobileFlat, /\.video-section__btn \{[^}]*height: 44px/);
-    assert.match(mobileFlat, /\.video-section__btn \{[^}]*min-width: 44px/);
-    assert.match(mobileFlat, /\.video-section__btn \{[^}]*min-height: 44px/);
+    assert.match(mobileFlat, /\.video-section__btn \{[^}]*width: 32px/);
+    assert.match(mobileFlat, /\.video-section__btn \{[^}]*height: 32px/);
+    assert.match(mobileFlat, /\.video-section__btn \{[^}]*border-width: 0/);
+    assert.match(mobileFlat, /\.video-section__btn::before \{[^}]*inset: -6px/);
+    assert.match(mobileFlat, /\.video-section__icon svg \{[^}]*width: 16px/);
+    assert.match(mobileFlat, /\.video-section__icon svg \{[^}]*height: 16px/);
     assert.match(
       mobileFlat,
       /\.video-section__btn-label \{[^}]*position: absolute/,

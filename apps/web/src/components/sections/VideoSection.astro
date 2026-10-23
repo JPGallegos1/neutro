@@ -390,9 +390,9 @@ const sources = [
       right: 8px;
       bottom: 8px;
       flex-wrap: nowrap;
-      gap: 4px;
-      padding: 4px;
-      border-radius: 10px;
+      gap: 8px;
+      padding: 0;
+      border-radius: 8px;
       background: rgb(246 246 244 / 72%);
       border: 1px solid rgb(10 10 10 / 8%);
     }
@@ -400,14 +400,30 @@ const sources = [
     .video-section__btn {
       position: relative;
       justify-content: center;
-      width: 44px;
-      height: 44px;
-      min-width: 44px;
-      min-height: 44px;
+      width: 32px;
+      height: 32px;
+      min-width: 32px;
+      min-height: 32px;
       padding: 0;
       gap: 0;
-      border-color: transparent;
+      border-width: 0;
       background: transparent;
+    }
+
+    .video-section__btn::before {
+      content: "";
+      position: absolute;
+      inset: -6px;
+    }
+
+    .video-section__icon {
+      width: 16px;
+      height: 16px;
+    }
+
+    .video-section__icon svg {
+      width: 16px;
+      height: 16px;
     }
 
     .video-section__btn:hover {
