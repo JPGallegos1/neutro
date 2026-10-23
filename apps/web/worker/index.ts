@@ -3,7 +3,7 @@ import {
   resolveQrRedirect,
 } from "@neutro/core/qr-redirects";
 
-import { captureQrScanned, isServerAnalyticsEnabled } from "./posthog";
+import { captureQrScanned, isServerAnalyticsEnabled } from "./posthog.ts";
 
 export interface Env {
   POSTHOG_KEY?: string;

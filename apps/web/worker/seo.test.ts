@@ -10,7 +10,7 @@ function executionContext(): ExecutionContext {
   return {
     waitUntil() {},
     passThroughOnException() {},
-  } as ExecutionContext;
+  } as unknown as ExecutionContext;
 }
 
 function assetEnv(body = "page") {
@@ -36,7 +36,7 @@ async function fetchWorker(
 ): Promise<Response> {
   return worker.fetch(
     new Request(url),
-    env as Parameters<typeof worker.fetch>[1],
+    env as unknown as Parameters<typeof worker.fetch>[1],
     executionContext(),
   );
 }
