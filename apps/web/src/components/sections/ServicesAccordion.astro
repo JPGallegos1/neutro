@@ -1,6 +1,6 @@
 ---
 import { ArrowDown, ArrowUp } from "@lucide/astro";
-import { serviceCategories } from "@/data/services";
+import { serviceCategories, serviceCopy } from "@/data/services";
 ---
 
 <section
@@ -53,23 +53,37 @@ import { serviceCategories } from "@/data/services";
               {...(open ? {} : { hidden: true })}
             >
               <div class="accordion-item__panel-inner">
-                {category.summary ? (
-                  <p class="accordion-item__summary">{category.summary}</p>
-                ) : null}
-                {category.services.length > 0 ? (
+                <p class="accordion-item__summary">
+                  {serviceCopy(category.summary, `${category.id}.summary`)}
+                </p>
+                {category.body === "services" ? (
                   <ul class="accordion-item__services">
-                    {category.services.map((service) => (
+                    {category.services.map((service, index) => (
                       <li class="accordion-item__service">
                         <p class="accordion-item__service-label">
-                          {service.label}
+                          {serviceCopy(
+                            service.label,
+                            `${category.id}.services[${index}].label`,
+                          )}
                         </p>
                         <p class="accordion-item__service-benefit">
-                          {service.benefit}
+                          {serviceCopy(
+                            service.benefit,
+                            `${category.id}.services[${index}].benefit`,
+                          )}
                         </p>
                       </li>
                     ))}
                   </ul>
-                ) : null}
+                ) : (
+                  <ul class="accordion-item__tags">
+                    {category.tags.map((tag, index) => (
+                      <li class="accordion-item__tag">
+                        {serviceCopy(tag, `${category.id}.tags[${index}]`)}
+                      </li>
+                    ))}
+                  </ul>
+                )}
               </div>
             </div>
           </div>
@@ -320,6 +334,29 @@ import { serviceCategories } from "@/data/services";
 
   @media (min-width: 1024px) {
     .accordion-item__service-label {
+      font-size: 13px;
+    }
+  }
+
+  .accordion-item__tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px 24px;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  .accordion-item__tag {
+    font-family: var(--font-mono);
+    font-size: 12px;
+    letter-spacing: 0.13px;
+    text-transform: uppercase;
+    color: var(--neutro-text);
+  }
+
+  @media (min-width: 1024px) {
+    .accordion-item__tag {
       font-size: 13px;
     }
   }
