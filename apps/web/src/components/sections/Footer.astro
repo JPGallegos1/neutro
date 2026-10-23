@@ -1,6 +1,5 @@
 ---
 import Logo from "@/components/Logo.astro";
-import { pageMeta } from "@/data/page-meta";
 import { ArrowUpRight } from "@lucide/astro";
 import { socialLinks } from "@/data/socials";
 import { site } from "@/lib/site";
@@ -8,10 +7,10 @@ import { site } from "@/lib/site";
 const year = new Date().getFullYear();
 
 const legalLinks = [
-  { label: "Cookies", href: pageMeta.cookies.path },
-  { label: "Privacidad", href: pageMeta.privacidad.path },
-  { label: "Términos", href: pageMeta.terminos.path },
-  { label: "Alerta de estafa", href: pageMeta.alertaEstafa.path },
+  { label: "Cookies", href: "/cookies" },
+  { label: "Privacidad", href: "/privacidad" },
+  { label: "Términos", href: "/terminos" },
+  { label: "Alerta de estafa", href: "/alerta-estafa" },
 ];
 ---
 
