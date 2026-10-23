@@ -46,3 +46,5 @@ jobs:
         run: pnpm install --frozen-lockfile
       - name: Typecheck
         run: pnpm check
+      - name: Test
+        run: pnpm --filter @neutro/web test
