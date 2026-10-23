@@ -17,98 +17,41 @@ function extract(tag: "script" | "style"): string {
   return body;
 }
 
-function mediaBlock(css: string, query: string): string {
-  const header = `@media ${query}`;
-  const start = css.indexOf(header);
-  assert.notEqual(start, -1, header);
-  const open = css.indexOf("{", start);
-  let depth = 0;
-  for (let index = open; index < css.length; index += 1) {
-    const char = css[index];
-    if (char === "{") depth += 1;
-    if (char === "}") {
-      depth -= 1;
-      if (depth === 0) return css.slice(start, index + 1);
-    }
-  }
-  throw new Error(`unclosed ${header}`);
-}
+const css = extract("style");
+const scriptSource = extract("script");
 
 describe("video section contract", () => {
-  const css = extract("style");
-  const mobile = mediaBlock(css, "(max-width: 767px)");
-  const mobileFlat = mobile.replace(/\s+/g, " ");
-  const desktop = css.replace(mobile, "");
+  it("defaults to a muted looping inline video without controls", () => {
+    const videoTag = source.match(/<video[\s\S]*?>/)?.[0] ?? "";
+    assert.match(videoTag, /\sautoplay(?:\s|>)/);
+    assert.match(videoTag, /\smuted(?:\s|>)/);
+    assert.match(videoTag, /\sloop(?:\s|>)/);
+    assert.match(videoTag, /\splaysinline(?:\s|>)/);
+    assert.match(videoTag, /poster=\{posterSrc\}/);
+    assert.match(videoTag, /aria-hidden="true"/);
+    assert.doesNotMatch(videoTag, /\scontrols(?:\s|=|>)/);
+    assert.doesNotMatch(source, /<button/);
+    assert.doesNotMatch(source, /from "@lucide\/astro"/);
+  });
 
-  it("keeps accessible names in the markup", () => {
-    assert.match(
+  it("drops playback and sound controls from markup, css, and script", () => {
+    assert.doesNotMatch(
       source,
-      /data-video-playback[\s\S]*?aria-label="Pausar video"/,
+      /data-video-(controls|playback|mute|play|reduced)/,
     );
-    assert.match(source, /data-video-mute[\s\S]*?aria-label="Activar sonido"/);
-    assert.match(source, /data-video-playback-label[\s\S]*?Pausar/);
-    assert.match(source, /data-video-mute-label[\s\S]*?Activar sonido/);
-    assert.match(source, /data-video-reduced/);
-    assert.match(
-      source,
-      /data-video-play[\s\S]*?aria-label="Reproducir video"/,
-    );
+    assert.doesNotMatch(css, /video-section__(controls|btn|play|icon|reduced)/);
+    assert.doesNotMatch(css, /cursor:\s*pointer/);
+    assert.doesNotMatch(scriptSource, /addEventListener\(\s*["']click["']/);
+    assert.doesNotMatch(scriptSource, /data-video-(playback|mute|play)/);
+    assert.match(css, /\.video-section__video\s*\{[^}]*object-fit:\s*cover/);
   });
 
-  it("uses icon-only 32px controls with a 44px hit target below 768px", () => {
-    assert.match(mobileFlat, /\.video-section__controls \{[^}]*right: 8px/);
-    assert.match(mobileFlat, /\.video-section__controls \{[^}]*bottom: 8px/);
-    assert.match(mobileFlat, /\.video-section__controls \{[^}]*gap: 8px/);
-    assert.match(
-      mobileFlat,
-      /\.video-section__controls \{[^}]*flex-wrap: nowrap/,
-    );
-    assert.match(
-      mobileFlat,
-      /\.video-section__controls \{[^}]*background: rgb\(246 246 244 \/ 72%\)/,
-    );
-    assert.match(mobileFlat, /\.video-section__btn \{[^}]*width: 32px/);
-    assert.match(mobileFlat, /\.video-section__btn \{[^}]*height: 32px/);
-    assert.match(mobileFlat, /\.video-section__btn \{[^}]*border-width: 0/);
-    assert.match(mobileFlat, /\.video-section__btn::before \{[^}]*inset: -6px/);
-    assert.match(mobileFlat, /\.video-section__icon svg \{[^}]*width: 16px/);
-    assert.match(mobileFlat, /\.video-section__icon svg \{[^}]*height: 16px/);
-    assert.match(
-      mobileFlat,
-      /\.video-section__btn-label \{[^}]*position: absolute/,
-    );
-    assert.match(
-      mobileFlat,
-      /\.video-section__btn-label \{[^}]*clip: rect\(0, 0, 0, 0\)/,
-    );
-    assert.match(
-      mobileFlat,
-      /\.video-section__btn-label \{[^}]*clip-path: inset\(50%\)/,
-    );
-  });
-
-  it("keeps text labels on desktop", () => {
-    assert.equal(desktop.includes(".video-section__btn-label"), false);
-    assert.doesNotMatch(desktop, /max-width:\s*767px/);
-  });
-
-  it("draws a keyboard focus ring on the video controls", () => {
-    assert.match(
-      css,
-      /\.video-section__btn:focus-visible\s*\{[^}]*outline:\s*2px solid var\(--neutro-focus\)/,
-    );
-    assert.match(
-      css,
-      /\.video-section__play:focus-visible\s*,\s*\.video-section__btn:focus-visible\s*\{[^}]*outline:\s*2px solid var\(--neutro-focus\)/,
-    );
-    assert.match(
-      mobileFlat,
-      /\.video-section__btn:focus-visible \{[^}]*outline:\s*2px solid var\(--neutro-focus\)/,
-    );
-    assert.match(
-      mobileFlat,
-      /\.video-section__btn:focus-visible \{[^}]*outline-offset:\s*-3px/,
-    );
+  it("keeps a poster fallback when autoplay is refused or motion is reduced", () => {
+    assert.match(scriptSource, /prefers-reduced-motion:\s*reduce/);
+    assert.match(scriptSource, /pending\.catch/);
+    assert.match(scriptSource, /function showPoster/);
+    assert.match(scriptSource, /removeAttribute\(\s*["']autoplay["']\s*\)/);
+    assert.match(scriptSource, /removeAttribute\(\s*["']src["']\s*\)/);
   });
 });
 
@@ -126,14 +69,18 @@ class El {
   readonly dataset: Record<string, string> = {};
   readonly children: El[] = [];
   readonly listeners = new Map<string, Listener[]>();
-  hidden: boolean;
+  hidden = false;
   textContent: string;
   paused = true;
   muted = false;
+  defaultMuted = false;
+  autoplay = false;
   volume = 1;
-  src = "";
   playCalls = 0;
   loadCalls = 0;
+  rejectPlay = false;
+  throwPlay = false;
+  #src = "";
 
   constructor(
     tag: string,
@@ -147,14 +94,34 @@ class El {
       if (name.startsWith("data-")) this.dataset[dataKey(name)] = value;
     }
     this.hidden = this.attrs.has("hidden");
+    this.autoplay = this.attrs.has("autoplay");
+    this.muted = this.attrs.has("muted");
+  }
+
+  get src() {
+    return this.#src;
+  }
+
+  set src(value: string) {
+    this.#src = value;
+    if (value) this.attrs.set("src", value);
+    else this.attrs.delete("src");
   }
 
   setAttribute(name: string, value: string) {
     this.attrs.set(name, value);
+    if (name === "src") this.#src = value;
   }
 
   getAttribute(name: string) {
     return this.attrs.get(name) ?? null;
+  }
+
+  removeAttribute(name: string) {
+    this.attrs.delete(name);
+    if (name === "src") this.#src = "";
+    if (name === "autoplay") this.autoplay = false;
+    if (name.startsWith("data-")) delete this.dataset[dataKey(name)];
   }
 
   addEventListener(type: string, fn: Listener) {
@@ -185,6 +152,8 @@ class El {
 
   play() {
     this.playCalls += 1;
+    if (this.throwPlay) throw new Error("NotAllowedError");
+    if (this.rejectPlay) return Promise.reject(new Error("NotAllowedError"));
     this.paused = false;
     this.emit("play");
     return Promise.resolve();
@@ -233,64 +202,21 @@ class FakeObserver {
 function buildTree() {
   const section = new El("section");
   const frame = new El("div", { "data-video-root": "" });
-  const video = new El("video", { "data-video": "" });
-  video.muted = true;
+  const video = new El("video", {
+    "data-video": "",
+    autoplay: "",
+    muted: "",
+    loop: "",
+    playsinline: "",
+    poster: "/video/neutro-poster.jpg",
+  });
   const webm = new El("source", { "data-src": "/video/neutro.webm" });
   const mp4 = new El("source", { "data-src": "/video/neutro.mp4" });
   video.append(webm);
   video.append(mp4);
-
-  const reduced = new El("div", { "data-video-reduced": "", hidden: "" });
-  const play = new El("button", {
-    "data-video-play": "",
-    "aria-label": "Reproducir video",
-  });
-  reduced.append(play);
-
-  const controls = new El("div", { "data-video-controls": "", hidden: "" });
-  const playback = new El("button", {
-    "data-video-playback": "",
-    "aria-pressed": "true",
-    "aria-label": "Pausar video",
-  });
-  const playbackLabel = new El(
-    "span",
-    { "data-video-playback-label": "" },
-    "Pausar",
-  );
-  playback.append(playbackLabel);
-  const mute = new El("button", {
-    "data-video-mute": "",
-    "aria-pressed": "true",
-    "aria-label": "Activar sonido",
-  });
-  const muteLabel = new El(
-    "span",
-    { "data-video-mute-label": "" },
-    "Activar sonido",
-  );
-  mute.append(muteLabel);
-  controls.append(playback);
-  controls.append(mute);
-
   frame.append(video);
-  frame.append(reduced);
-  frame.append(controls);
   section.append(frame);
-
-  return {
-    section,
-    frame,
-    video,
-    reduced,
-    play,
-    controls,
-    playback,
-    playbackLabel,
-    mute,
-    muteLabel,
-    webm,
-  };
+  return { section, frame, video, webm, mp4 };
 }
 
 type VideoUi = ReturnType<typeof buildTree>;
@@ -330,7 +256,7 @@ const context = vm.createContext({
   console,
 });
 
-const script = stripTypeScriptTypes(extract("script"), {
+const script = stripTypeScriptTypes(scriptSource, {
   mode: "strip",
   sourceUrl: "VideoSection.astro",
 });
@@ -350,9 +276,15 @@ function takeObserver(): FakeObserver {
   return observer;
 }
 
-async function boot(reduced: boolean): Promise<VideoUi> {
-  reducedMotion = reduced;
+async function boot(options?: {
+  reduced?: boolean;
+  rejectPlay?: boolean;
+  throwPlay?: boolean;
+}): Promise<VideoUi> {
+  reducedMotion = options?.reduced ?? false;
   const ui = buildTree();
+  ui.video.rejectPlay = options?.rejectPlay ?? false;
+  ui.video.throwPlay = options?.throwPlay ?? false;
   doc.tree = ui.section;
   FakeObserver.latest = null;
   if (!scriptReady) {
@@ -377,77 +309,68 @@ function exclusive(run: () => Promise<void>): Promise<void> {
   return next;
 }
 
-function assertPlayback(
-  ui: VideoUi,
-  playing: boolean,
-  label: "Pausar" | "Reproducir",
-  accessibleName: "Pausar video" | "Reproducir video",
-) {
-  assert.equal(ui.video.paused, !playing);
-  assert.equal(ui.playback.getAttribute("aria-pressed"), String(playing));
-  assert.equal(ui.playback.getAttribute("aria-label"), accessibleName);
-  assert.equal(ui.playbackLabel.textContent, label);
-  assert.equal(ui.frame.dataset.playing, String(playing));
+function assertPoster(ui: VideoUi) {
+  assert.equal(ui.video.paused, true);
+  assert.equal(ui.video.muted, true);
+  assert.equal(ui.webm.src, "");
+  assert.equal(ui.mp4.src, "");
+  assert.equal(ui.webm.getAttribute("data-src"), "/video/neutro.webm");
+  assert.equal(ui.video.getAttribute("poster"), "/video/neutro-poster.jpg");
+  assert.equal(ui.video.getAttribute("autoplay"), null);
+  assert.equal(ui.video.autoplay, false);
 }
 
 describe("video section playback", () => {
-  it("autoplays and shows labeled controls when motion is allowed", () =>
+  it("autoplays muted once the frame is visible", () =>
     exclusive(async () => {
-      const ui = await boot(false);
-      assert.equal(ui.reduced.hidden, true);
-      assert.equal(ui.controls.hidden, false);
-      assert.equal(ui.frame.dataset.reduced, "false");
+      const ui = await boot();
+      assert.equal(ui.video.paused, false);
+      assert.equal(ui.video.muted, true);
+      assert.equal(ui.video.defaultMuted, true);
       assert.ok(ui.video.playCalls >= 1);
       assert.equal(ui.webm.src, "/video/neutro.webm");
-      assertPlayback(ui, true, "Pausar", "Pausar video");
-      assert.equal(ui.mute.getAttribute("aria-label"), "Activar sonido");
-      assert.equal(ui.muteLabel.textContent, "Activar sonido");
+      assert.equal(ui.mp4.src, "/video/neutro.mp4");
+      assert.equal(ui.video.getAttribute("autoplay"), "");
+      assert.equal(ui.video.loadCalls, 1);
     }));
 
-  it("toggles pause and play from the video and the button together", () =>
+  it("does not toggle playback when the video is clicked", () =>
     exclusive(async () => {
-      const ui = await boot(false);
+      const ui = await boot();
+      const plays = ui.video.playCalls;
       ui.video.emit("click");
+      ui.frame.emit("click");
       await settle();
-      assertPlayback(ui, false, "Reproducir", "Reproducir video");
-
-      ui.playback.emit("click");
-      await settle();
-      assertPlayback(ui, true, "Pausar", "Pausar video");
-
-      ui.video.emit("click");
-      await settle();
-      assertPlayback(ui, false, "Reproducir", "Reproducir video");
-      assert.equal(ui.mute.getAttribute("aria-pressed"), "true");
-      assert.equal(ui.mute.getAttribute("aria-label"), "Activar sonido");
+      assert.equal(ui.video.paused, false);
+      assert.equal(ui.video.muted, true);
+      assert.equal(ui.video.playCalls, plays);
+      assert.equal(ui.video.listeners.has("click"), false);
     }));
 
-  it("keeps the reduced-motion gate in front of the video", () =>
+  it("shows the poster and does not autoplay when motion is reduced", () =>
     exclusive(async () => {
-      const ui = await boot(true);
-      assert.equal(ui.frame.dataset.reduced, "true");
-      assert.equal(ui.reduced.hidden, false);
-      assert.equal(ui.controls.hidden, true);
+      const ui = await boot({ reduced: true });
       assert.equal(ui.video.playCalls, 0);
-      assertPlayback(ui, false, "Reproducir", "Reproducir video");
-
-      const playsBefore = ui.video.playCalls;
+      assert.equal(ui.video.loadCalls, 0);
+      assertPoster(ui);
       ui.video.emit("click");
       await settle();
-      assert.equal(ui.video.playCalls, playsBefore);
-      assert.equal(ui.reduced.hidden, false);
-      assert.equal(ui.controls.hidden, true);
-      assertPlayback(ui, false, "Reproducir", "Reproducir video");
+      assert.equal(ui.video.playCalls, 0);
+      assert.equal(ui.video.paused, true);
+    }));
 
-      ui.play.emit("click");
-      await settle();
-      assert.equal(ui.reduced.hidden, true);
-      assert.equal(ui.controls.hidden, false);
-      assertPlayback(ui, true, "Pausar", "Pausar video");
+  it("shows the poster when play() rejects", () =>
+    exclusive(async () => {
+      const ui = await boot({ rejectPlay: true });
+      assert.ok(ui.video.playCalls >= 1);
+      assert.ok(ui.video.loadCalls >= 2);
+      assertPoster(ui);
+    }));
 
-      ui.video.emit("click");
-      await settle();
-      assertPlayback(ui, false, "Reproducir", "Reproducir video");
-      assert.equal(ui.playback.getAttribute("aria-label"), "Reproducir video");
+  it("shows the poster when play() throws", () =>
+    exclusive(async () => {
+      const ui = await boot({ throwPlay: true });
+      assert.equal(ui.video.playCalls, 1);
+      assertPoster(ui);
     }));
 });
