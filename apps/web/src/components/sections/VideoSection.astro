@@ -193,6 +193,20 @@ const sources = [
       syncMuteUi();
     };
 
+    const togglePlayback = async () => {
+      attachSources(video);
+      if (video.paused) {
+        try {
+          await video.play();
+        } catch {
+          void 0;
+        }
+      } else {
+        video.pause();
+      }
+      syncPlaybackUi();
+    };
+
     playBtn.addEventListener("click", async () => {
       activated = true;
       attachSources(video);
@@ -206,18 +220,15 @@ const sources = [
       syncPlaybackUi();
     });
 
-    playbackBtn.addEventListener("click", async () => {
-      attachSources(video);
-      if (video.paused) {
-        try {
-          await video.play();
-        } catch {
-          void 0;
-        }
-      } else {
-        video.pause();
-      }
-      syncPlaybackUi();
+    playbackBtn.addEventListener("click", () => {
+      void togglePlayback();
+    });
+
+    video.addEventListener("click", () => {
+      if (!reduced.hidden) return;
+      activated = true;
+      controls.hidden = false;
+      void togglePlayback();
     });
 
     muteBtn.addEventListener("click", () => {
@@ -280,11 +291,13 @@ const sources = [
     width: 100%;
     height: 100%;
     object-fit: cover;
+    cursor: pointer;
   }
 
   .video-section__reduced {
     position: absolute;
     inset: 0;
+    z-index: 1;
     display: grid;
     place-items: center;
     background: #00000026;
@@ -312,6 +325,13 @@ const sources = [
     background: color-mix(in srgb, #f6f6f4 92%, #0a0a0a 8%);
   }
 
+  .video-section__play:focus-visible,
+  .video-section__btn:focus-visible {
+    outline: 2px solid var(--neutro-focus);
+    outline-offset: 2px;
+    box-shadow: 0 0 0 2px #f6f6f4;
+  }
+
   @media (min-width: 1024px) {
     .video-section__play {
       width: 68px;
@@ -326,7 +346,7 @@ const sources = [
     display: flex;
     flex-wrap: wrap;
     gap: 8px;
-    z-index: 1;
+    z-index: 2;
   }
 
   .video-section__controls[hidden] {
@@ -363,5 +383,55 @@ const sources = [
   .video-section__frame[data-muted="true"] .video-section__icon--muted,
   .video-section__frame[data-muted="false"] .video-section__icon--unmuted {
     display: inline-flex;
+  }
+
+  @media (max-width: 767px) {
+    .video-section__controls {
+      right: 8px;
+      bottom: 8px;
+      flex-wrap: nowrap;
+      gap: 4px;
+      padding: 4px;
+      border-radius: 10px;
+      background: rgb(246 246 244 / 72%);
+      border: 1px solid rgb(10 10 10 / 8%);
+    }
+
+    .video-section__btn {
+      position: relative;
+      justify-content: center;
+      width: 44px;
+      height: 44px;
+      min-width: 44px;
+      min-height: 44px;
+      padding: 0;
+      gap: 0;
+      border-color: transparent;
+      background: transparent;
+    }
+
+    .video-section__btn:hover {
+      background: rgb(10 10 10 / 6%);
+    }
+
+    .video-section__btn:focus-visible {
+      outline: 2px solid var(--neutro-focus);
+      outline-offset: -3px;
+      box-shadow: inset 0 0 0 1px #f6f6f4;
+    }
+
+    .video-section__btn-label {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      padding: 0;
+      margin: -1px;
+      overflow: hidden;
+      clip: rect(0, 0, 0, 0);
+      clip-path: inset(50%);
+      white-space: nowrap;
+      border: 0;
+      pointer-events: none;
+    }
   }
 </style>
