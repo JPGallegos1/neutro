@@ -1,0 +1,295 @@
+---
+import Base from "@/layouts/base.astro";
+import Header from "@/components/sections/Header.astro";
+import Footer from "@/components/sections/Footer.astro";
+
+interface Props {
+  title: string;
+  description: string;
+  canonical: string;
+  heading: string;
+}
+
+const { title, description, canonical, heading } = Astro.props;
+---
+
+<Base title={title} description={description} canonical={canonical}>
+  <Header />
+  <main id="contenido" class="legal">
+    <div class="landing-shell landing-gutter legal__inner">
+      <header class="legal__header">
+        <h1 class="legal__heading">{heading}</h1>
+        <p class="legal__effective">Vigente desde 29/10/2026</p>
+      </header>
+      <div class="legal__content">
+        <slot />
+      </div>
+    </div>
+  </main>
+  <Footer />
+</Base>
+
+<style is:global>
+  .legal {
+    background: var(--neutro-bg);
+    color: var(--neutro-text);
+  }
+
+  .legal__inner {
+    display: flex;
+    flex-direction: column;
+    gap: 40px;
+    padding-block: 48px 72px;
+  }
+
+  @media (min-width: 1024px) {
+    .legal__inner {
+      gap: 64px;
+      padding-block: 80px 120px;
+    }
+  }
+
+  .legal__header {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    max-width: 40rem;
+  }
+
+  .legal__heading {
+    margin: 0;
+    font-size: 40px;
+    font-weight: 700;
+    line-height: 0.93;
+    letter-spacing: -0.04em;
+    text-transform: uppercase;
+  }
+
+  @media (min-width: 1024px) {
+    .legal__heading {
+      font-size: 72px;
+    }
+  }
+
+  .legal__effective {
+    margin: 0;
+    font-family: var(--font-mono);
+    font-size: 13px;
+    letter-spacing: 0.01em;
+    color: var(--neutro-text-muted);
+  }
+
+  @media (min-width: 1024px) {
+    .legal__effective {
+      font-size: 15px;
+    }
+  }
+
+  .legal__content {
+    display: flex;
+    flex-direction: column;
+    gap: 40px;
+  }
+
+  @media (min-width: 1024px) {
+    .legal__content {
+      gap: 56px;
+    }
+  }
+
+  .legal__intro {
+    margin: 0;
+    max-width: 42rem;
+    font-size: 16px;
+    line-height: 1.45;
+    color: var(--neutro-text-muted);
+  }
+
+  @media (min-width: 1024px) {
+    .legal__intro {
+      font-size: 17px;
+    }
+  }
+
+  .legal-section {
+    display: grid;
+    gap: 16px;
+    align-items: start;
+  }
+
+  @media (min-width: 1024px) {
+    .legal-section {
+      grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.4fr);
+      gap: 64px;
+    }
+  }
+
+  .legal-section__title {
+    margin: 0;
+    font-size: 20px;
+    font-weight: 500;
+    line-height: 1.25;
+    color: var(--neutro-text);
+  }
+
+  @media (min-width: 1024px) {
+    .legal-section__title {
+      font-size: 24px;
+      position: sticky;
+      top: 96px;
+    }
+  }
+
+  .legal-section__body {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    min-width: 0;
+  }
+
+  .legal-section__body > :first-child {
+    margin-top: 0;
+  }
+
+  .legal-section__body > :last-child {
+    margin-bottom: 0;
+  }
+
+  .legal-p {
+    margin: 0;
+    font-size: 16px;
+    line-height: 1.45;
+    color: var(--neutro-text-muted);
+  }
+
+  @media (min-width: 1024px) {
+    .legal-p {
+      font-size: 17px;
+    }
+  }
+
+  .legal-subtitle {
+    margin: 8px 0 0;
+    font-size: 16px;
+    font-weight: 500;
+    line-height: 1.35;
+    color: var(--neutro-text);
+  }
+
+  @media (min-width: 1024px) {
+    .legal-subtitle {
+      font-size: 17px;
+    }
+  }
+
+  .legal-list {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    font-size: 16px;
+    line-height: 1.45;
+    color: var(--neutro-text-muted);
+  }
+
+  @media (min-width: 1024px) {
+    .legal-list {
+      font-size: 17px;
+    }
+  }
+
+  .legal-list--ordered {
+    counter-reset: legal-item;
+  }
+
+  .legal-list > li {
+    padding-left: 1.25em;
+    text-indent: -1.25em;
+  }
+
+  .legal-list:not(.legal-list--ordered) > li::before {
+    content: "•\00a0";
+  }
+
+  .legal-list--ordered > li {
+    counter-increment: legal-item;
+  }
+
+  .legal-list--ordered > li::before {
+    content: counter(legal-item) ".\00a0";
+    font-variant-numeric: tabular-nums;
+  }
+
+  .legal-list > li > .legal-list {
+    margin-top: 8px;
+    text-indent: 0;
+  }
+
+  .legal strong {
+    font-weight: 500;
+    color: var(--neutro-text);
+  }
+
+  .legal a {
+    color: inherit;
+    text-decoration: underline;
+    text-underline-offset: 4px;
+  }
+
+  .legal a:hover {
+    color: var(--neutro-text);
+  }
+
+  .legal code {
+    font-family: var(--font-mono);
+    font-size: 0.92em;
+  }
+
+  .legal-table-wrap {
+    width: 100%;
+    overflow-x: auto;
+  }
+
+  .legal-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 15px;
+    line-height: 1.4;
+    color: var(--neutro-text-muted);
+  }
+
+  @media (min-width: 1024px) {
+    .legal-table {
+      font-size: 16px;
+    }
+  }
+
+  .legal-table th,
+  .legal-table td {
+    padding: 10px 16px 10px 0;
+    text-align: left;
+    vertical-align: top;
+  }
+
+  .legal-table th {
+    font-family: var(--font-mono);
+    font-size: 12px;
+    font-weight: 400;
+    letter-spacing: 0.01em;
+    text-transform: uppercase;
+    color: var(--neutro-text);
+  }
+
+  @media (min-width: 1024px) {
+    .legal-table th {
+      font-size: 13px;
+    }
+  }
+
+  .legal-table th:last-child,
+  .legal-table td:last-child {
+    padding-right: 0;
+  }
+</style>
