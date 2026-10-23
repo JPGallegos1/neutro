@@ -3,7 +3,12 @@ import {
   resolveQrRedirect,
 } from "@neutro/core/qr-redirects";
 
-import { captureQrScanned, isServerAnalyticsEnabled } from "./posthog";
+import {
+  captureQrScanned,
+  isPosthogIngestPath,
+  isServerAnalyticsEnabled,
+  proxyPosthogIngest,
+} from "./posthog";
 
 export interface Env {
   POSTHOG_KEY?: string;
@@ -18,6 +23,15 @@ export default {
     ctx: ExecutionContext,
   ): Promise<Response> {
     const url = new URL(request.url);
+
+    if (isPosthogIngestPath(url.pathname)) {
+      return proxyPosthogIngest(request, {
+        waitUntil: (promise) => {
+          ctx.waitUntil(promise);
+        },
+      });
+    }
+
     const redirect = resolveQrRedirect(url.pathname);
 
     if (!redirect) {

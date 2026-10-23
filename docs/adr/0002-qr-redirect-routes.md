@@ -17,7 +17,7 @@ A `_redirects` file alone cannot attach custom analytics via `waitUntil` or keep
 ## Decision
 
 1. **Domain mapping** lives in `@neutro/core` (`qr-redirects.ts`): a typed table of flyer ids → slugs and a pure `resolveQrRedirect(pathname)` function. Unknown `/f/*` ids redirect to `https://neutro.solutions/` with **no** UTMs. `/t` is the evergreen business-card code.
-2. **Worker entry** `apps/web/worker/index.ts` is the `main` for Wrangler worker `neutro-web`. `assets.run_worker_first` is limited to `/f`, `/f/*`, `/t`, and `/t/` so the rest of the site stays asset-first.
+2. **Worker entry** `apps/web/worker/index.ts` is the `main` for Wrangler worker `neutro-web`. `assets.run_worker_first` is limited to `/f`, `/f/*`, `/t`, `/t/`, `/ingest`, `/ingest/`, and `/ingest/*` so the rest of the site stays asset-first. `/ingest` is the first-party PostHog proxy.
 3. **Server analytics** uses env `POSTHOG_KEY` + `ANALYTICS_ENABLED=true` (Worker vars/secrets, not browser `PUBLIC_*` flags). Capture runs in `ctx.waitUntil`. Failures are swallowed. Without both flags, redirects still work and no event is sent.
 4. **Trailing slashes** are accepted by normalizing the pathname before lookup.
 
@@ -25,4 +25,4 @@ A `_redirects` file alone cannot attach custom analytics via `waitUntil` or keep
 
 - Deploying the site requires a Worker script in addition to the Astro `dist` assets (already named `neutro-web`).
 - Adding a new flyer code is a table edit + unit test in `@neutro/core`, not a Wrangler config change.
-- QR scan logging can talk to `eu.i.posthog.com` directly from the Worker when enabled, independent of any future first-party `/ingest` proxy for browser analytics.
+- QR scan logging talks to `eu.i.posthog.com` directly from the Worker when enabled. Browser analytics, when the public flags are on, uses that same EU region through the `/ingest` proxy and does not call PostHog hosts from the page.

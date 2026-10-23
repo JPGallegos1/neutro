@@ -9,7 +9,15 @@
     "binding": "ASSETS",
     "html_handling": "auto-trailing-slash",
     "not_found_handling": "404-page",
-    "run_worker_first": ["/f", "/f/*", "/t", "/t/"],
+    "run_worker_first": [
+      "/f",
+      "/f/*",
+      "/t",
+      "/t/",
+      "/ingest",
+      "/ingest/",
+      "/ingest/*",
+    ],
   },
   "vars": {
     "ANALYTICS_ENABLED": "true",
