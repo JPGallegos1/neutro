@@ -1,6 +1,4 @@
 ---
-import { Pause, Play, Volume2, VolumeX } from "@lucide/astro";
-
 const posterSrc = "/video/neutro-poster.jpg";
 const sources = [
   { src: "/video/neutro.webm", type: "video/webm" },
@@ -8,12 +6,13 @@ const sources = [
 ] as const;
 ---
 
-<section class="video-section" aria-label="Video">
+<section class="video-section">
   <div class="landing-shell landing-gutter">
     <div class="video-section__frame" data-video-root>
       <video
         class="video-section__video"
         data-video
+        autoplay
         muted
         loop
         playsinline
@@ -21,72 +20,12 @@ const sources = [
         poster={posterSrc}
         width="1280"
         height="720"
-        aria-label="Video de presentación de Neutro Solutions con música instrumental"
+        aria-hidden="true"
       >
         {sources.map((source) => (
           <source data-src={source.src} type={source.type} />
         ))}
       </video>
-
-      <div class="video-section__reduced" data-video-reduced hidden>
-        <button
-          type="button"
-          class="video-section__play"
-          data-video-play
-          aria-label="Reproducir video"
-        >
-          <Play size={28} />
-        </button>
-      </div>
-
-      <div class="video-section__controls" data-video-controls hidden>
-        <button
-          type="button"
-          class="video-section__btn"
-          data-video-playback
-          aria-pressed="true"
-          aria-label="Pausar video"
-        >
-          <span
-            class="video-section__icon video-section__icon--pause"
-            aria-hidden="true"
-          >
-            <Pause size={18} />
-          </span>
-          <span
-            class="video-section__icon video-section__icon--play"
-            aria-hidden="true"
-          >
-            <Play size={18} />
-          </span>
-          <span class="video-section__btn-label" data-video-playback-label>
-            Pausar
-          </span>
-        </button>
-        <button
-          type="button"
-          class="video-section__btn"
-          data-video-mute
-          aria-pressed="true"
-          aria-label="Activar sonido"
-        >
-          <span
-            class="video-section__icon video-section__icon--muted"
-            aria-hidden="true"
-          >
-            <VolumeX size={18} />
-          </span>
-          <span
-            class="video-section__icon video-section__icon--unmuted"
-            aria-hidden="true"
-          >
-            <Volume2 size={18} />
-          </span>
-          <span class="video-section__btn-label" data-video-mute-label>
-            Activar sonido
-          </span>
-        </button>
-      </div>
     </div>
   </div>
 </section>
@@ -108,145 +47,66 @@ const sources = [
     video.dataset.sourcesReady = "true";
   }
 
+  function showPoster(video: HTMLVideoElement) {
+    video.autoplay = false;
+    video.removeAttribute("autoplay");
+    try {
+      video.pause();
+    } catch (error) {
+      void error;
+    }
+    if (video.dataset.sourcesReady !== "true") return;
+    video
+      .querySelectorAll<HTMLSourceElement>("source[data-src]")
+      .forEach((source) => {
+        source.removeAttribute("src");
+      });
+    video.removeAttribute("src");
+    try {
+      video.load();
+    } catch (error) {
+      void error;
+    }
+    delete video.dataset.sourcesReady;
+  }
+
+  function playOrPoster(video: HTMLVideoElement) {
+    video.muted = true;
+    video.defaultMuted = true;
+    let pending: Promise<void>;
+    try {
+      pending = video.play();
+    } catch (error) {
+      void error;
+      showPoster(video);
+      return;
+    }
+    void pending.catch(() => {
+      showPoster(video);
+    });
+  }
+
   function initVideo() {
     const root = document.querySelector<HTMLElement>("[data-video-root]");
     if (!root || root.dataset.ready === "true") return;
     root.dataset.ready = "true";
 
     const video = root.querySelector<HTMLVideoElement>("[data-video]");
-    const reduced = root.querySelector<HTMLElement>("[data-video-reduced]");
-    const playBtn = root.querySelector<HTMLButtonElement>("[data-video-play]");
-    const playbackBtn = root.querySelector<HTMLButtonElement>(
-      "[data-video-playback]",
-    );
-    const muteBtn = root.querySelector<HTMLButtonElement>("[data-video-mute]");
-    const playbackLabel = root.querySelector<HTMLElement>(
-      "[data-video-playback-label]",
-    );
-    const muteLabel = root.querySelector<HTMLElement>(
-      "[data-video-mute-label]",
-    );
-    const controls = root.querySelector<HTMLElement>("[data-video-controls]");
+    if (!video) return;
 
-    if (
-      !video ||
-      !reduced ||
-      !playBtn ||
-      !playbackBtn ||
-      !muteBtn ||
-      !playbackLabel ||
-      !muteLabel ||
-      !controls
-    ) {
-      return;
-    }
+    video.muted = true;
+    video.defaultMuted = true;
 
-    const syncPlaybackUi = () => {
-      const playing = !video.paused;
-      playbackBtn.setAttribute("aria-pressed", playing ? "true" : "false");
-      playbackBtn.setAttribute(
-        "aria-label",
-        playing ? "Pausar video" : "Reproducir video",
-      );
-      playbackLabel.textContent = playing ? "Pausar" : "Reproducir";
-      root.dataset.playing = playing ? "true" : "false";
-    };
-
-    const syncMuteUi = () => {
-      const muted = video.muted || video.volume === 0;
-      muteBtn.setAttribute("aria-pressed", muted ? "true" : "false");
-      muteBtn.setAttribute(
-        "aria-label",
-        muted ? "Activar sonido" : "Silenciar",
-      );
-      muteLabel.textContent = muted ? "Activar sonido" : "Silenciar";
-      root.dataset.muted = muted ? "true" : "false";
-    };
-
-    const tryAutoplay = async () => {
-      video.muted = true;
-      try {
-        await video.play();
-      } catch {
-        root.dataset.playing = "false";
-        syncPlaybackUi();
-      }
-    };
-
-    let activated = false;
     const startWhenVisible = () => {
-      if (activated) return;
-      activated = true;
-      attachSources(video);
       if (prefersReducedMotion()) {
-        root.dataset.reduced = "true";
-        reduced.hidden = false;
-        controls.hidden = true;
-        video.pause();
-      } else {
-        root.dataset.reduced = "false";
-        reduced.hidden = true;
-        controls.hidden = false;
-        void tryAutoplay();
+        showPoster(video);
+        return;
       }
-      syncPlaybackUi();
-      syncMuteUi();
+      attachSources(video);
+      playOrPoster(video);
     };
 
-    const togglePlayback = async () => {
-      attachSources(video);
-      if (video.paused) {
-        try {
-          await video.play();
-        } catch {
-          void 0;
-        }
-      } else {
-        video.pause();
-      }
-      syncPlaybackUi();
-    };
-
-    playBtn.addEventListener("click", async () => {
-      activated = true;
-      attachSources(video);
-      reduced.hidden = true;
-      controls.hidden = false;
-      try {
-        await video.play();
-      } catch {
-        reduced.hidden = false;
-      }
-      syncPlaybackUi();
-    });
-
-    playbackBtn.addEventListener("click", () => {
-      void togglePlayback();
-    });
-
-    video.addEventListener("click", () => {
-      if (!reduced.hidden) return;
-      activated = true;
-      controls.hidden = false;
-      void togglePlayback();
-    });
-
-    muteBtn.addEventListener("click", () => {
-      video.muted = !video.muted;
-      syncMuteUi();
-    });
-
-    video.addEventListener("play", syncPlaybackUi);
-    video.addEventListener("pause", syncPlaybackUi);
-    video.addEventListener("volumechange", syncMuteUi);
-
-    if (prefersReducedMotion()) {
-      root.dataset.reduced = "true";
-      reduced.hidden = false;
-      controls.hidden = true;
-      syncPlaybackUi();
-      syncMuteUi();
-    }
+    if (prefersReducedMotion()) showPoster(video);
 
     const observer = new IntersectionObserver(
       (entries) => {
@@ -291,163 +151,5 @@ const sources = [
     width: 100%;
     height: 100%;
     object-fit: cover;
-    cursor: pointer;
-  }
-
-  .video-section__reduced {
-    position: absolute;
-    inset: 0;
-    z-index: 1;
-    display: grid;
-    place-items: center;
-    background: #00000026;
-  }
-
-  .video-section__reduced[hidden] {
-    display: none;
-  }
-
-  .video-section__play {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    width: 52px;
-    height: 52px;
-    border-radius: 999px;
-    border: 1px solid #ffffff66;
-    background: #f6f6f4f2;
-    color: #0a0a0a;
-    cursor: pointer;
-    transition: background-color 150ms ease;
-  }
-
-  .video-section__play:hover {
-    background: color-mix(in srgb, #f6f6f4 92%, #0a0a0a 8%);
-  }
-
-  .video-section__play:focus-visible,
-  .video-section__btn:focus-visible {
-    outline: 2px solid var(--neutro-focus);
-    outline-offset: 2px;
-    box-shadow: 0 0 0 2px #f6f6f4;
-  }
-
-  @media (min-width: 1024px) {
-    .video-section__play {
-      width: 68px;
-      height: 68px;
-    }
-  }
-
-  .video-section__controls {
-    position: absolute;
-    right: 12px;
-    bottom: 12px;
-    display: flex;
-    flex-wrap: wrap;
-    gap: 8px;
-    z-index: 2;
-  }
-
-  .video-section__controls[hidden] {
-    display: none;
-  }
-
-  .video-section__btn {
-    display: inline-flex;
-    align-items: center;
-    gap: 8px;
-    min-height: 44px;
-    padding: 8px 12px;
-    border-radius: 4px;
-    border: 1px solid #ffffff66;
-    background: #f6f6f4f2;
-    color: #0a0a0a;
-    font-size: 13px;
-    font-weight: 500;
-    cursor: pointer;
-    transition: background-color 150ms ease;
-  }
-
-  .video-section__btn:hover {
-    background: color-mix(in srgb, #f6f6f4 92%, #0a0a0a 8%);
-  }
-
-  .video-section__icon {
-    display: none;
-    line-height: 0;
-  }
-
-  .video-section__frame[data-playing="true"] .video-section__icon--pause,
-  .video-section__frame[data-playing="false"] .video-section__icon--play,
-  .video-section__frame[data-muted="true"] .video-section__icon--muted,
-  .video-section__frame[data-muted="false"] .video-section__icon--unmuted {
-    display: inline-flex;
-  }
-
-  @media (max-width: 767px) {
-    .video-section__controls {
-      right: 8px;
-      bottom: 8px;
-      flex-wrap: nowrap;
-      gap: 8px;
-      padding: 0;
-      border-radius: 8px;
-      background: rgb(246 246 244 / 72%);
-      border: 1px solid rgb(10 10 10 / 8%);
-    }
-
-    .video-section__btn {
-      position: relative;
-      justify-content: center;
-      width: 32px;
-      height: 32px;
-      min-width: 32px;
-      min-height: 32px;
-      padding: 0;
-      gap: 0;
-      border-width: 0;
-      background: transparent;
-    }
-
-    .video-section__btn::before {
-      content: "";
-      position: absolute;
-      inset: -6px;
-    }
-
-    .video-section__icon {
-      width: 16px;
-      height: 16px;
-    }
-
-    .video-section__icon svg {
-      width: 16px;
-      height: 16px;
-    }
-
-    .video-section__btn:hover {
-      background: rgb(10 10 10 / 6%);
-    }
-
-    .video-section__btn:focus-visible {
-      outline: 2px solid var(--neutro-focus);
-      outline-offset: -3px;
-      box-shadow: inset 0 0 0 1px #f6f6f4;
-    }
-
-    .video-section__btn-label {
-      position: absolute;
-      width: 1px;
-      height: 1px;
-      padding: 0;
-      margin: -1px;
-      overflow: hidden;
-      clip: rect(0, 0, 0, 0);
-      clip-path: inset(50%);
-      white-space: nowrap;
-      border: 0;
-      pointer-events: none;
-    }
   }
 </style>
