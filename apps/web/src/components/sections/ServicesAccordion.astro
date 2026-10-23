@@ -33,7 +33,7 @@ import { serviceCategories, serviceCopy } from "@/data/services";
                 aria-controls={panelId}
                 data-accordion-trigger
               >
-                <span>{category.title}</span>
+                <span class="accordion-item__title">{category.title}</span>
                 <span class="accordion-item__icon" aria-hidden="true">
                   <span class="accordion-item__icon-down">
                     <ArrowDown size={24} />
@@ -223,12 +223,22 @@ import { serviceCategories, serviceCopy } from "@/data/services";
     letter-spacing: -0.84px;
     text-align: left;
     cursor: pointer;
-    border-radius: 4px;
-    transition: background-color 150ms ease;
   }
 
-  .accordion-item__trigger:hover {
-    background: color-mix(in srgb, var(--neutro-bg) 92%, var(--neutro-text) 8%);
+  .accordion-item__title {
+    border-bottom: 2px solid transparent;
+    transition: border-color 150ms ease;
+  }
+
+  .accordion-item__trigger:hover .accordion-item__title,
+  .accordion-item__trigger:focus-visible .accordion-item__title {
+    border-bottom-color: var(--neutro-text);
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .accordion-item__title {
+      transition: none;
+    }
   }
 
   @media (min-width: 1024px) {
