@@ -8,13 +8,38 @@ interface Props {
   title?: string;
   description?: string;
   canonical?: string;
+  noindex?: boolean;
+}
+
+function publicPathname(pathname: string): string {
+  let path = pathname;
+  if (path.endsWith("/index.html")) {
+    path = path.slice(0, -"index.html".length);
+  } else if (path.endsWith(".html")) {
+    path = path.slice(0, -".html".length);
+  }
+  if (path.length > 1) {
+    path = path.replace(/\/+$/, "");
+  }
+  if (path === "") {
+    path = "/";
+  }
+  return path;
+}
+
+function pageCanonical(url: URL, siteUrl: URL | undefined): string {
+  const canonicalUrl = new URL(publicPathname(url.pathname), siteUrl ?? url);
+  canonicalUrl.search = url.search;
+  return canonicalUrl.href;
 }
 
 const {
   title = site.title,
   description = site.description,
-  canonical = site.url,
+  noindex = false,
 } = Astro.props;
+
+const canonical = noindex ? undefined : pageCanonical(Astro.url, Astro.site);
 ---
 
 <!doctype html>
@@ -29,8 +54,9 @@ const {
     <meta property="og:locale" content={site.locale} />
     <meta property="og:title" content={title} />
     <meta property="og:description" content={description} />
-    <meta property="og:url" content={canonical} />
-    <link rel="canonical" href={canonical} />
+    {noindex && <meta name="robots" content="noindex" />}
+    {canonical && <meta property="og:url" content={canonical} />}
+    {canonical && <link rel="canonical" href={canonical} />}
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <title>{title}</title>
 
