@@ -17,13 +17,13 @@ Versión de Node: ver [`.node-version`](.node-version). Versión de pnpm: campo 
 - Analytics off por defecto: [`docs/adr/0001-analytics-off-by-default.md`](docs/adr/0001-analytics-off-by-default.md).
 - Redirects QR y Worker: [`docs/adr/0002-qr-redirect-routes.md`](docs/adr/0002-qr-redirect-routes.md).
 - Routing/SEO de Trabajo (docs; implementación sujeta a OK de diseño): [`docs/adr/0005-trabajo-routing-and-seo.md`](docs/adr/0005-trabajo-routing-and-seo.md) y [`docs/seo/trabajo.md`](docs/seo/trabajo.md).
-- Delivery con Workers Builds: [`docs/adr/0006-workers-builds-delivery.md`](docs/adr/0006-workers-builds-delivery.md).
 
 No copies el contenido de un ADR al PR: linkealo.
 
 ## Pull requests
 
-- Título claro; descripción en **español** con First Principles:
+- Títulos al estilo de los PR recientes: Conventional Commits con tipo y scope cuando aplica (`feat(web):`, `fix(web):`, `docs:`, `style:`), en español, cortos.
+- Descripción en **español** con First Principles:
   - Problema
   - Restricciones y verdades
   - Razonamiento
@@ -32,13 +32,14 @@ No copies el contenido de un ADR al PR: linkealo.
   - Verificación
 - Una idea por ítem; pensado para lectura rápida.
 - PR visuales: incluir slides o video (sin alargar el proceso en la descripción).
-- No mergear a `main` sin OK explícito de Juan. Deploys: Jack (operaciones).
+- Si un cambio pasa de 10 archivos, se divide en PRs apilados o secuenciales ([ADR 0004](docs/adr/0004-max-pr-files.md)).
 
 ## Flujo de ramas
 
-- `main` solo se promueve con OK explícito de Juan.
-- Los deploys los hace Jack.
-- Sin ese OK: no mergear.
+- Sin OK explícito de Juan: no se mergea a `main`.
+- Los deploys los hace Jack (operaciones).
+- El [ADR 0006](docs/adr/0006-workers-builds-delivery.md) (Propuesto) define `staging` antes de `main`: PRs a `staging`, promoción `staging` → `main` solo con ese OK, y producción vía Workers Builds desde `main`.
+- Hoy `staging` todavía no existe; se promueve a `main` directo.
 
 ## UI y estilos
 
@@ -111,9 +112,9 @@ Ejemplo (Tailwind, mismas ideas):
 
 - Antes de pedir review: `impeccable detect`.
 - Usá Impeccable solo para: `detect`, `audit`, `critique`, `polish`, `adapt`, `optimize`.
-- No uses modos `live`, `generate`, hooks, `install` ni `update`.
+- No uses los modos/comandos de Impeccable `live`, `generate`, hooks, `install` ni `update` (eso no es «instalar el CLI»).
+- Instalar el CLI de Impeccable en la máquina local de cada quien está bien; no lo agregues al `package.json` del repo.
 - No commitees `.impeccable/`, `PRODUCT.md` ni `DESIGN.md`.
-- Si el CLI no está en el entorno: instalalo/usalo según la doc de Impeccable; no inventes scripts en `package.json` del repo.
 
 ## Contenido
 
