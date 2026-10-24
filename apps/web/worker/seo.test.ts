@@ -104,6 +104,77 @@ describe("X-Robots-Tag", () => {
   });
 });
 
+describe("static brand assets", () => {
+  const paths = [
+    "/favicon.ico",
+    "/favicon.svg",
+    "/favicon-16x16.png",
+    "/favicon-32x32.png",
+    "/apple-touch-icon.png",
+    "/icon-192.png",
+    "/icon-512.png",
+    "/site.webmanifest",
+    "/og/og-1200x630.png",
+    "/og/x-1200x675.png",
+  ];
+
+  function contentType(pathname: string): string {
+    if (pathname.endsWith(".svg")) {
+      return "image/svg+xml";
+    }
+    if (pathname.endsWith(".png")) {
+      return "image/png";
+    }
+    if (pathname.endsWith(".ico")) {
+      return "image/x-icon";
+    }
+    if (pathname.endsWith(".webmanifest")) {
+      return "application/manifest+json";
+    }
+    return "application/octet-stream";
+  }
+
+  function brandAssetEnv() {
+    const calls: string[] = [];
+    const env = {
+      ASSETS: {
+        fetch: async (input: RequestInfo | URL) => {
+          const url = input instanceof Request ? input.url : String(input);
+          calls.push(url);
+          const pathname = new URL(url).pathname;
+          return new Response(pathname, {
+            status: 200,
+            headers: { "content-type": contentType(pathname) },
+          });
+        },
+      },
+    };
+    return { calls, env };
+  }
+
+  for (const pathname of paths) {
+    it(`serves ${pathname} from assets on production and workers.dev`, async () => {
+      for (const origin of [PRODUCTION, WORKERS_DEV]) {
+        const { calls, env } = brandAssetEnv();
+        const response = await fetchWorker(`${origin}${pathname}`, env);
+
+        assert.equal(response.status, 200);
+        assert.equal(response.headers.get("Location"), null);
+        assert.equal(
+          response.headers.get("content-type"),
+          contentType(pathname),
+        );
+        assert.equal(
+          response.headers.get("X-Robots-Tag"),
+          origin === WORKERS_DEV ? "noindex" : null,
+        );
+        assert.equal(await response.text(), pathname);
+        assert.deepEqual(calls, [`${origin}${pathname}`]);
+      }
+    });
+  }
+});
+
 describe("trailing slash", () => {
   it("redirects /nosotros/ to /nosotros with 301 and an empty body", async () => {
     const { calls, env } = assetEnv("<html>nosotros</html>");
