@@ -1,0 +1,305 @@
+---
+import { pageMeta } from "@/data/page-meta";
+import Legal from "@/layouts/Legal.astro";
+---
+
+<Legal
+  title={pageMeta.privacidad.title}
+  description={pageMeta.privacidad.description}
+  canonical={pageMeta.privacidad.canonical}
+  heading={pageMeta.privacidad.heading}
+>
+  <p class="legal__intro">
+    Esta política explica qué datos personales se recopilan a través de
+    <a href="https://neutro.solutions">neutro.solutions</a>, el sitio de Neutro
+    Solutions, para qué se usan y qué derechos tenés. Está escrita según la Ley
+    25.326 de Protección de los Datos Personales y su Decreto reglamentario
+    1558/2001.
+  </p>
+
+  <section class="legal-section" aria-labelledby="privacidad-1">
+    <h2 id="privacidad-1" class="legal-section__title">
+      1. Responsable de los datos
+    </h2>
+    <div class="legal-section__body">
+      <ul class="legal-list">
+        <li>
+          <strong>Responsable:</strong> Juan Gallegos (Neutro Solutions es el
+          nombre con el que trabaja; no es una empresa ni una sociedad)
+        </li>
+        <li>
+          <strong>Contacto para temas de privacidad:</strong>
+          <a href="mailto:hola@neutro.solutions">hola@neutro.solutions</a>.
+          Trabajamos de forma remota, así que todas las consultas y pedidos se
+          reciben por email.
+        </li>
+        <li>
+          <strong>Datos de identificación:</strong> si una autoridad competente
+          los pide, se los entregamos.
+        </li>
+      </ul>
+    </div>
+  </section>
+
+  <section class="legal-section" aria-labelledby="privacidad-2">
+    <h2 id="privacidad-2" class="legal-section__title">
+      2. Qué datos pedimos y para qué
+    </h2>
+    <div class="legal-section__body">
+      <div class="legal-table-wrap">
+        <table class="legal-table">
+          <thead>
+            <tr>
+              <th scope="col">Dato</th>
+              <th scope="col">¿Obligatorio?</th>
+              <th scope="col">Para qué lo usamos</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>Nombre</td>
+              <td>Sí</td>
+              <td>Dirigirnos a vos.</td>
+            </tr>
+            <tr>
+              <td>Email</td>
+              <td>Sí</td>
+              <td>Responderte y, si pediste el diagnóstico, coordinarlo.</td>
+            </tr>
+            <tr>
+              <td>Mensaje</td>
+              <td>Sí</td>
+              <td>Saber qué necesitás.</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      <p class="legal-p">
+        Estos son los datos del formulario de
+        <a href="/contacto">contacto</a>. Para enviarlo tenés que marcar una
+        casilla aceptando esta política. Lo que mandás nos llega como un email a
+        <a href="mailto:hola@neutro.solutions">hola@neutro.solutions</a>: no lo
+        guardamos en ninguna base de datos.
+      </p>
+      <p class="legal-p">
+        Si no completás los campos obligatorios, no podemos responderte. Si los
+        datos que nos das son incorrectos, puede pasar que no logremos
+        contactarte. Te pedimos que no nos mandes datos sensibles (salud,
+        religión, opiniones políticas, etc.): no los necesitamos.
+      </p>
+    </div>
+  </section>
+
+  <section class="legal-section" aria-labelledby="privacidad-3">
+    <h2 id="privacidad-3" class="legal-section__title">
+      3. Con quién compartimos los datos
+    </h2>
+    <div class="legal-section__body">
+      <p class="legal-p">
+        <strong>No vendemos ni cedemos tus datos.</strong> Solo trabajan con
+        ellos los proveedores que necesitamos para operar el sitio, por cuenta
+        nuestra y bajo nuestras instrucciones:
+      </p>
+      <div class="legal-table-wrap">
+        <table class="legal-table">
+          <thead>
+            <tr>
+              <th scope="col">Proveedor</th>
+              <th scope="col">Para qué</th>
+              <th scope="col">Dónde procesa los datos</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>Cloudflare (Cloudflare Workers)</td>
+              <td>Alojar y servir el sitio</td>
+              <td>Su red global, con centros de datos en más de 100 países</td>
+            </tr>
+            <tr>
+              <td>Zoho Mail</td>
+              <td>
+                Recibir y enviar los emails de
+                <a href="mailto:hola@neutro.solutions">hola@neutro.solutions</a>
+                , incluidos los mensajes del formulario de contacto
+              </td>
+              <td>Estados Unidos</td>
+            </tr>
+            <tr>
+              <td>PostHog (región Unión Europea)</td>
+              <td>
+                Estadísticas de uso del sitio, sin cookies (mirá la
+                <a href="/cookies">Política de cookies</a>)
+              </td>
+              <td>Fráncfort, Alemania</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      <p class="legal-p">
+        Además, solo entregaríamos datos si una ley o una autoridad competente
+        nos lo exigiera.
+      </p>
+    </div>
+  </section>
+
+  <section class="legal-section" aria-labelledby="privacidad-4">
+    <h2 id="privacidad-4" class="legal-section__title">
+      4. Cuánto tiempo guardamos los datos
+    </h2>
+    <div class="legal-section__body">
+      <p class="legal-p">
+        Los mensajes que nos llegan (por el formulario o por email) se guardan
+        en la casilla
+        <a href="mailto:hola@neutro.solutions">hola@neutro.solutions</a> durante
+        <strong>12 meses</strong>. Podés pedirnos que los borremos antes, cuando
+        quieras.
+      </p>
+    </div>
+  </section>
+
+  <section class="legal-section" aria-labelledby="privacidad-5">
+    <h2 id="privacidad-5" class="legal-section__title">
+      5. Cookies y estadísticas
+    </h2>
+    <div class="legal-section__body">
+      <p class="legal-p">
+        Para saber cómo se usa el sitio, usamos PostHog (región Unión Europea)
+        en modo sin cookies y descartamos tu dirección IP. Qué se mide, cómo
+        funciona y qué opciones tenés se explica en la
+        <a href="/cookies">
+          <strong>Política de cookies</strong>
+        </a>
+        .
+      </p>
+    </div>
+  </section>
+
+  <section class="legal-section" aria-labelledby="privacidad-6">
+    <h2 id="privacidad-6" class="legal-section__title">
+      6. Transferencia internacional
+    </h2>
+    <div class="legal-section__body">
+      <p class="legal-p">
+        Las estadísticas se guardan en servidores de PostHog en
+        <strong>Alemania</strong>, un país miembro de la Unión Europea. PostHog
+        es una empresa con sede en Estados Unidos, así que esos datos también
+        pueden ser accedidos desde ese país. Argentina considera que la Unión
+        Europea tiene un nivel adecuado de protección de datos (Disposición
+        DNPDP 60/2016 y Resolución AAIP 34/2019).
+      </p>
+      <p class="legal-p">
+        Los emails que nos mandás a
+        <a href="mailto:hola@neutro.solutions">hola@neutro.solutions</a>,
+        incluidos los del formulario de contacto, se guardan en servidores de
+        Zoho Mail en <strong>Estados Unidos</strong>. El sitio se sirve desde la
+        red global de Cloudflare, con centros de datos en más de 100 países, así
+        que tu mensaje se procesa en sus servidores.
+        <strong>
+          Al aceptar esta política, prestás tu consentimiento expreso para que
+          tus datos se procesen en la red global de Cloudflare, se guarden en
+          los servidores de Zoho Mail en Estados Unidos y que las estadísticas
+          de uso que guarda PostHog puedan ser accedidas desde Estados Unidos.
+        </strong>
+        En el formulario de contacto, lo aceptás marcando la casilla "Leí y
+        acepto la Política de privacidad".
+      </p>
+    </div>
+  </section>
+
+  <section class="legal-section" aria-labelledby="privacidad-7">
+    <h2 id="privacidad-7" class="legal-section__title">
+      7. Tus derechos
+    </h2>
+    <div class="legal-section__body">
+      <p class="legal-p">Podés pedirnos cuando quieras:</p>
+      <ul class="legal-list">
+        <li>
+          <strong>Acceso:</strong> saber qué datos tuyos tenemos, de dónde
+          salieron y para qué los usamos. Te respondemos dentro de los
+          <strong>10 días corridos</strong> (Ley 25.326, art. 14). El titular de
+          los datos personales tiene la facultad de ejercer el derecho de acceso
+          a los mismos en forma gratuita a intervalos no inferiores a seis
+          meses, salvo que se acredite un interés legítimo al efecto (art. 14,
+          inc. 3).
+        </li>
+        <li>
+          <strong>Rectificación y actualización:</strong> corregir datos
+          inexactos o incompletos.
+        </li>
+        <li>
+          <strong>Supresión:</strong> que borremos tus datos, salvo que una ley
+          nos obligue a conservarlos.
+        </li>
+        <li>
+          <strong>Confidencialidad y bloqueo:</strong> en los casos que prevé la
+          ley.
+        </li>
+      </ul>
+      <p class="legal-p">
+        Los pedidos de rectificación, actualización o supresión los resolvemos
+        dentro de los <strong>5 días hábiles</strong> (art. 16) y no tienen
+        costo (art. 19).
+      </p>
+      <p class="legal-p">
+        <strong>Cómo pedirlo:</strong> escribí a
+        <a href="mailto:hola@neutro.solutions">hola@neutro.solutions</a> con el
+        asunto "Datos personales", contando qué necesitás. Para proteger tus
+        datos, podemos pedirte que confirmes tu identidad, por ejemplo
+        respondiendo desde el mismo email que dejaste en el formulario.
+      </p>
+    </div>
+  </section>
+
+  <section class="legal-section" aria-labelledby="privacidad-8">
+    <h2 id="privacidad-8" class="legal-section__title">
+      8. Órgano de control
+    </h2>
+    <div class="legal-section__body">
+      <p class="legal-p">
+        LA AGENCIA DE ACCESO A LA INFORMACIÓN PÚBLICA, en su carácter de Órgano
+        de Control de la Ley N° 25.326, tiene la atribución de atender las
+        denuncias y reclamos que interpongan quienes resulten afectados en sus
+        derechos por incumplimiento de las normas vigentes en materia de
+        protección de datos personales.
+      </p>
+    </div>
+  </section>
+
+  <section class="legal-section" aria-labelledby="privacidad-9">
+    <h2 id="privacidad-9" class="legal-section__title">
+      9. Seguridad
+    </h2>
+    <div class="legal-section__body">
+      <p class="legal-p">
+        Aplicamos medidas técnicas y organizativas razonables para proteger tus
+        datos: conexión cifrada (HTTPS), acceso restringido a quienes lo
+        necesitan y proveedores con compromisos de confidencialidad.
+      </p>
+    </div>
+  </section>
+
+  <section class="legal-section" aria-labelledby="privacidad-10">
+    <h2 id="privacidad-10" class="legal-section__title">
+      10. Menores de edad
+    </h2>
+    <div class="legal-section__body">
+      <p class="legal-p">
+        El sitio está pensado para dueños y responsables de negocios. No
+        buscamos recopilar datos de menores de 18 años.
+      </p>
+    </div>
+  </section>
+
+  <section class="legal-section" aria-labelledby="privacidad-11">
+    <h2 id="privacidad-11" class="legal-section__title">
+      11. Cambios en esta política
+    </h2>
+    <div class="legal-section__body">
+      <p class="legal-p">
+        Si cambiamos esta política, publicamos la nueva versión en esta página
+        con su fecha. Si el cambio afecta el uso de datos que ya nos diste, te
+        lo avisamos por email antes de aplicarlo.
+      </p>
+    </div>
+  </section>
+</Legal>

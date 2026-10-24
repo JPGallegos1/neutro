@@ -17,7 +17,7 @@ A `_redirects` file alone cannot attach custom analytics via `waitUntil` or keep
 ## Decision
 
 1. **Domain mapping** lives in `@neutro/core` (`qr-redirects.ts`): a typed table of flyer ids → slugs and a pure `resolveQrRedirect(pathname)` function. Unknown `/f/*` ids redirect to `https://neutro.solutions/` with **no** UTMs. `/t` is the evergreen business-card code.
-2. **Worker entry** `apps/web/worker/index.ts` is the `main` for Wrangler worker `neutro-web`. `assets.run_worker_first` is limited to `/f`, `/f/*`, `/t`, `/t/`, `/ingest`, `/ingest/`, and `/ingest/*` so the rest of the site stays asset-first. `/ingest` is the first-party PostHog proxy.
+2. **Worker entry** `apps/web/worker/index.ts` is the `main` for Wrangler worker `neutro-web`. `assets.run_worker_first` is `true`, so the Worker sees every request before static assets. `/ingest` is the first-party PostHog proxy. The slashless redirect skips `/`, `/f`, `/t`, and `/ingest`.
 3. **Server analytics** uses env `POSTHOG_KEY` + `ANALYTICS_ENABLED=true` (Worker vars/secrets, not browser `PUBLIC_*` flags). Capture runs in `ctx.waitUntil`. Failures are swallowed. Without both flags, redirects still work and no event is sent.
 4. **Trailing slashes** are accepted by normalizing the pathname before lookup.
 

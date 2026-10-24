@@ -1,0 +1,175 @@
+---
+import { pageMeta } from "@/data/page-meta";
+import Legal from "@/layouts/Legal.astro";
+---
+
+<Legal
+  title={pageMeta.cookies.title}
+  description={pageMeta.cookies.description}
+  canonical={pageMeta.cookies.canonical}
+  heading={pageMeta.cookies.heading}
+>
+  <p class="legal__intro">
+    Esta página explica qué guarda (y qué no guarda)
+    <a href="https://neutro.solutions">neutro.solutions</a> en tu navegador, y
+    cómo medimos el uso del sitio. Completa la
+    <a href="/privacidad">Política de privacidad</a>.
+  </p>
+
+  <section class="legal-section" aria-labelledby="cookies-1">
+    <h2 id="cookies-1" class="legal-section__title">
+      1. Qué es una cookie
+    </h2>
+    <div class="legal-section__body">
+      <p class="legal-p">
+        Una cookie es un archivo chiquito que un sitio guarda en tu navegador
+        para reconocerte en visitas futuras. Otras tecnologías, como el
+        almacenamiento local (localStorage), cumplen una función parecida. En
+        esta página les decimos "cookies" a todas.
+      </p>
+    </div>
+  </section>
+
+  <section class="legal-section" aria-labelledby="cookies-2">
+    <h2 id="cookies-2" class="legal-section__title">
+      2. Qué usamos en este sitio
+    </h2>
+    <div class="legal-section__body">
+      <p class="legal-p">
+        <strong>
+          Este sitio no guarda cookies ni usa el almacenamiento local de tu
+          navegador.
+        </strong>{" "}
+        No usamos cookies técnicas, de estadísticas, de publicidad ni de redes
+        sociales.
+      </p>
+      <div class="legal-table-wrap">
+        <table class="legal-table">
+          <thead>
+            <tr>
+              <th scope="col">Tipo</th>
+              <th scope="col">¿La usamos?</th>
+              <th scope="col">Detalle</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>Técnicas</td>
+              <td>No</td>
+              <td>
+                Cloudflare, nuestro proveedor de hosting, no guarda cookies en
+                tu navegador.
+              </td>
+            </tr>
+            <tr>
+              <td>Estadísticas</td>
+              <td>No</td>
+              <td>Medimos sin cookies (mirá el punto 3).</td>
+            </tr>
+            <tr>
+              <td>Publicidad o seguimiento entre sitios</td>
+              <td>No</td>
+              <td>—</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+
+  <section class="legal-section" aria-labelledby="cookies-3">
+    <h2 id="cookies-3" class="legal-section__title">
+      3. Cómo medimos sin cookies
+    </h2>
+    <div class="legal-section__body">
+      <p class="legal-p">
+        Usamos <strong>PostHog</strong>, en su región de la Unión Europea
+        (servidores en Fráncfort, Alemania), configurado así:
+      </p>
+      <ul class="legal-list">
+        <li>
+          <strong>No guarda nada en tu navegador</strong>: ni cookies ni
+          almacenamiento local.
+        </li>
+        <li>
+          <strong>Descarta tu dirección IP</strong>: no queda guardada junto con
+          los datos de la visita.
+        </li>
+        <li>
+          Los datos pasan por nuestro propio dominio (
+          <a href="https://neutro.solutions/ingest">neutro.solutions/ingest</a>)
+          antes de llegar a PostHog.
+        </li>
+        <li>
+          Para no contar dos veces la misma visita en un día, se calcula en el
+          servidor un código a partir de datos técnicos de la conexión (IP,
+          navegador y sitio) y de un valor aleatorio que cambia cada día y
+          después se borra. Con ese código no sabemos quién sos ni podemos
+          reconocerte otro día.
+        </li>
+        <li>No vinculamos estas estadísticas con tu nombre ni con tu email.</li>
+      </ul>
+      <p class="legal-p">
+        Lo que vemos son datos de conjunto: cuántas visitas hubo, qué páginas se
+        vieron y de qué campaña vino el tráfico.
+      </p>
+    </div>
+  </section>
+
+  <section class="legal-section" aria-labelledby="cookies-4">
+    <h2 id="cookies-4" class="legal-section__title">
+      4. Links de campañas y códigos QR
+    </h2>
+    <div class="legal-section__body">
+      <ul class="legal-list">
+        <li>
+          Algunos links (de videos, emails o redes) traen al final de la
+          dirección <strong>etiquetas de campaña</strong>, como
+          <code>utm_source=youtube</code> o <code>utm_campaign=...</code>.
+          <strong>No son cookies</strong>: son parte del link, no se guardan en
+          tu navegador y no te identifican. Las leemos en la primera página que
+          abrís y después las sacamos de la barra de direcciones.
+        </li>
+        <li>
+          Los <strong>códigos QR</strong> de nuestros folletos llevan a una
+          dirección corta (por ejemplo,
+          <a href="https://neutro.solutions/f/8">neutro.solutions/f/8</a>).
+          Cuando la abrís, nuestro servidor anota que se escaneó ese QR y te
+          lleva a la página principal con las etiquetas de campaña. Esa
+          anotación se hace en el servidor,
+          <strong>sin guardar nada en tu teléfono</strong>.
+        </li>
+      </ul>
+    </div>
+  </section>
+
+  <section class="legal-section" aria-labelledby="cookies-5">
+    <h2 id="cookies-5" class="legal-section__title">
+      5. Tus opciones
+    </h2>
+    <div class="legal-section__body">
+      <p class="legal-p">
+        Como no guardamos nada en tu navegador, no hay nada que aceptar ni
+        rechazar, y por eso no te mostramos ningún aviso para aceptar cookies.
+        Igual, podés borrar o bloquear las cookies cuando quieras desde la
+        configuración de tu navegador. Si en algún momento agregamos cookies que
+        no sean esenciales (por ejemplo, de publicidad), te vamos a pedir tu
+        consentimiento explícito antes de usarlas, con la opción de rechazarlas.
+      </p>
+    </div>
+  </section>
+
+  <section class="legal-section" aria-labelledby="cookies-6">
+    <h2 id="cookies-6" class="legal-section__title">
+      6. Contacto y cambios
+    </h2>
+    <div class="legal-section__body">
+      <p class="legal-p">
+        Si tenés dudas, escribinos a
+        <a href="mailto:hola@neutro.solutions">hola@neutro.solutions</a>. Si
+        cambiamos esta política, publicamos la nueva versión en esta página con
+        su fecha.
+      </p>
+    </div>
+  </section>
+</Legal>
