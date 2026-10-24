@@ -1,12 +1,13 @@
 ---
+import { pageMeta } from "@/data/page-meta";
 import Legal from "@/layouts/Legal.astro";
 ---
 
 <Legal
-  title="Política de cookies — Neutro"
-  description="Qué guarda (y qué no guarda) neutro.solutions en tu navegador, y cómo medimos el uso del sitio."
-  canonical="https://neutro.solutions/cookies"
-  heading="Política de cookies"
+  title={pageMeta.cookies.title}
+  description={pageMeta.cookies.description}
+  canonical={pageMeta.cookies.canonical}
+  heading={pageMeta.cookies.heading}
 >
   <p class="legal__intro">
     Esta página explica qué guarda (y qué no guarda)

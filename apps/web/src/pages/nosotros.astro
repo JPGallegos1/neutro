@@ -1,4 +1,5 @@
 ---
+import { pageMeta } from "@/data/page-meta";
 import Base from "@/layouts/base.astro";
 import Header from "@/components/sections/Header.astro";
 import Footer from "@/components/sections/Footer.astro";
@@ -13,14 +14,14 @@ const services = [
 ---
 
 <Base
-  title="Nosotros — Neutro"
-  description="Quiénes somos, qué hacemos y cómo trabajamos en Neutro Solutions."
+  title={pageMeta.nosotros.title}
+  description={pageMeta.nosotros.description}
 >
   <Header />
   <main id="contenido" class="nosotros">
     <div class="landing-shell landing-gutter nosotros__inner">
       <header class="nosotros__title-col">
-        <h1 class="nosotros__title">Nosotros</h1>
+        <h1 class="nosotros__title">{pageMeta.nosotros.heading}</h1>
         <p class="nosotros__tag">Borrador de contenido</p>
       </header>
 
@@ -106,9 +107,15 @@ const services = [
     }
   }
 
+  .nosotros__title-col {
+    min-width: 0;
+    container-type: inline-size;
+  }
+
   .nosotros__title {
     margin: 0 0 16px;
-    font-size: 56px;
+    max-width: 100%;
+    font-size: min(56px, 14.5cqi);
     font-weight: 700;
     line-height: 0.93;
     letter-spacing: -0.04em;
@@ -117,7 +124,7 @@ const services = [
 
   @media (min-width: 1024px) {
     .nosotros__title {
-      font-size: 104px;
+      font-size: min(104px, 14.5cqi);
     }
   }
 

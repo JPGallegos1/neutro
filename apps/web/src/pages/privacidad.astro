@@ -1,12 +1,13 @@
 ---
+import { pageMeta } from "@/data/page-meta";
 import Legal from "@/layouts/Legal.astro";
 ---
 
 <Legal
-  title="Política de privacidad — Neutro"
-  description="Qué datos personales se recopilan a través de neutro.solutions, para qué se usan y qué derechos tenés."
-  canonical="https://neutro.solutions/privacidad"
-  heading="Política de privacidad"
+  title={pageMeta.privacidad.title}
+  description={pageMeta.privacidad.description}
+  canonical={pageMeta.privacidad.canonical}
+  heading={pageMeta.privacidad.heading}
 >
   <p class="legal__intro">
     Esta política explica qué datos personales se recopilan a través de

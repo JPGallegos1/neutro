@@ -1,12 +1,13 @@
 ---
+import { pageMeta } from "@/data/page-meta";
 import Legal from "@/layouts/Legal.astro";
 ---
 
 <Legal
-  title="Alerta de estafa — Neutro"
-  description="Cómo se comunica Neutro Solutions y cómo reconocer un contacto falso."
-  canonical="https://neutro.solutions/alerta-estafa"
-  heading="Alerta de estafa"
+  title={pageMeta.alertaEstafa.title}
+  description={pageMeta.alertaEstafa.description}
+  canonical={pageMeta.alertaEstafa.canonical}
+  heading={pageMeta.alertaEstafa.heading}
 >
   <p class="legal__intro">
     Hay personas que usan el nombre de negocios reales para engañar a la gente.

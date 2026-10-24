@@ -1,12 +1,13 @@
 ---
+import { pageMeta } from "@/data/page-meta";
 import Legal from "@/layouts/Legal.astro";
 ---
 
 <Legal
-  title="Términos y condiciones — Neutro"
-  description="Términos que regulan el uso de neutro.solutions y el pedido del diagnóstico gratuito."
-  canonical="https://neutro.solutions/terminos"
-  heading="Términos y condiciones"
+  title={pageMeta.terminos.title}
+  description={pageMeta.terminos.description}
+  canonical={pageMeta.terminos.canonical}
+  heading={pageMeta.terminos.heading}
 >
   <p class="legal__intro">
     Estos términos regulan el uso del sitio

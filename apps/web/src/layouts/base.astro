@@ -1,6 +1,7 @@
 ---
 import "@neutro/ui/globals.css";
 import "@/styles/landing.css";
+import { siteJsonLd } from "@/data/page-meta";
 import { site } from "@/lib/site";
 
 interface Props {
@@ -39,14 +40,6 @@ const {
 } = Astro.props;
 
 const canonical = noindex ? undefined : pageCanonical(Astro.url, Astro.site);
-
-const organizationJsonLd = {
-  "@context": "https://schema.org",
-  "@type": "Organization",
-  name: site.name,
-  url: site.url,
-  email: site.email,
-};
 ---
 
 <!doctype html>
@@ -84,10 +77,7 @@ const organizationJsonLd = {
         }
       })();
     </script>
-    <script
-      type="application/ld+json"
-      set:html={JSON.stringify(organizationJsonLd)}
-    />
+    <script type="application/ld+json" set:html={JSON.stringify(siteJsonLd)} />
   </head>
   <body class="min-h-screen bg-neutro-bg text-neutro-text">
     <a href="#contenido" class="skip-link">
