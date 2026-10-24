@@ -74,6 +74,34 @@ describe("X-Robots-Tag", () => {
     assert.equal(response.headers.get("X-Robots-Tag"), null);
     assert.equal(await response.text(), "home");
   });
+
+  it("sets noindex on the ingest proxy response for workers.dev", async () => {
+    const { calls, env } = assetEnv("unused");
+    const originalFetch = globalThis.fetch;
+    const upstream: string[] = [];
+    globalThis.fetch = (async (input: RequestInfo | URL) => {
+      upstream.push(String(input));
+      return new Response("ok", {
+        status: 200,
+        headers: {
+          "content-type": "application/json",
+          "set-cookie": "a=1",
+        },
+      });
+    }) as typeof fetch;
+    try {
+      const response = await fetchWorker(`${WORKERS_DEV}/ingest/e/?ip=0`, env);
+      assert.equal(response.status, 200);
+      assert.equal(response.headers.get("X-Robots-Tag"), "noindex");
+      assert.equal(response.headers.get("set-cookie"), null);
+      assert.equal(response.headers.get("content-type"), "application/json");
+      assert.equal(await response.text(), "ok");
+      assert.deepEqual(upstream, ["https://eu.i.posthog.com/e/?ip=0"]);
+      assert.deepEqual(calls, []);
+    } finally {
+      globalThis.fetch = originalFetch;
+    }
+  });
 });
 
 describe("trailing slash", () => {
@@ -117,12 +145,25 @@ describe("trailing slash", () => {
     assert.deepEqual(home.calls, [`${PRODUCTION}/`]);
 
     const ingest = assetEnv("ingest");
-    const ingestResponse = await fetchWorker(
-      `${PRODUCTION}/ingest/`,
-      ingest.env,
-    );
-    assert.equal(ingestResponse.status, 200);
-    assert.deepEqual(ingest.calls, [`${PRODUCTION}/ingest/`]);
+    const originalFetch = globalThis.fetch;
+    globalThis.fetch = (async () =>
+      new Response("proxied", {
+        status: 200,
+        headers: { "content-type": "application/json" },
+      })) as typeof fetch;
+    try {
+      const ingestResponse = await fetchWorker(
+        `${PRODUCTION}/ingest/`,
+        ingest.env,
+      );
+      assert.equal(ingestResponse.status, 200);
+      assert.equal(ingestResponse.headers.get("Location"), null);
+      assert.equal(ingestResponse.headers.get("X-Robots-Tag"), null);
+      assert.equal(await ingestResponse.text(), "proxied");
+      assert.deepEqual(ingest.calls, []);
+    } finally {
+      globalThis.fetch = originalFetch;
+    }
 
     const qr = assetEnv("unused");
     const qrResponse = await fetchWorker(`${PRODUCTION}/f/1/`, qr.env);
