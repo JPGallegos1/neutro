@@ -1,26 +1,28 @@
 # Neutro
 
-Monorepositorio con pnpm y Turborepo. Por ahora la única aplicación es la web pública: una landing estática en Astro (español rioplatense), con la base de diseño lista y las secciones todavía por armar.
+Monorepositorio con pnpm y Turborepo. La aplicación pública es una landing estática en Astro (español rioplatense): home con Hero, video, sección Trabajo y Servicios; página Nosotros; páginas legales (`/cookies`, `/privacidad`, `/terminos`, `/alerta-estafa`); y un Worker de Cloudflare para redirects QR, proxy first-party de PostHog en `/ingest` y URLs sin barra final.
+
+Para reglas de contribución pensadas para agentes, consultá [`AGENTS.md`](AGENTS.md).
 
 ## Requisitos
 
 - Node.js **24.18.0**, fijado en `.node-version`.
 - pnpm **12.14.0**, fijado en `packageManager`.
 
-Con Corepack disponible, habilita primero los ejecutables de pnpm:
+Con Corepack disponible, habilitá primero los ejecutables de pnpm:
 
 ```sh
 corepack enable pnpm
 ```
 
-Después instala y arranca el proyecto:
+Después instalá y arrancá el proyecto:
 
 ```sh
 corepack pnpm install --frozen-lockfile
 corepack pnpm dev
 ```
 
-Si ya tienes `pnpm` en el PATH, puedes omitir `corepack`. Turborepo necesita ese ejecutable para ejecutar las tareas del workspace. En Windows PowerShell con scripts deshabilitados utiliza `corepack.cmd pnpm …`. Si Node está instalado en una carpeta protegida, puedes habilitar pnpm sin permisos de administrador con `corepack.cmd enable pnpm --install-directory "$env:APPDATA\npm"`, siempre que esa carpeta exista y esté en el PATH.
+Si ya tenés `pnpm` en el PATH, podés omitir `corepack`. Turborepo necesita ese ejecutable para ejecutar las tareas del workspace. En Windows PowerShell con scripts deshabilitados usá `corepack.cmd pnpm …`. Si Node está instalado en una carpeta protegida, podés habilitar pnpm sin permisos de administrador con `corepack.cmd enable pnpm --install-directory "$env:APPDATA\npm"`, siempre que esa carpeta exista y esté en el PATH.
 
 La web se sirve en `http://localhost:4321`.
 
@@ -29,25 +31,36 @@ La web se sirve en `http://localhost:4321`.
 ```text
 apps/
   web/                  # Astro + React + Vite; única aplicación desplegable
-    public/             # Archivos estáticos
+    public/             # Favicon, robots, video e imágenes
     src/
-      components/sections/  # Stubs de la landing (Header, Hero, etc.)
-      layouts/          # Documento HTML y metadatos
-      lib/              # Sitio, analytics (PostHog off por defecto)
-      pages/            # Inicio y página 404
+      components/       # Logo, ThemeToggle y secciones de la landing
+      data/             # Nav, trabajo, servicios, sociales y page-meta
+      layouts/          # Documento HTML (base) y layout legal
+      lib/              # Sitio y analytics (PostHog off por defecto)
+      pages/            # Home, nosotros, legales y 404
+      scripts/          # Controles de tema
+      styles/           # Estilos de la landing
+    worker/             # Worker: QR, /ingest y slashless
     astro.config.mjs
     components.json     # shadcn/ui enlazado al paquete compartido
-    wrangler.jsonc      # Configuración futura de Cloudflare
+    wrangler.jsonc      # Worker neutro-web + Static Assets
 packages/
-  core/                 # Esquemas y lógica TypeScript con Effect
+  core/                 # Esquemas, QR redirects y lógica TypeScript con Effect
   ui/                   # shadcn/ui, utilidades y tema Tailwind compartidos
   typescript-config/    # Configuración estricta compartida
 docs/
   adr/                  # Decisiones de arquitectura
+  seo/                  # Criterios SEO (p. ej. superficie Trabajo)
   dependencies.md       # Versiones verificadas y decisiones de compatibilidad
+  conectar-dominio.md   # Guía para conectar neutro.solutions
+tools/
+  ci/                   # Check de tamaño de PR
+  oxlint/               # Regla neutro/no-comments
 ```
 
 Los paquetes internos exportan código fuente TypeScript y usan `workspace:*`. Vite compila ese código al construir la aplicación. Turborepo coordina las verificaciones y cachea el build. Las nuevas aplicaciones van en `apps/*`; las librerías compartidas, en `packages/*`.
+
+En la home, la sección Trabajo vive en `/#trabajo` (grilla de casos). El índice `/trabajo` y las fichas `/trabajo/<slug>` están documentados en [`docs/seo/trabajo.md`](docs/seo/trabajo.md) y el [ADR 0005](docs/adr/0005-trabajo-routing-and-seo.md); todavía no hay páginas Astro para esas rutas en `main`.
 
 ## Comandos
 
@@ -61,10 +74,10 @@ Ejecutar desde la raíz con `pnpm` o `corepack pnpm`:
 | `pnpm preview`             | Servir el último build con Astro                  |
 | `pnpm format`              | Formatear código, Astro y clases Tailwind         |
 | `pnpm format:check`        | Verificar formato                                 |
-| `pnpm ui:add <componente>` | Añadir componentes shadcn/ui al monorepositorio   |
+| `pnpm ui:add <componente>` | Agregar componentes shadcn/ui al monorepositorio  |
 | `pnpm deploy:check`        | Build y validación local de Wrangler sin publicar |
 | `pnpm preview:cloudflare`  | Build y servidor local de Cloudflare              |
-| `pnpm deploy`              | Verificar, construir y publicar sólo la web       |
+| `pnpm deploy`              | Verificar, construir y publicar solo la web       |
 
 ## UI y estilos
 
@@ -78,7 +91,7 @@ shadcn/ui está configurado con estilo `new-york`, base `neutral`, React y `luci
 corepack pnpm ui:add card
 ```
 
-Ejemplo para una futura sección React:
+Ejemplo de isla React:
 
 ```tsx
 import { Button } from "@neutro/ui/components/button";
@@ -93,7 +106,7 @@ export function CallToAction() {
 }
 ```
 
-Astro renderiza React como HTML por defecto. Usa `client:load` o `client:visible` al importar una isla React que necesite interacción. La página actual sólo genera HTML y CSS.
+Astro renderiza React como HTML por defecto. Usá `client:load` o `client:visible` al importar una isla React que necesite interacción. La landing actual es HTML/CSS con scripts Astro para tema, menú móvil, video y acordeón de servicios.
 
 ## TypeScript y Effect
 
@@ -101,11 +114,11 @@ La configuración compartida activa modo estricto, validación de índices y pro
 
 Effect complementa a TypeScript con validación en ejecución y modelado de efectos y errores; el chequeo estático lo hace TypeScript. No hace falta cargar Effect en el navegador para esta página.
 
-## Cloudflare: siguiente etapa
+## Cloudflare
 
-La configuración está preparada para **Workers Static Assets** con el nombre `neutro-web`. Astro genera un sitio estático, por lo que no necesita un adaptador SSR ni un script Worker. Wrangler sirve `dist` y utiliza `404.html` para rutas inexistentes.
+La web se publica como Worker `neutro-web` con Static Assets. Astro genera un sitio estático; el entry `apps/web/worker/index.ts` corre primero (`run_worker_first`): redirects QR (`/f/*`, `/t`), proxy PostHog en `/ingest` y redirección 301 de trailing slash a URL sin barra. Wrangler sirve `dist` y usa `404.html` para rutas inexistentes. Ver [`docs/adr/0002-qr-redirect-routes.md`](docs/adr/0002-qr-redirect-routes.md).
 
-Cuando se conecte Cloudflare:
+Para login y deploy:
 
 ```sh
 corepack pnpm --filter @neutro/web exec wrangler login
@@ -119,11 +132,11 @@ Para Workers Builds, usar la raíz del repositorio como directorio de trabajo:
 - Despliegue: `pnpm --filter @neutro/web deploy`.
 - Versión de Node: `24.18.0`; versión de pnpm: `12.14.0`.
 
-El dominio real y la cuenta se configurarán al conectar Cloudflare. Si más adelante hacen falta rutas SSR o bindings, se añadirá `@astrojs/cloudflare` y se generarán sus tipos con `wrangler types`.
+El dominio y la cuenta se detallan en [`docs/conectar-dominio.md`](docs/conectar-dominio.md). Si más adelante hacen falta rutas SSR o bindings, se agregará `@astrojs/cloudflare` y se generarán sus tipos con `wrangler types`.
 
 ## Dependencias
 
-Las versiones directas están fijadas y el lockfile conserva las transitivas para instalaciones reproducibles. Consulta la revisión inicial en [`docs/dependencies.md`](docs/dependencies.md).
+Las versiones directas están fijadas y el lockfile conserva las transitivas para instalaciones reproducibles. Consultá la revisión inicial en [`docs/dependencies.md`](docs/dependencies.md).
 
 Para revisar actualizaciones sin instalarlas:
 
