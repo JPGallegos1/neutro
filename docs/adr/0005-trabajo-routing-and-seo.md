@@ -2,15 +2,13 @@
 
 ## Status
 
-Proposed — docs only. Implementation waits on design v31 approval (Juan). Do not ship routes from this ADR until that approval lands. Reviewers: Jake (SEO), Melody (design).
+Accepted — Juan (26/10/2026). Design reference: Iris **v34**. Reviewers: Jake (SEO), Melody / Iris (design). Do not merge follow-up doc edits without Juan’s OK.
 
 ## Context
 
-The landing already shows a Trabajo card grid (`apps/web/src/data/work.ts`) with provisional copy and a decided case path for Lina (`/trabajo/lina`). There is no `/trabajo` index, no case pages, no sitemap policy for cases, and no Astro `trailingSlash` decision yet.
+The public site ships five published Trabajo projects. The landing shows a card grid from `apps/web/src/data/work.ts` capped by `LANDING_WORK_LIMIT` (**always 4**). The full index lives at `/trabajo` with progressive-enhancement **Cargar más**; each project has a case page at `/trabajo/<slug>`.
 
-Jake (SEO) defined hard criteria for the Trabajo surface: index + case URLs, slug rules, absolute self-canonicals (including paginated index URLs), JSON-LD shapes, and a “Cargar más” pattern that must not hide links from the initial HTML. Design v31 (pending Juan) supplies the visual system; this ADR locks routing, SEO, and the progressive-enhancement contract so implementation does not invent conflicting crawl behavior.
-
-Case **titles and body data** remain unconfirmed (including Lina). Until real case data is approved, docs and stubs use clearly marked placeholders for those fields. The slug `/trabajo/lina` itself is **decided**; other case slugs stay placeholders until published.
+Jake (SEO) defined hard criteria for the Trabajo surface: index + case URLs, slug rules, absolute self-canonicals (including paginated index URLs), JSON-LD shapes, and a “Cargar más” pattern that must not hide links from the initial HTML. Design v34 (Iris) supplies the visual system for case pages and the index; this ADR locks routing, SEO, and the progressive-enhancement contract so implementation does not invent conflicting crawl behavior.
 
 ## Decision
 
@@ -23,6 +21,8 @@ Case **titles and body data** remain unconfirmed (including Lina). Until real ca
 
 Astro must use exactly `trailingSlash: 'never'`. Emit and link **without** a trailing slash. Prefer redirecting accidental trailing-slash requests to the slashless URL when the host allows it.
 
+Landing vs index: the home Trabajo section always shows the first **`LANDING_WORK_LIMIT` (4)** cards. **Cargar más** exists only on `/trabajo`, never on the landing.
+
 ### Slugs
 
 - Lowercase ASCII only; words joined with hyphens.
@@ -33,10 +33,17 @@ Astro must use exactly `trailingSlash: 'never'`. Emit and link **without** a tra
 
 Slug source of truth is the project data module (or successor), not free text in templates.
 
-**Decided vs placeholder**
+**Published slugs (5)**
 
-- `/trabajo/lina` — **decided** slug. Title, description, and other case data are still **unconfirmed** (placeholders until content sign-off).
-- All other `/trabajo/<slug>` values — placeholders until a case is published.
+| Path                               | Notes                                      |
+| ---------------------------------- | ------------------------------------------ |
+| `/trabajo/conexion-laboral`        | Conexión Laboral                           |
+| `/trabajo/afectiva`                | Afectiva Comunicaciones                    |
+| `/trabajo/capa-automotores`        | Capa Automotores                           |
+| `/trabajo/suplementacion-ciencia`  | Suplementación con Ciencia (no stopword)   |
+| `/trabajo/luxurycars`              | Luxury Cars                                |
+
+There is no Lina case in the published set.
 
 ### Canonicals
 
@@ -82,20 +89,14 @@ Verification gates (`curl` or equivalent, no JS):
 - `/trabajo` lists all case hrefs.
 - No Trabajo href in the response ends with a trailing slash.
 
-### Design (v31)
+### Design (v34)
 
-Reuse the landing **Card / Work** components and the landing Trabajo grid. Primary **Cargar más** button: `#2B4BFF`, centered on desktop, left-aligned on mobile. Site nav label `Trabajo` links to `/trabajo`.
-
-Open items for Juan (not decided here): approve design v31; decide whether cards keep the **1px border**; decide whether the **En producción** label ships.
-
-### Placeholders until approved data
-
-Do not invent final titles or descriptions. Use obvious placeholders such as `{Cliente}`, `{qué se resolvió}`, `{Descripción …}` until Jake/content sign-off. The Lina **slug** is decided; Lina **title and data** stay unconfirmed.
+Reuse the landing **Card / Work** components and the landing Trabajo grid for cards. Case pages follow Iris **v34**: sticky title column, visible **En producción** tag on cards and case pages, primary CTA for **Visitar sitio**, 16:9 cover, sectioned body + featured quote; **no 1px dividers**. Primary **Cargar más** button: `#2B4BFF`, centered on desktop, left-aligned on mobile. Site nav label `Trabajo` links to `/trabajo`.
 
 ## Consequences
 
-- Landing and `/trabajo` share the same project list and Card / Work presentation; case links become real routes instead of dead stubs.
+- Landing and `/trabajo` share the same project list and Card / Work presentation; case links are real `/trabajo/<slug>` routes.
 - SEO tooling and sitemap generation assume slashless absolute URLs under `https://neutro.solutions/trabajo…`, including self-canonical `?page=N` index URLs.
 - Changing a published slug is an ops/content event (301), not a silent rename.
 - Implementation PRs must satisfy the curl href and no-trailing-slash checks before claiming SEO readiness.
-- Design follows v31 (Juan); card border and “En producción” remain open until he decides.
+- Design follows v34 (Iris / Juan): **En producción** ships; card/case chrome avoids 1px borders.

@@ -2,7 +2,7 @@
 
 English prose. User-facing strings below are Spanish and must ship as written unless Jake (SEO) revises them.
 
-**Status:** Criteria only. No implementation in this change. Design v31 is pending Juan’s approval. Reviewers: Jake (SEO), Melody (design). Companion decision: [`docs/adr/0005-trabajo-routing-and-seo.md`](../adr/0005-trabajo-routing-and-seo.md).
+**Status:** Accepted with [ADR 0005](../adr/0005-trabajo-routing-and-seo.md) (Juan, 26/10/2026). Design reference: Iris **v34**. Reviewers: Jake (SEO), Melody / Iris (design).
 
 ## Surfaces
 
@@ -21,7 +21,8 @@ URLs are **slashless**. Configure Astro with exactly `trailingSlash: 'never'`. D
 - Header title (ES): `TRABAJO`
 - Visible intro (ES): `Explorá nuestro trabajo seleccionado.`
 - Card grid matches the landing Trabajo section (same Card / Work components and projects).
-- **4** cases visible initially.
+- Landing home always shows **`LANDING_WORK_LIMIT` (4)** cards; **Cargar más** lives only on `/trabajo`.
+- **4** cases visible initially on the index.
 - If there are **more than four** cases, show **Cargar más** (label ES: `Cargar más`). Each click reveals **4 more** cases.
 
 ### Title and structured data
@@ -75,12 +76,17 @@ Each `?page=N` has its own self-referencing canonical. Do not collapse page 2+ o
 | Dates     | Not allowed (no years, months, or numeric date fragments) |
 | Stability | Immutable after publish; renames need a **301**           |
 
-**Decided vs placeholder**
+**Published slugs (5)**
 
-- `/trabajo/lina` — **decided** slug. Title and case data remain **unconfirmed**.
-- Other `/trabajo/<slug>` values — placeholders until published.
+- `/trabajo/conexion-laboral`
+- `/trabajo/afectiva`
+- `/trabajo/capa-automotores`
+- `/trabajo/suplementacion-ciencia` (no stopword; content file may still be named `suplementacion-con-ciencia`)
+- `/trabajo/luxurycars`
 
-Examples of _shape_ only (not additional approved project names):
+There is no Lina case in the published set.
+
+Examples of _shape_ only:
 
 - `cliente-producto` ✓
 - `Cliente Producto` ✗
@@ -113,33 +119,24 @@ Local/preview builds use the same checks against the preview origin. A passing c
 
 ## Data and placeholders
 
-Titles, meta descriptions, H1, and schema text fields **must** come from real case data fields (or the shared work data module once extended). Meta description length is **140–155 characters**.
+Titles, meta descriptions, H1, and schema text fields **must** come from real case data fields (or the shared work / work-cases modules). Meta description length is **140–155 characters**.
 
-The slug `/trabajo/lina` is **decided**. Lina’s **title and data** (and all other provisional cards’ titles/data) stay **unconfirmed**. Until content is approved, use clearly marked placeholders only, for example:
+Until an approved **outcome** line exists for the document title pattern `<Cliente>: <qué se resolvió>`, do **not** invent it. Use only approved segments; mark gaps explicitly in implementation PRs.
 
-| Field                       | Placeholder form                          |
+| Field                       | Placeholder form (only when unapproved)   |
 | --------------------------- | ----------------------------------------- |
-| Client name                 | `{Cliente}`                               |
 | Outcome / “qué se resolvió” | `{qué se resolvió}`                       |
-| Short description           | `{Descripción <id>}`                      |
-| Meta description            | `{Meta descripción <id>}` (140–155 chars) |
 
 Never invent outcome lines solely to fill the title pattern.
 
-## Design (v31)
+## Design (v34)
 
-- Reuse landing **Card / Work** components and the landing Trabajo grid.
+- Reuse landing **Card / Work** components and the landing Trabajo grid for cards.
+- Case pages follow Iris **v34**: sticky title column, visible **En producción** on cards and cases, primary **Visitar sitio**, 16:9 cover, sectioned body + quote; **no 1px dividers**.
 - Primary **Cargar más** button: `#2B4BFF`, centered on desktop, left-aligned on mobile.
 - Header nav label `Trabajo` links to `/trabajo`.
-
-### Open items (Juan)
-
-- Approve design v31.
-- Decide on the card **1px border**.
-- Decide on the **En producción** label.
 
 ## Out of scope (this doc)
 
 - Analytics events on Trabajo clicks.
 - Non-Spanish locales or `hreflang`.
-- Implementation PRs (follow ADR 0005 when building).
