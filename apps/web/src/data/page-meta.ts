@@ -34,7 +34,7 @@ export const pageMeta = {
   cookies: page(
     "/cookies",
     "Política de cookies | Neutro Solutions",
-    "Qué guarda neutro.solutions en tu navegador y cómo medimos el uso del sitio. No usamos cookies ni banners: medimos sin cookies y descartamos tu dirección IP.",
+    "Qué guarda neutro.solutions en tu navegador. No usamos cookies ni banners. Medimos sin cookies, descartamos tu IP y sólo guardamos tu preferencia de tema.",
     "Política de cookies",
   ),
   privacidad: page(

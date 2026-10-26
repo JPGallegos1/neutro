@@ -75,9 +75,9 @@ import Legal from "@/layouts/Legal.astro";
         </table>
       </div>
       <p class="legal-p">
-        Estos son los datos del formulario de
-        <a href="/contacto">contacto</a>. Para enviarlo tenés que marcar una
-        casilla aceptando esta política. Lo que mandás nos llega como un email a
+        Estos son los datos del formulario de contacto. Para enviarlo tenés que
+        marcar una casilla aceptando esta política. Lo que mandás nos llega como
+        un email a
         <a href="mailto:hola@neutro.solutions">hola@neutro.solutions</a>: no lo
         guardamos en ninguna base de datos.
       </p>
@@ -87,6 +87,26 @@ import Legal from "@/layouts/Legal.astro";
         contactarte. Te pedimos que no nos mandes datos sensibles (salud,
         religión, opiniones políticas, etc.): no los necesitamos.
       </p>
+      <p class="legal-p">
+        También medimos el uso del sitio, sin identificarte. Las dos mediciones
+        van a PostHog Cloud UE (Fráncfort).
+      </p>
+      <ul class="legal-list">
+        <li>
+          <strong>Estadísticas de uso:</strong> páginas vistas y salidas de
+          página, la referencia y las etiquetas de campaña del link, y el tipo
+          de navegador y de dispositivo, en conjunto. Sin IP ni nombre, sin
+          cookies y sin perfiles de personas. Pasan por
+          <code>/ingest</code> en nuestro dominio.
+        </li>
+        <li>
+          <strong>Escaneo de un QR impreso</strong> (<code>qr_scanned</code>):
+          cuando alguien escanea un QR impreso, el servidor registra el
+          identificador del QR, la fuente y la campaña, con un identificador
+          aleatorio de un solo uso. Sin IP ni datos personales.
+        </li>
+      </ul>
+      <p class="legal-p">Conservamos estas estadísticas hasta 1 año.</p>
     </div>
   </section>
 
