@@ -34,12 +34,36 @@ function stripCursorFooter(text) {
 }
 
 function stripHtmlComments(text) {
-  return text.replaceAll(/<!--[\s\S]*?-->/g, "");
+  let out = "";
+  let index = 0;
+  while (index < text.length) {
+    const start = text.indexOf("<!--", index);
+    if (start === -1) {
+      out += text.slice(index);
+      break;
+    }
+    out += text.slice(index, start);
+    const after = start + 4;
+    if (text.startsWith(">", after)) {
+      index = after + 1;
+      continue;
+    }
+    if (text.startsWith("->", after)) {
+      index = after + 2;
+      continue;
+    }
+    const end = text.indexOf("-->", after);
+    if (end === -1) {
+      break;
+    }
+    index = end + 3;
+  }
+  return out;
 }
 
 export function extractAuthorBody(raw) {
   let body = String(raw ?? "");
-  if (body.charCodeAt(0) === 0xfeff) {
+  while (body.charCodeAt(0) === 0xfeff) {
     body = body.slice(1);
   }
   body = body.replaceAll("\r\n", "\n");

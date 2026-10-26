@@ -244,8 +244,56 @@ describe("checkPrBody", () => {
     assert.equal(checkPrBody(hiddenHeading).ok, true);
   });
 
+  it("un comentario sin cerrar, <!--> o <!---> no cuenta como contenido", () => {
+    const vacios = [
+      "<!-- sin cerrar",
+      "<!-->",
+      "<!--->",
+      "  <!-->  ",
+      "<!--->\n",
+    ];
+    for (const content of vacios) {
+      const result = checkPrBody(
+        validBody(["uno", "dos", "tres", "cuatro", "cinco", content]),
+      );
+      assert.deepEqual(result.problems, [
+        "La sección «Verificación» no tiene contenido.",
+      ]);
+    }
+    for (const content of ["<!-->", "<!--->"]) {
+      const result = checkPrBody(
+        validBody(["uno", content, "tres", "cuatro", "cinco", "seis"]),
+      );
+      assert.deepEqual(result.problems, [
+        "La sección «Restricciones y verdades» no tiene contenido.",
+      ]);
+    }
+    const abiertoAlMedio = [
+      section("Problema", "uno"),
+      section("Restricciones y verdades", "<!-- sin cerrar"),
+      section("Razonamiento", "tres"),
+      section("Solución", "cuatro"),
+      section("Trade-offs", "cinco"),
+      section("Verificación", "seis"),
+    ].join("\n\n");
+    assert.deepEqual(checkPrBody(abiertoAlMedio).problems, [
+      "La sección «Restricciones y verdades» no tiene contenido.",
+      ...HEADINGS.slice(2).map((title) => missing(title)),
+    ]);
+    const withText = validBody([
+      "visible <!--> sigue",
+      "dos <!---> también",
+      "tres",
+      "cuatro",
+      "cinco",
+      "seis",
+    ]);
+    assert.equal(checkPrBody(withText).ok, true);
+  });
+
   it("ignora un BOM UTF-8 inicial antes de los encabezados", () => {
     assert.equal(checkPrBody(`\uFEFF${validBody()}`).ok, true);
+    assert.equal(checkPrBody(`\uFEFF\uFEFF${validBody()}`).ok, true);
     const wrapped = [
       "\uFEFF<!-- CURSOR_AGENT_PR_BODY_BEGIN -->",
       validBody(),
