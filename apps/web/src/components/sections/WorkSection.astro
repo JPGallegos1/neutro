@@ -1,6 +1,8 @@
 ---
 import WorkCard from "@/components/sections/WorkCard.astro";
-import { workProjects } from "@/data/work";
+import { LANDING_WORK_LIMIT, workProjects } from "@/data/work";
+
+const landingProjects = workProjects.slice(0, LANDING_WORK_LIMIT);
 ---
 
 <section id="trabajo" class="work" aria-labelledby="trabajo-heading">
@@ -11,7 +13,7 @@ import { workProjects } from "@/data/work";
       </h2>
     </div>
     <ul class="work__grid">
-      {workProjects.map((project) => (
+      {landingProjects.map((project) => (
         <WorkCard project={project} />
       ))}
     </ul>

@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 
-import { workProjects } from "./work.ts";
+import { LANDING_WORK_LIMIT, workProjects } from "./work.ts";
 
 const PUBLISHED = [
   {
@@ -26,6 +26,13 @@ const PUBLISHED = [
   },
 ];
 
+const LANDING_IDS = [
+  "conexlaboral",
+  "afectiva",
+  "capaautomotores",
+  "suplementacionconciencia",
+];
+
 describe("workProjects", () => {
   it("publica cinco sitios externos con ids únicos", () => {
     assert.equal(workProjects.length, 5);
@@ -44,5 +51,13 @@ describe("workProjects", () => {
       assert.match(href, /^https:\/\//);
       assert.equal(project.tag, "En producción");
     }
+  });
+
+  it("limita la landing a las primeras cuatro en orden", () => {
+    assert.equal(LANDING_WORK_LIMIT, 4);
+    assert.deepEqual(
+      workProjects.slice(0, LANDING_WORK_LIMIT).map((project) => project.id),
+      LANDING_IDS,
+    );
   });
 });

@@ -9,6 +9,8 @@ export type WorkProject = {
   href: string | null;
 };
 
+export const LANDING_WORK_LIMIT = 4;
+
 export const workProjects: WorkProject[] = [
   {
     id: "conexlaboral",
