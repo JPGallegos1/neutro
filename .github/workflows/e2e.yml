@@ -8,7 +8,9 @@ on:
       - "pnpm-lock.yaml"
       - ".github/workflows/e2e.yml"
   push:
-    branches: [main]
+    branches:
+      - main
+      - cursor/e2e-artifact-failure-probe-534c
     paths:
       - "apps/web/**"
       - "packages/**"
@@ -41,11 +43,11 @@ jobs:
           cache: pnpm
       - name: Install
         run: pnpm install --frozen-lockfile
-      - name: Cache Playwright Chromium (actions/cache v4.3.0)
+      - name: Cache Playwright Chromium con clave de probe (actions/cache v4.3.0)
         uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830
         with:
           path: ~/.cache/ms-playwright
-          key: ${{ runner.os }}-playwright-chromium-${{ hashFiles('pnpm-lock.yaml') }}
+          key: ${{ runner.os }}-playwright-chromium-probe-${{ hashFiles('pnpm-lock.yaml') }}
       - name: Build
         run: |
           unset PUBLIC_POSTHOG_KEY
