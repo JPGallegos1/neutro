@@ -35,7 +35,7 @@ Si una salida trae un secreto, reemplazalo por `‹redactado›` antes de guarda
 
 ## Preparación
 
-La versión la mandan los archivos del repo, no la máquina. Lo primero, definí las tres variables del PR. `$PR` es el número. `$BASE` y `$HEAD` son SHA hexadecimales de 7 a 40 caracteres, de la base y del head. Si `$PR` está vacío, frená: si no, la carpeta queda `evidencia/-<sha>`.
+La versión la mandan los archivos del repo, no la máquina. Lo primero, definí las tres variables del PR. `$PR` es sólo dígitos. `$BASE` y `$HEAD` son SHA hexadecimales de 7 a 40 caracteres, de la base y del head, y tienen que existir en el checkout (`git rev-parse --verify`). Si `$PR` está vacío o no es numérico, frená: si no, la carpeta queda `evidencia/-<sha>` o `evidencia/../x-<sha>`.
 
 Este bloque corre en la shell de la corrida (un script, o la shell donde se pega el bloque). `[ -n "${PR:-}" ] || exit 1` corta esa shell siempre, también si es interactiva. `${PR:?...}` no se usa: en una shell interactiva imprime el aviso y sigue. Si la shell es la tuya de trabajo, `exit 1` la cierra.
 
@@ -49,12 +49,17 @@ esac
 case "$HEAD" in
   *[!0-9a-fA-F]*) printf '%s\n' 'HEAD no es un SHA hexadecimal.'; exit 1 ;;
 esac
+case "$PR" in
+  ''|*[!0-9]*) printf '%s\n' 'PR tiene que ser sólo dígitos.'; exit 1 ;;
+esac
 if [ "${#BASE}" -lt 7 ] || [ "${#BASE}" -gt 40 ] || [ "${#HEAD}" -lt 7 ] || [ "${#HEAD}" -gt 40 ]; then
   printf '%s\n' 'BASE y HEAD tienen que ser SHA hexadecimales de 7 a 40 caracteres.'
   exit 1
 fi
 origen="$(pwd)"
-sha7="$(git -C "$origen" rev-parse "$HEAD" | cut -c1-7)"
+git -C "$origen" rev-parse --verify "$BASE" >/dev/null || { printf '%s\n' 'BASE no existe.'; exit 1; }
+git -C "$origen" rev-parse --verify "$HEAD" >/dev/null || { printf '%s\n' 'HEAD no existe.'; exit 1; }
+sha7="$(git -C "$origen" rev-parse --verify "$HEAD" | cut -c1-7)"
 evidencia_abs="$origen/evidencia/${PR}-${sha7}"
 mkdir -p "$evidencia_abs/trazas"
 cd "$origen"
@@ -79,11 +84,13 @@ pnpm --version
 
 ```bash
 cd "$origen"
-find . -maxdepth 1 \( -name '.env*' -o -name '.dev.vars*' \) -print
-find apps/web -maxdepth 1 \( -name '.env*' -o -name '.dev.vars*' \) -print
+{
+  find . -maxdepth 1 \( -name '.env*' -o -name '.dev.vars*' \) -print
+  find apps/web -maxdepth 1 \( -name '.env*' -o -name '.dev.vars*' \) -print
+} | tee "$evidencia_abs/00-entorno-nombres.txt"
 ```
 
-`-printf` es de GNU find y no se usa. `-print` imprime la ruta relativa (`./.env.local`, `apps/web/.env.example`) y corre en el find de macOS.
+`-printf` es de GNU find y no se usa. `-print` imprime la ruta relativa (`./.env.local`, `apps/web/.env.example`) y corre en el find de macOS. `tee` la deja en pantalla y la escribe en `"$evidencia_abs/00-entorno-nombres.txt"`. El bloque «Directorio de cada bloque» corre después de este `find` y lee ese archivo. Si el archivo no está, ese bloque sale 1.
 
 En el repo están `apps/web/.env.example` y `apps/web/.dev.vars.example`. Esos dos nombres no cuentan como archivos reales de la corrida. Cualquier otro `.env*` o `.dev.vars*` sí.
 
@@ -285,7 +292,7 @@ code=$?
 printf 'exit:%s\n' "$code" >> "$out"
 ```
 
-El job Check de CI, en la base de Playwright, corre `pnpm --filter @neutro/web test`. Un CI verde no reemplaza esta puerta: la skill pide el `pnpm test` de la raíz. Si CI no corrió core, anotalo en la tabla de CI y no lo marques como verificado por el remoto.
+En `main`, el job `Check` de `.github/workflows/ci.yml` corre `pnpm check` y después `pnpm test`. En la raíz, `pnpm test` es `turbo run test`: corre el `test` de `@neutro/web` (`apps/web/package.json`) y el de `@neutro/core`. Esta puerta igual corre ese `pnpm test` y guarda `"$evidencia_abs/06-test.txt"`. El verde remoto no reemplaza ese archivo.
 
 ### 7. Build sin analytics, y conteo de `posthog`
 
@@ -383,7 +390,7 @@ De cada check: nombre, estado, conclusión, y el enlace (`detailsUrl` o `targetU
 - Exit de `gh` cuando hay checks fallidos: guardalo. No relances el workflow.
 - El enlace al run está en `detailsUrl` (check) o `targetUrl` (status context). Si `gh` no autentica, la puerta queda NO VERIFICADO con la salida del error, sin reintentar con un token pegado en el informe.
 
-Checks de esta base: `Lint`, `Check`, `Max 10 files`, y el job `Chromium` del workflow `e2e` (en GitHub el nombre puede verse como `Chromium` o `e2e / Chromium`). `e2e` corre si el diff toca `apps/web/**`, `packages/**`, `pnpm-lock.yaml` o `.github/workflows/e2e.yml`. Si el workflow no se disparó por los paths, anotá «no aplica por paths» con el enlace al PR. Esa fila no es un verde.
+Checks de `main`: `Lint`, `Check`, `Build`, `Max 10 files`, y el job `Chromium` del workflow `e2e` (en GitHub el nombre puede verse como `Chromium` o `e2e / Chromium`). En `.github/workflows/ci.yml`, `Lint` corre `pnpm lint` y `pnpm test:lint-rules`, `Check` corre `pnpm check` y `pnpm test`, y `Build` corre `pnpm build` (`turbo run build --filter=@neutro/web` en la raíz; el script de `@neutro/web` es `astro build`). Ese job `Build` no hace `unset` ni `env -u`. `e2e` corre en `pull_request` y en `push` a `main` si el diff toca `apps/web/**`, `packages/**`, `pnpm-lock.yaml` o `.github/workflows/e2e.yml`. Antes de su `pnpm build` hace `unset PUBLIC_POSTHOG_KEY` y `unset PUBLIC_ANALYTICS_ENABLED`, y después instala sólo Chromium. Si el workflow no se disparó por los paths, anotá «no aplica por paths» con el enlace al PR. Esa fila no es un verde.
 
 ### 13. La puerta nueva falla cuando tiene que fallar
 
@@ -558,7 +565,9 @@ Escribí `superficie-riesgo.md` antes de correr las puertas de esta sección. Qu
 
 ### Segundo verificador
 
-Otra sesión de Codex CLI, con esfuerzo high. El modelo es el que ese CLI tenga configurado.
+Un PR que sólo cambia CI no suma este verificador. La fila queda en `no aplica` con ese motivo. No abras la sesión de Codex y no uses la salida de CLI ausente.
+
+Otra sesión de Codex CLI, con esfuerzo high, cuando el PR no es sólo CI. El modelo es el que ese CLI tenga configurado.
 
 Recibe el diff `"$BASE"..."$HEAD"`, esta skill y la plantilla. No recibe `informe.md`, los hallazgos ni la superficie del primero. Una sola sesión de chat no sirve para los dos.
 
@@ -694,9 +703,59 @@ wait "$wrangler_pid" || wait_exit=$?
 printf 'wait:%s\n' "$wait_exit"
 ```
 
-Esa forma, el 2026-10-26, con Node 24.18.0 y Wrangler 4.151.2, eligió el puerto 57329. El log no dijo que usara `.dev.vars`. El body fue `{"analyticsEnabled":"false","posthogKeyPresent":true}`. `--var` metió la key de prueba. El flag quedó en `false`. `wait` imprimió `143`.
+Esa forma, el 2026-10-26, con Node 24.18.0 y Wrangler 4.151.2, eligió el puerto 57329. El log no dijo que usara `.dev.vars`. `--var` metió la key de prueba. El flag quedó en `false`.
 
-La segunda pasada repite el bloque: otro puerto libre, el mismo segundo plano, sólo `--var ANALYTICS_ENABLED:false` y `env -u POSTHOG_KEY`, y el mismo `kill` al final. Eligió el puerto 33893. El body fue `{"analyticsEnabled":"false","posthogKeyPresent":false}`. El log listó sólo el binding `ANALYTICS_ENABLED`. `wait` imprimió `143`.
+Body:
+
+```text
+{"analyticsEnabled":"false","posthogKeyPresent":true}
+```
+
+```text
+wait:143
+```
+
+La segunda pasada usa el mismo `$probe` y el mismo `$wrangler`, otro puerto libre, sólo `--var ANALYTICS_ENABLED:false` y `env -u POSTHOG_KEY`.
+
+```bash
+puerto="$(python3 -c 'import socket; s=socket.socket(); s.bind(("127.0.0.1", 0)); print(s.getsockname()[1]); s.close()')"
+cd "$probe"
+env -u POSTHOG_KEY "$wrangler" dev --port "$puerto" --ip 127.0.0.1 --var ANALYTICS_ENABLED:false > "$probe/wrangler-b.log" 2>&1 &
+wrangler_pid=$!
+listo=0
+intento=0
+while [ "$intento" -lt 40 ]; do
+  if curl -sf "http://127.0.0.1:${puerto}/" >/dev/null; then
+    listo=1
+    break
+  fi
+  intento=$((intento + 1))
+  sleep 1
+done
+if [ "$listo" -ne 1 ]; then
+  printf '%s\n' 'wrangler no respondió'
+  kill "$wrangler_pid"
+  wait "$wrangler_pid"
+  exit 1
+fi
+curl -sS "http://127.0.0.1:${puerto}/"
+kill "$wrangler_pid"
+wait_exit=0
+wait "$wrangler_pid" || wait_exit=$?
+printf 'wait:%s\n' "$wait_exit"
+```
+
+Esa pasada eligió el puerto 33893. El log listó sólo el binding `ANALYTICS_ENABLED`.
+
+Body:
+
+```text
+{"analyticsEnabled":"false","posthogKeyPresent":false}
+```
+
+```text
+wait:143
+```
 
 Una corrida anterior del mismo día, en primer plano, vio los mismos bodies en los puertos 53809 y 45061. Otra, con un `.dev.vars` temporal, vio la key cargada aunque `--var` pusiera el flag en `false`. Esa receta con archivo no se repite: esta skill no crea `.dev.vars` con `POSTHOG_KEY`. No está medido en el Worker del repo. Borrá `$probe` al terminar.
 
