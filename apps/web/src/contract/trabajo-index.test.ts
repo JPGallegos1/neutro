@@ -1,11 +1,9 @@
 import assert from "node:assert/strict";
-import { readFileSync } from "node:fs";
 import { describe, it } from "node:test";
-import { join } from "node:path";
-import { fileURLToPath } from "node:url";
-import { parse, type HTMLElement } from "node-html-parser";
+import type { HTMLElement } from "node-html-parser";
 
 import { pageMeta } from "../data/page-meta.ts";
+import { readDistPage } from "./dist.ts";
 
 const SITE = "https://neutro.solutions";
 const INDEX_CANONICAL = "https://neutro.solutions/trabajo";
@@ -18,31 +16,6 @@ const PUBLISHED_CASE_PATHS = [
 ] as const;
 const LANDING_CARDS = 4;
 const HIDE_CLASSES = ["is-collapsed", "is-enhanced"] as const;
-
-const distDir = fileURLToPath(new URL("../../dist/", import.meta.url));
-
-function isEnoent(error: unknown): boolean {
-  return (
-    typeof error === "object" &&
-    error !== null &&
-    "code" in error &&
-    error.code === "ENOENT"
-  );
-}
-
-function readDistPage(filename: string): HTMLElement {
-  const path = join(distDir, filename);
-  try {
-    return parse(readFileSync(path, "utf8"));
-  } catch (error) {
-    if (isEnoent(error)) {
-      throw new Error(
-        `falta ${path}. El contrato lee el HTML de astro build (build.format: file).`,
-      );
-    }
-    throw error;
-  }
-}
 
 function casePaths(root: HTMLElement): string[] {
   return root.querySelectorAll("a").flatMap((anchor) => {
