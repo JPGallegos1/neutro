@@ -1,0 +1,35 @@
+name: PR body
+
+on:
+  pull_request:
+    types:
+      - opened
+      - edited
+      - synchronize
+      - reopened
+
+concurrency:
+  group: pr-body-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  pr-body:
+    name: Cuerpo del PR
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Checkout sin credenciales persistidas (actions/checkout v4.4.0)
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          persist-credentials: false
+      - name: Setup Node (actions/setup-node v4.4.0)
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version-file: .node-version
+      - name: Exigir las seis secciones del cuerpo (PR_BODY por entorno, sin interpolar en el shell)
+        env:
+          PR_BODY: ${{ github.event.pull_request.body }}
+        run: node tools/ci/check-pr-body.mjs
