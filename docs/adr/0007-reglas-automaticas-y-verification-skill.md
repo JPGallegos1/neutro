@@ -50,11 +50,13 @@ Docs de reglas y lint no suman el verificador con Codex, salvo que el diff modif
 
 Punto abierto para Juan: si un PR que sólo cambia CI suma el verificador con Codex.
 
+Punto abierto para Juan: «permisos de workflows» está en la excepción de Codex pero vive en archivos de CI y la misma frase dice que CI no suma; «secretos» y «protección de rama» difícilmente aparecen como contenido de un diff.
+
 Esta regla de exclusión está propuesta y espera el OK de Juan Gallegos.
 
 ### Playwright
 
-Es la base para probar el sitio construido. El comando de la skill es `pnpm --filter @neutro/web exec playwright test --trace on`. El script `test:e2e` es `playwright test`. `--trace on` hace que un verde también deje un `trace.zip` por test. Playwright vacía `test-results/` al arrancar otra corrida. La skill copia cada traza a `evidencia/<pr>-<sha>/trazas/<nombre>-<pasada>-trace.zip` antes de la pasada de capturas, para que no se pierdan ni se pisen. `$pasada` es `1` en el e2e y `2` en las capturas. Si no hay traza, o si el archivo ya existe, esa copia sale `1`.
+Es la base para probar el sitio construido. El comando de la skill es `pnpm --filter @neutro/web exec playwright test --trace on`. El script `test:e2e` es `playwright test`. `--trace on` hace que un verde también deje un `trace.zip` por test. Playwright vacía `test-results/` al arrancar otra corrida. La skill copia cada traza a `evidencia/<pr>-<sha>/trazas/<nombre>-<pasada>-trace.zip` antes de la pasada de capturas, para que no se pierdan ni se pisen. `$pasada` es `1` en el e2e y `2` en las capturas. Si no hay traza, si el archivo ya existe, o si `cp` falla, esa copia sale `1`.
 
 El workflow de la base ya acota el costo: un job, un browser (Chromium), caché del browser, y corre cuando cambia `apps/web`, `packages`, el lockfile o el propio workflow. Esta decisión no le cambia el YAML.
 

@@ -35,21 +35,32 @@ Si una salida trae un secreto, reemplazalo por `‹redactado›` antes de guarda
 
 ## Preparación
 
-La versión la mandan los archivos del repo, no la máquina. Lo primero, definí las tres variables del PR. `$PR` es el número. `$BASE` y `$HEAD` son los SHA de 40 caracteres de la base y del head. Si `$PR` está vacío, frená: si no, la carpeta queda `evidencia/-<sha>`.
+La versión la mandan los archivos del repo, no la máquina. Lo primero, definí las tres variables del PR. `$PR` es el número. `$BASE` y `$HEAD` son SHA hexadecimales de 7 a 40 caracteres, de la base y del head. Si `$PR` está vacío, frená: si no, la carpeta queda `evidencia/-<sha>`.
+
+Este bloque corre en la shell de la corrida (un script, o la shell donde se pega el bloque). `[ -n "${PR:-}" ] || exit 1` corta esa shell siempre, también si es interactiva. `${PR:?...}` no se usa: en una shell interactiva imprime el aviso y sigue. Si la shell es la tuya de trabajo, `exit 1` la cierra.
 
 ```bash
-: "${PR:?PR vacío. Definí PR con el número del pull request.}"
-: "${BASE:?BASE vacío. Definí BASE con el SHA de la base del PR.}"
-: "${HEAD:?HEAD vacío. Definí HEAD con el SHA del head del PR.}"
+[ -n "${PR:-}" ] || { printf '%s\n' 'PR vacío. Definí PR con el número del pull request.'; exit 1; }
+[ -n "${BASE:-}" ] || { printf '%s\n' 'BASE vacío. Definí BASE con el SHA de la base del PR.'; exit 1; }
+[ -n "${HEAD:-}" ] || { printf '%s\n' 'HEAD vacío. Definí HEAD con el SHA del head del PR.'; exit 1; }
+case "$BASE" in
+  *[!0-9a-fA-F]*) printf '%s\n' 'BASE no es un SHA hexadecimal.'; exit 1 ;;
+esac
+case "$HEAD" in
+  *[!0-9a-fA-F]*) printf '%s\n' 'HEAD no es un SHA hexadecimal.'; exit 1 ;;
+esac
+if [ "${#BASE}" -lt 7 ] || [ "${#BASE}" -gt 40 ] || [ "${#HEAD}" -lt 7 ] || [ "${#HEAD}" -gt 40 ]; then
+  printf '%s\n' 'BASE y HEAD tienen que ser SHA hexadecimales de 7 a 40 caracteres.'
+  exit 1
+fi
 origen="$(pwd)"
 sha7="$(git -C "$origen" rev-parse "$HEAD" | cut -c1-7)"
 evidencia_abs="$origen/evidencia/${PR}-${sha7}"
 mkdir -p "$evidencia_abs/trazas"
 cd "$origen"
-workdir="$origen"
 ```
 
-`$origen` es la raíz del checkout original y no cambia. `$workdir` arranca igual a `$origen`. No lo reasignes más adelante. `"$evidencia_abs"` es la carpeta absoluta del informe. El `find` de entorno corre en `$origen`, antes de decidir si la corrida se muda.
+`$origen` es la raíz del checkout original y no cambia. `$workdir` no se asigna en este bloque: se asigna una sola vez en «Directorio de cada bloque», después del `find`, y no se reasigna. `"$evidencia_abs"` es la carpeta absoluta del informe. El `find` de entorno corre en `$origen`, antes de esa asignación.
 
 1. Node: el contenido de [`.node-version`](../../../.node-version). Al escribir esta skill es `24.18.0`. `node -v` tiene que ser esa versión, con la `v` adelante.
 2. pnpm: el campo `packageManager` de [`package.json`](../../../package.json). Al escribir esta skill es `pnpm@12.14.0`. También está pinneado en `engines.pnpm`.
@@ -82,7 +93,7 @@ En el repo están `apps/web/.env.example` y `apps/web/.dev.vars.example`. Esos d
 
 `apps/web/wrangler.jsonc` trae `ANALYTICS_ENABLED` en `"true"`. El Worker registra `captureQrScanned` en `ctx.waitUntil` antes de devolver el redirect, y sólo si `isServerAnalyticsEnabled(env)` y `env.POSTHOG_KEY` (`apps/web/worker/index.ts`, `apps/web/worker/posthog.ts`). `isServerAnalyticsEnabled` pide `ANALYTICS_ENABLED === "true"` y la key. Sin `POSTHOG_KEY` no se manda `qr_scanned`. Con la key y el flag en `"true"`, sí. No está medido, en el Worker `neutro-web`, si sin `.dev.vars` Wrangler carga un `.env`.
 
-Si aparece un archivo que no es uno de los dos ejemplos, asigná `$workdir` una sola vez al clone de «Directorio de cada bloque». No borres los archivos del árbol original y no borres los `.example`. Si no armás ese clone, el build sin analytics y todo lo que dependa del Worker local quedan NO VERIFICADO. Motivo: hay un archivo de entorno y no se garantizó que no entre en la corrida.
+Si aparece un archivo que no es uno de los dos ejemplos, la única asignación de `$workdir` (en «Directorio de cada bloque») usa el clone. No borres los archivos del árbol original y no borres los `.example`. Si no armás ese clone, el build sin analytics y todo lo que dependa del Worker local quedan NO VERIFICADO. Motivo: hay un archivo de entorno y no se garantizó que no entre en la corrida.
 
 No exportes `POSTHOG_KEY`. No pongas `CLOUDFLARE_INCLUDE_PROCESS_ENV=true`.
 
@@ -108,15 +119,23 @@ Adentro: `informe.md`, las salidas `.txt`, capturas `.png`, una traza por pasada
 
 ## Directorio de cada bloque
 
-`$workdir` se asigna una sola vez, acá, y no se vuelve a asignar. La puerta 13 no lo toca.
+`$workdir` se asigna una sola vez, en la última línea de este bloque, y no se vuelve a asignar. La puerta 13 no lo toca. El `find` de la preparación ya escribió `"$evidencia_abs/00-entorno-nombres.txt"`.
 
-Si el `find` no vio un `.env*` ni un `.dev.vars*` fuera de los dos ejemplos, `$workdir` sigue siendo `$origen`.
-
-Si vio alguno, la corrida principal se muda a un clone y `$workdir` queda en ese path. Es la única asignación:
+Entra una sola rama. Si esa salida, fuera de `apps/web/.env.example` y `apps/web/.dev.vars.example`, nombra otro `.env*` o `.dev.vars*`, la rama del clone corre. Si no, `$corrida` queda en `$origen`. Las dos ramas no corren juntas.
 
 ```bash
-workdir="$(mktemp -d "${TMPDIR:-/tmp}/neutro-corrida.XXXXXX")"
-git clone --local --no-hardlinks "$origen" "$workdir"
+if [ ! -f "$evidencia_abs/00-entorno-nombres.txt" ]; then
+  printf '%s\n' 'falta 00-entorno-nombres.txt'
+  exit 1
+fi
+reales="$(grep -E -v '^(apps/web/\.env\.example|apps/web/\.dev\.vars\.example)$' "$evidencia_abs/00-entorno-nombres.txt" || true)"
+if [ -n "$reales" ]; then
+  corrida="$(mktemp -d "${TMPDIR:-/tmp}/neutro-corrida.XXXXXX")"
+  git clone --local --no-hardlinks "$origen" "$corrida"
+else
+  corrida="$origen"
+fi
+workdir="$corrida"
 ```
 
 Ese clone no trae `node_modules`, `dist`, `evidencia/` ni un `.env*` o `.dev.vars*` ignorado. No enlaces el `node_modules` de `$origen`.
@@ -131,7 +150,7 @@ Cada salida se escribe en `"$evidencia_abs"`, con esa ruta absoluta. `NEUTRO_EVI
 
 Las trazas se leen de `"$workdir/apps/web/test-results"` y se copian a `"$evidencia_abs/trazas"` antes de borrar nada.
 
-`$copia` es sólo la puerta 13. No hagas `workdir="$copia"`. Después de `rm -rf "$copia"`, `cd "$workdir"` sigue siendo el directorio de Playwright y de las trazas.
+`$copia` es sólo la puerta 13. No hagas `workdir="$copia"`. Antes de `rm -rf "$copia"`, `cd "$workdir"`. Playwright y las trazas siguen en ese directorio.
 
 Si `$workdir` no es `$origen`, borralo recién después de esa copia de trazas. No borres `"$evidencia_abs"` ni archivos de entorno de `$origen` ni los `.example`.
 
@@ -146,7 +165,7 @@ cd "$copia"
 pnpm install --frozen-lockfile
 ```
 
-Ese install es el de `$copia`, no el de la puerta 2. El clone no trae `node_modules`. No reasignes `$workdir`. La salida va a `"$evidencia_abs/13-falla-<puerta>.txt"`. Después, `rm -rf "$copia"`. El `.txt` queda en `"$evidencia_abs"`.
+Ese install es el de `$copia`, no el de la puerta 2. El clone no trae `node_modules`. No reasignes `$workdir`. La salida va a `"$evidencia_abs/13-falla-<puerta>.txt"`. Al terminar la puerta el cwd sigue en `$copia`. Antes de borrar: `cd "$workdir"` y después `rm -rf "$copia"`. El `.txt` queda en `"$evidencia_abs"`.
 
 Nombres de salida:
 
@@ -376,7 +395,7 @@ Procedimiento. El directorio es `$copia`. No asignes ese path a `$workdir`.
 2. Provocá el fallo mínimo de esa puerta, adentro de `$copia`. No pushees. No uses producción.
 3. Corré sólo esa puerta, con `cd "$copia"`. El exit tiene que ser distinto de `0`.
 4. Guardá la salida en `"$evidencia_abs/13-falla-<puerta>.txt"`, con el exit.
-5. `rm -rf "$copia"`. El `.txt` queda en `"$evidencia_abs"`. Playwright y las trazas siguen con `cd "$workdir"`.
+5. `cd "$workdir"` y después `rm -rf "$copia"`. El `.txt` queda en `"$evidencia_abs"`. El `cd` va antes del `rm`: si el cwd sigue adentro de `$copia`, el próximo comando sale 128.
 
 Provocación mínima, cuando la puerta es una de estas:
 
@@ -407,7 +426,7 @@ pnpm --filter @neutro/web exec playwright test --trace on
 
 - Un solo browser: Chromium. No instales el resto.
 - Exit esperado: `0`. Salida en `"$evidencia_abs/14-e2e.txt"`.
-- El directorio es `$workdir`. Playwright vacía `apps/web/test-results/` al arrancar una corrida nueva. Antes de la pasada de capturas, copiá cada traza del e2e a `"$evidencia_abs/trazas"`. El nombre es `<nombre>-<pasada>-trace.zip`. `<nombre>` es el directorio de `test-results` que contiene ese zip. `$pasada` entra al bloque desde afuera: `1` para el e2e, `2` para las capturas, y el número siguiente para otra pasada. El bloque no le asigna `1`. Si no hay ninguna traza, o si el destino ya existe, la puerta sale `1` y no pisa el archivo.
+- El directorio es `$workdir`. Playwright vacía `apps/web/test-results/` al arrancar una corrida nueva. Antes de la pasada de capturas, copiá cada traza del e2e a `"$evidencia_abs/trazas"`. El nombre es `<nombre>-<pasada>-trace.zip`. `<nombre>` es el directorio de `test-results` que contiene ese zip. `$pasada` entra al bloque desde afuera: `1` para el e2e, `2` para las capturas, y el número siguiente para otra pasada. El bloque no le asigna `1`. Si no hay ninguna traza, si el destino ya existe, o si `cp` falla, la puerta sale `1` y no pisa el archivo.
 
 ```bash
 cd "$workdir"
@@ -425,7 +444,10 @@ else
       printf 'traza ya existe: %s\n' "$dest" >> "$evidencia_abs/14-e2e.txt"
       traza_exit=1
     else
-      cp "$zip" "$dest"
+      if ! cp "$zip" "$dest"; then
+        printf 'cp falló: %s\n' "$dest" >> "$evidencia_abs/14-e2e.txt"
+        traza_exit=1
+      fi
     fi
   done < <(find "$workdir/apps/web/test-results" -name trace.zip -print)
   if [ "$traza_n" -eq 0 ]; then
@@ -504,7 +526,7 @@ for (const route of routes) {
 
 - Si el diff toca motion o el video de la home, sumá una captura con `prefers-reduced-motion: reduce`. Nombre: `{slug}-reduce-{viewport}.png`. Si el diff no lo toca, la fila es `no aplica` con ese motivo. El contrato de las `<source>` del video ya está en `video-section.test.ts`, que corre con `pnpm test`.
 - Axe, teclado, foco y la pasada sin JavaScript los cubren los specs de Hamilton cuando existan. Si el archivo no está, esa fila queda NO VERIFICADO con motivo «spec de Hamilton ausente». No armes un segundo checklist paralelo.
-- Las trazas de las capturas se copian después, desde `$workdir`, con el mismo bucle. Antes del bucle, `pasada=2`. Playwright ya vació `test-results/` al arrancar esa pasada: las del e2e tienen que estar en `"$evidencia_abs/trazas"` desde antes. Una pasada posterior asigna el número siguiente y usa el mismo bucle. Si no hay trazas, o si `<nombre>-<pasada>-trace.zip` ya existe, esa copia sale `1` y no pisa el archivo.
+- Las trazas de las capturas se copian después, desde `$workdir`, con el mismo bucle. Antes del bucle, `pasada=2`. Playwright ya vació `test-results/` al arrancar esa pasada: las del e2e tienen que estar en `"$evidencia_abs/trazas"` desde antes. Una pasada posterior asigna el número siguiente y usa el mismo bucle. Si no hay trazas, si `<nombre>-<pasada>-trace.zip` ya existe, o si `cp` falla, esa copia sale `1` y no pisa el archivo.
 
 ### Video de un flujo completo
 
@@ -625,23 +647,58 @@ rm -f apps/web/.env.production
 
 Las cuatro: exit 0 del build y `rg -l` exit 0, un `.js` en `apps/web/dist/_astro`. No está medido si una variable que ya está en el proceso le gana al archivo.
 
-Wrangler, en un directorio temporal, no en `neutro-web`. No crees `.dev.vars`. No pidas `/f/N` ni `/ingest`. No pegues la key. El puerto sale libre en el momento. El binario es el `wrangler` 4.151.2 del repo, después del install de arriba.
+Wrangler, en un directorio temporal, no en `neutro-web`. No crees `.dev.vars`. No pidas `/f/N` ni `/ingest`. No pegues la key.
+
+Requisitos de esta receta, antes de correrla: Node >= 22 (esta skill usa `24.18.0`, el de `.node-version`) y `python3` en el `PATH`. Sin los dos, no arranques Wrangler. El binario es `"$workdir/apps/web/node_modules/.bin/wrangler"`, Wrangler 4.151.2, después del `pnpm install --frozen-lockfile` de arriba. En un clone no existe `$origen/apps/web/node_modules`: no lo uses.
+
+Antes de levantar Wrangler, desde `$workdir`, listá que no hay `.dev.vars`. Si imprime una ruta, no arranques.
+
+```bash
+cd "$workdir"
+find "$workdir" "$workdir/apps/web" -maxdepth 1 -name '.dev.vars' -print
+```
+
+Salida esperada: ninguna línea. Exit: `0`. El 2026-10-26, en el checkout de la VM, ese `find` no imprimió nada y salió `0`.
+
+El puerto sale libre en el momento. `wrangler dev` va en segundo plano. El PID queda en `$wrangler_pid`. Al final, `kill` y `wait`. `wait` después de `kill` sale distinto de `0`. Ese exit no es el resultado: el resultado es el body del `curl`.
 
 ```bash
 probe="$(mktemp -d "${TMPDIR:-/tmp}/neutro-var-probe.XXXXXX")"
-wrangler="$origen/apps/web/node_modules/.bin/wrangler"
+wrangler="$workdir/apps/web/node_modules/.bin/wrangler"
 puerto="$(python3 -c 'import socket; s=socket.socket(); s.bind(("127.0.0.1", 0)); print(s.getsockname()[1]); s.close()')"
 printf '%s\n' 'export default { async fetch(_request, env) { return Response.json({ analyticsEnabled: env.ANALYTICS_ENABLED ?? null, posthogKeyPresent: Boolean(env.POSTHOG_KEY) }); } };' > "$probe/index.js"
 printf '%s\n' '{ "name": "var-probe", "main": "index.js", "compatibility_date": "2026-10-01", "vars": { "ANALYTICS_ENABLED": "true" } }' > "$probe/wrangler.jsonc"
 cd "$probe"
-env -u POSTHOG_KEY "$wrangler" dev --port "$puerto" --ip 127.0.0.1 --var ANALYTICS_ENABLED:false --var POSTHOG_KEY:phc_probe_not_a_real_key
+env -u POSTHOG_KEY "$wrangler" dev --port "$puerto" --ip 127.0.0.1 --var ANALYTICS_ENABLED:false --var POSTHOG_KEY:phc_probe_not_a_real_key > "$probe/wrangler.log" 2>&1 &
+wrangler_pid=$!
+listo=0
+intento=0
+while [ "$intento" -lt 40 ]; do
+  if curl -sf "http://127.0.0.1:${puerto}/" >/dev/null; then
+    listo=1
+    break
+  fi
+  intento=$((intento + 1))
+  sleep 1
+done
+if [ "$listo" -ne 1 ]; then
+  printf '%s\n' 'wrangler no respondió'
+  kill "$wrangler_pid"
+  wait "$wrangler_pid"
+  exit 1
+fi
+curl -sS "http://127.0.0.1:${puerto}/"
+kill "$wrangler_pid"
+wait_exit=0
+wait "$wrangler_pid" || wait_exit=$?
+printf 'wait:%s\n' "$wait_exit"
 ```
 
-Esa forma, el 2026-10-26, eligió el puerto 53809. El log no dijo que usara `.dev.vars`. `curl -sS "http://127.0.0.1:${puerto}/"` devolvió `{"analyticsEnabled":"false","posthogKeyPresent":true}`. `--var` metió la key de prueba. El flag quedó en `false`.
+Esa forma, el 2026-10-26, con Node 24.18.0 y Wrangler 4.151.2, eligió el puerto 57329. El log no dijo que usara `.dev.vars`. El body fue `{"analyticsEnabled":"false","posthogKeyPresent":true}`. `--var` metió la key de prueba. El flag quedó en `false`. `wait` imprimió `143`.
 
-La segunda pasada es el mismo `wrangler dev`, otro puerto libre, sólo `--var ANALYTICS_ENABLED:false` y con `env -u POSTHOG_KEY`. Eligió el puerto 45061. El body fue `{"analyticsEnabled":"false","posthogKeyPresent":false}`. El log listó sólo el binding `ANALYTICS_ENABLED`.
+La segunda pasada repite el bloque: otro puerto libre, el mismo segundo plano, sólo `--var ANALYTICS_ENABLED:false` y `env -u POSTHOG_KEY`, y el mismo `kill` al final. Eligió el puerto 33893. El body fue `{"analyticsEnabled":"false","posthogKeyPresent":false}`. El log listó sólo el binding `ANALYTICS_ENABLED`. `wait` imprimió `143`.
 
-Una corrida anterior del mismo día usó un `.dev.vars` temporal y vio la key cargada aunque `--var` pusiera el flag en `false`. Esa receta no se repite: esta skill no crea `.dev.vars` con `POSTHOG_KEY`. No está medido en el Worker del repo. Borrá `$probe` al terminar.
+Una corrida anterior del mismo día, en primer plano, vio los mismos bodies en los puertos 53809 y 45061. Otra, con un `.dev.vars` temporal, vio la key cargada aunque `--var` pusiera el flag en `false`. Esa receta con archivo no se repite: esta skill no crea `.dev.vars` con `POSTHOG_KEY`. No está medido en el Worker del repo. Borrá `$probe` al terminar.
 
 ## Arreglos
 
