@@ -4,8 +4,28 @@ import type { HTMLElement } from "node-html-parser";
 
 import { readDistPage } from "./dist.ts";
 
+const POSTER_HREF = "/video/neutro-poster.jpg";
+const CASE_DIST_PAGES = [
+  "trabajo/conexion-laboral.html",
+  "trabajo/afectiva.html",
+  "trabajo/capa-automotores.html",
+  "trabajo/suplementacion-ciencia.html",
+  "trabajo/luxurycars.html",
+] as const;
+
 function cardImages(root: HTMLElement): HTMLElement[] {
   return root.querySelectorAll("img.work-card__image");
+}
+
+function posterPreloads(root: HTMLElement): HTMLElement[] {
+  return root.querySelectorAll("link").filter((el) => {
+    const rel = (el.getAttribute("rel") ?? "").toLowerCase().split(/\s+/);
+    return (
+      rel.includes("preload") &&
+      el.getAttribute("as") === "image" &&
+      el.getAttribute("href") === POSTER_HREF
+    );
+  });
 }
 
 function assertLazyCard(img: HTMLElement, label: string): void {
@@ -53,18 +73,11 @@ describe("prioridad de imágenes (SEO-03 / SEO-02)", () => {
       assertLazyCard(img, `home card #${index + 1}`);
     }
 
-    const preloads = root.querySelectorAll("link").filter((el) => {
-      const rel = (el.getAttribute("rel") ?? "").toLowerCase().split(/\s+/);
-      return (
-        rel.includes("preload") &&
-        el.getAttribute("as") === "image" &&
-        el.getAttribute("href") === "/video/neutro-poster.jpg"
-      );
-    });
+    const preloads = posterPreloads(root);
     assert.equal(
       preloads.length,
       1,
-      `home debe precargar /video/neutro-poster.jpg una vez (hay ${preloads.length})`,
+      `home debe precargar ${POSTER_HREF} exactamente una vez (hay ${preloads.length})`,
     );
     assert.equal(
       preloads[0]?.getAttribute("fetchpriority"),
@@ -116,5 +129,25 @@ describe("prioridad de imágenes (SEO-03 / SEO-02)", () => {
       1,
       `la ficha debe tener exactamente 1 img con fetchpriority=high (hay ${highPriority.length})`,
     );
+  });
+
+  it("preload del póster solo en la home: 1 en index, 0 en /trabajo y fichas", () => {
+    assert.equal(
+      posterPreloads(readDistPage("index.html")).length,
+      1,
+      `home debe tener exactamente 1 preload de ${POSTER_HREF}`,
+    );
+    assert.equal(
+      posterPreloads(readDistPage("trabajo.html")).length,
+      0,
+      `/trabajo no debe precargar ${POSTER_HREF}`,
+    );
+    for (const page of CASE_DIST_PAGES) {
+      assert.equal(
+        posterPreloads(readDistPage(page)).length,
+        0,
+        `${page} no debe precargar ${POSTER_HREF}`,
+      );
+    }
   });
 });
