@@ -8,6 +8,7 @@ on:
       - "pnpm-lock.yaml"
       - ".github/workflows/e2e.yml"
   push:
+    branches: [main]
     paths:
       - "apps/web/**"
       - "packages/**"
