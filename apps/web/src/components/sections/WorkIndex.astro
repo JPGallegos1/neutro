@@ -23,32 +23,17 @@ const showLoadMore = workProjects.length > LANDING_WORK_LIMIT;
       ))}
     </ul>
     {showLoadMore && (
-      <>
-        <a
-          class="sr-only work-index__page-fallback"
-          href="/trabajo?page=2"
-          data-work-page-link
-        >
+      <div class="work-index__more landing-gutter" data-work-more hidden>
+        <button type="button" class="work-index__load" data-work-load-more>
           Cargar más
-        </a>
-        <div class="work-index__more landing-gutter" data-work-more hidden>
-          <button type="button" class="work-index__load" data-work-load-more>
-            Cargar más
-          </button>
-        </div>
-      </>
+        </button>
+      </div>
     )}
     <p class="sr-only" aria-live="polite" data-work-live></p>
   </div>
 </section>
 
 <script>
-  function requestedPage(): number {
-    const raw = new URL(window.location.href).searchParams.get("page");
-    const page = Number(raw ?? "1");
-    return Number.isFinite(page) && page > 1 ? Math.floor(page) : 1;
-  }
-
   function initWorkIndex(root: ParentNode = document) {
     const index = root.querySelector<HTMLElement>("[data-work-index]");
     if (!index || index.dataset.enhanced === "true") return;
@@ -57,9 +42,6 @@ const showLoadMore = workProjects.length > LANDING_WORK_LIMIT;
     const moreEl = index.querySelector<HTMLElement>("[data-work-more]");
     const button = index.querySelector<HTMLButtonElement>(
       "[data-work-load-more]",
-    );
-    const pageLink = index.querySelector<HTMLAnchorElement>(
-      "[data-work-page-link]",
     );
     const liveEl = index.querySelector<HTMLElement>("[data-work-live]");
     if (!grid || !moreEl || !button || !liveEl) return;
@@ -74,7 +56,7 @@ const showLoadMore = workProjects.length > LANDING_WORK_LIMIT;
     );
     if (cards.length <= pageSize) return;
 
-    let visible = Math.min(requestedPage() * pageSize, cards.length);
+    let visible = pageSize;
 
     function sync(options?: { focusFirstNewFrom?: number }) {
       const focusFrom = options?.focusFirstNewFrom;
@@ -84,8 +66,7 @@ const showLoadMore = workProjects.length > LANDING_WORK_LIMIT;
       if (
         typeof focusFrom === "number" &&
         focusFrom < visible &&
-        (document.activeElement === button ||
-          document.activeElement === pageLink)
+        document.activeElement === button
       ) {
         const focusCard = cards[focusFrom];
         const focusLink = focusCard?.querySelector<HTMLAnchorElement>(
@@ -94,9 +75,6 @@ const showLoadMore = workProjects.length > LANDING_WORK_LIMIT;
         focusLink?.focus();
       }
       more.hidden = visible >= cards.length;
-      if (pageLink) {
-        pageLink.hidden = true;
-      }
     }
 
     function revealNext() {
@@ -116,11 +94,6 @@ const showLoadMore = workProjects.length > LANDING_WORK_LIMIT;
     sync();
 
     button.addEventListener("click", () => {
-      revealNext();
-    });
-
-    pageLink?.addEventListener("click", (event) => {
-      event.preventDefault();
       revealNext();
     });
   }
@@ -255,38 +228,6 @@ const showLoadMore = workProjects.length > LANDING_WORK_LIMIT;
   @media (hover: hover) and (prefers-reduced-motion: no-preference) {
     .work-index__load:hover {
       opacity: 0.92;
-    }
-  }
-
-  .work-index__page-fallback:focus-visible {
-    position: static;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    width: auto;
-    height: auto;
-    margin: 32px var(--landing-gutter) 0;
-    padding: 12px 20px;
-    overflow: visible;
-    clip: auto;
-    clip-path: none;
-    white-space: normal;
-    border-radius: 4px;
-    background: var(--neutro-accent-blue);
-    color: var(--neutro-on-blue);
-    font-size: 15px;
-    font-weight: 500;
-    line-height: 1.2;
-    text-decoration: none;
-  }
-
-  :global(.dark) .work-index__page-fallback:focus-visible {
-    color: var(--neutro-bg);
-  }
-
-  @media (min-width: 1024px) {
-    .work-index__page-fallback:focus-visible {
-      margin-top: 48px;
     }
   }
 </style>
