@@ -19,7 +19,7 @@ const showLoadMore = workProjects.length > LANDING_WORK_LIMIT;
       data-page-size={LANDING_WORK_LIMIT}
     >
       {workProjects.map((project) => (
-        <WorkCard project={project} />
+        <WorkCard project={project} titleAs="h2" />
       ))}
     </ul>
     {showLoadMore && (
@@ -76,10 +76,23 @@ const showLoadMore = workProjects.length > LANDING_WORK_LIMIT;
 
     let visible = Math.min(requestedPage() * pageSize, cards.length);
 
-    function sync() {
+    function sync(options?: { focusFirstNewFrom?: number }) {
+      const focusFrom = options?.focusFirstNewFrom;
       cards.forEach((card, i) => {
         card.classList.toggle("is-collapsed", i >= visible);
       });
+      if (
+        typeof focusFrom === "number" &&
+        focusFrom < visible &&
+        (document.activeElement === button ||
+          document.activeElement === pageLink)
+      ) {
+        const focusCard = cards[focusFrom];
+        const focusLink = focusCard?.querySelector<HTMLAnchorElement>(
+          "a.work-card__inner",
+        );
+        focusLink?.focus();
+      }
       more.hidden = visible >= cards.length;
       if (pageLink) {
         pageLink.hidden = true;
@@ -90,7 +103,7 @@ const showLoadMore = workProjects.length > LANDING_WORK_LIMIT;
       const previous = visible;
       visible = Math.min(visible + pageSize, cards.length);
       const added = visible - previous;
-      sync();
+      sync({ focusFirstNewFrom: previous });
       if (added === 1) {
         live.textContent = "Se cargó 1 proyecto más.";
       } else if (added > 1) {
@@ -222,6 +235,10 @@ const showLoadMore = workProjects.length > LANDING_WORK_LIMIT;
       opacity 160ms var(--ease-out, cubic-bezier(0.23, 1, 0.32, 1));
   }
 
+  :global(.dark) .work-index__load {
+    color: var(--neutro-bg);
+  }
+
   .work-index__load:active {
     transform: scale(0.97);
   }
@@ -242,7 +259,49 @@ const showLoadMore = workProjects.length > LANDING_WORK_LIMIT;
     }
   }
 
-  .work-index__page-fallback,
+  .work-index__page-fallback {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
+  }
+
+  .work-index__page-fallback:focus-visible {
+    position: static;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: auto;
+    height: auto;
+    margin: 32px var(--landing-gutter) 0;
+    padding: 12px 20px;
+    overflow: visible;
+    clip: auto;
+    white-space: normal;
+    border-radius: 4px;
+    background: var(--neutro-accent-blue);
+    color: var(--neutro-on-blue);
+    font-size: 15px;
+    font-weight: 500;
+    line-height: 1.2;
+    text-decoration: none;
+  }
+
+  :global(.dark) .work-index__page-fallback:focus-visible {
+    color: var(--neutro-bg);
+  }
+
+  @media (min-width: 1024px) {
+    .work-index__page-fallback:focus-visible {
+      margin-top: 48px;
+    }
+  }
+
   .work-index__live {
     position: absolute;
     width: 1px;
