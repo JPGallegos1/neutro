@@ -1,6 +1,8 @@
 import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
-import { readFileSync } from "node:fs";
+import { mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import { describe, it } from "node:test";
 import { fileURLToPath, pathToFileURL } from "node:url";
 
@@ -47,10 +49,28 @@ function missing(title) {
 function runScript(env, args = []) {
   const cleaned = { ...process.env };
   delete cleaned.PR_BODY;
+  delete cleaned.GITHUB_EVENT_PATH;
   return spawnSync(process.execPath, [script, ...args], {
     env: { ...cleaned, ...env },
     encoding: "utf8",
   });
+}
+
+function runEvent(body, extraEnv = {}) {
+  const dir = mkdtempSync(join(tmpdir(), "neutro-pr-body-"));
+  const eventPath = join(dir, "event.json");
+  writeFileSync(
+    eventPath,
+    JSON.stringify({
+      action: "opened",
+      pull_request: { number: 55, body },
+    }),
+  );
+  try {
+    return runScript({ GITHUB_EVENT_PATH: eventPath, ...extraEnv });
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
 }
 
 describe("checkPrBody", () => {
@@ -182,6 +202,60 @@ describe("checkPrBody", () => {
     assert.equal(checkPrBody(validBody().replaceAll("\n", "\r\n")).ok, true);
   });
 
+  it("un comentario HTML, también multilínea, no cuenta como contenido", () => {
+    const onlyComment = validBody([
+      "uno",
+      "dos",
+      "tres",
+      "cuatro",
+      "cinco",
+      "<!-- placeholder -->",
+    ]);
+    assert.deepEqual(checkPrBody(onlyComment).problems, [
+      "La sección «Verificación» no tiene contenido.",
+    ]);
+    const multiline = validBody([
+      "uno",
+      "<!--\nplaceholder\n-->",
+      "tres",
+      "cuatro",
+      "cinco",
+      "seis",
+    ]);
+    assert.deepEqual(checkPrBody(multiline).problems, [
+      "La sección «Restricciones y verdades» no tiene contenido.",
+    ]);
+    const withText = validBody([
+      "uno <!-- nota --> sigue",
+      "dos",
+      "tres",
+      "cuatro",
+      "cinco",
+      "seis",
+    ]);
+    assert.equal(checkPrBody(withText).ok, true);
+    const hiddenHeading = [
+      "<!--",
+      "## Problema",
+      "oculto",
+      "-->",
+      validBody(),
+    ].join("\n");
+    assert.equal(checkPrBody(hiddenHeading).ok, true);
+  });
+
+  it("ignora un BOM UTF-8 inicial antes de los encabezados", () => {
+    assert.equal(checkPrBody(`\uFEFF${validBody()}`).ok, true);
+    const wrapped = [
+      "\uFEFF<!-- CURSOR_AGENT_PR_BODY_BEGIN -->",
+      validBody(),
+      "<!-- CURSOR_AGENT_PR_BODY_END -->",
+      "",
+      CURSOR_FOOTER,
+    ].join("\n");
+    assert.equal(checkPrBody(wrapped).ok, true);
+  });
+
   it("la plantilla trae los seis encabezados vacíos y el check la rechaza", () => {
     const template = readFileSync(templatePath, "utf8");
     for (const title of HEADINGS) {
@@ -203,7 +277,7 @@ describe("checkPrBody", () => {
 });
 
 describe("pr-body.yml", () => {
-  it("pasa el cuerpo por PR_BODY y no lo interpola en el shell", () => {
+  it("no vuelca el cuerpo en el YAML ni lo interpola en run", () => {
     const yaml = readFileSync(workflowPath, "utf8");
     assert.match(yaml, /^permissions:\n {2}contents: read\n/m);
     assert.match(yaml, /persist-credentials: false/);
@@ -223,11 +297,15 @@ describe("pr-body.yml", () => {
     for (const type of ["opened", "edited", "synchronize", "reopened"]) {
       assert.match(yaml, new RegExp(`- ${type}`));
     }
-    assert.match(
-      yaml,
-      /PR_BODY: \$\{\{ github\.event\.pull_request\.body \}\}/,
-    );
-    assert.doesNotMatch(yaml, /run:[^\n]*github\.event\.pull_request\.body/);
+    assert.equal(yaml.includes("github.event.pull_request.body"), false);
+    assert.equal(yaml.includes("PR_BODY"), false);
+    const runLines = yaml.split("\n").filter((line) => /^\s*run:/.test(line));
+    assert.ok(runLines.length > 0);
+    for (const line of runLines) {
+      assert.equal(line.includes("github.event"), false);
+      assert.equal(line.includes("PR_BODY"), false);
+      assert.equal(line.includes("${{"), false);
+    }
     assert.equal(
       yaml.split("\n").some((line) => /^\s*#/.test(line)),
       false,
@@ -262,7 +340,7 @@ describe("check-pr-body.mjs como proceso", () => {
     assert.equal(result.stderr, "");
   });
 
-  it("sin PR_BODY sale 1 y el stderr nombra las seis secciones", () => {
+  it("sin PR_BODY ni archivo de evento sale 1 y nombra las seis secciones", () => {
     const marker = "no-imprimir-este-argumento";
     const result = runScript({}, [marker]);
     assert.equal(result.status, 1);
@@ -272,5 +350,51 @@ describe("check-pr-body.mjs como proceso", () => {
     );
     assert.equal(result.stdout, "");
     assert.equal(result.stderr.includes(marker), false);
+  });
+
+  it("lee un archivo de evento con cuerpo válido y no lo imprime", () => {
+    const marker = "marca-valida-que-no-sale";
+    const result = runEvent(validBody(HEADINGS.map(() => marker)));
+    assert.equal(result.status, 0, result.stderr.slice(0, 200));
+    assert.equal(result.stdout, "");
+    assert.equal(result.stderr, "");
+    assert.equal(`${result.stdout}${result.stderr}`.includes(marker), false);
+  });
+
+  it("lee un archivo de evento con cuerpo vacío y nombra las seis secciones", () => {
+    for (const body of ["", null]) {
+      const result = runEvent(body);
+      assert.equal(result.status, 1);
+      assert.equal(
+        result.stderr,
+        `${HEADINGS.map((title) => missing(title)).join("\n")}\n`,
+      );
+      assert.equal(result.stdout, "");
+    }
+  });
+
+  it("lee un archivo de evento con cuerpo malo y dice qué falta", () => {
+    const result = runEvent("Actualiza prettier de 3.9.10 a 3.9.11.");
+    assert.equal(result.status, 1);
+    assert.equal(
+      result.stderr,
+      `${HEADINGS.map((title) => missing(title)).join("\n")}\n`,
+    );
+    assert.equal(result.stdout, "");
+    assert.equal(result.stderr.includes("prettier"), false);
+  });
+
+  it("lee un cuerpo de 1 MiB desde el archivo del evento y no lo imprime", () => {
+    const marker = "marca-de-1mib-que-no-sale";
+    const core = validBody(["uno", "dos", "tres", "cuatro", "cinco", marker]);
+    const target = 1024 * 1024;
+    const body = `${core}\n${"x".repeat(target - Buffer.byteLength(`${core}\n`, "utf8"))}`;
+    assert.equal(Buffer.byteLength(body, "utf8"), target);
+    const result = runEvent(body, { PR_BODY: "esto-no-debe-ganar" });
+    assert.equal(result.status, 0, result.stderr.slice(0, 200));
+    assert.equal(result.stdout, "");
+    assert.equal(result.stderr, "");
+    assert.equal(result.stderr.includes(marker), false);
+    assert.equal(result.stdout.includes(marker), false);
   });
 });

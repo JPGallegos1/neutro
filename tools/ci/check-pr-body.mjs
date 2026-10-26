@@ -1,4 +1,4 @@
-import { realpathSync } from "node:fs";
+import { readFileSync, realpathSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 
 const REQUIRED_HEADINGS = [
@@ -33,17 +33,23 @@ function stripCursorFooter(text) {
   return lines.slice(0, end).join("\n");
 }
 
+function stripHtmlComments(text) {
+  return text.replaceAll(/<!--[\s\S]*?-->/g, "");
+}
+
 export function extractAuthorBody(raw) {
-  const body = String(raw ?? "").replaceAll("\r\n", "\n");
+  let body = String(raw ?? "");
+  if (body.charCodeAt(0) === 0xfeff) {
+    body = body.slice(1);
+  }
+  body = body.replaceAll("\r\n", "\n");
   const begin = MARKER_BEGIN.exec(body);
   const end = MARKER_END.exec(body);
   let text = body;
   if (begin && end && begin.index < end.index) {
     text = body.slice(begin.index + begin[0].length, end.index);
   }
-  text = text
-    .replaceAll(/<!--\s*CURSOR_AGENT_PR_BODY_BEGIN\s*-->/g, "")
-    .replaceAll(/<!--\s*CURSOR_AGENT_PR_BODY_END\s*-->/g, "");
+  text = stripHtmlComments(text);
   return stripCursorFooter(text);
 }
 
@@ -116,8 +122,26 @@ export function checkPrBody(raw) {
   return { ok: problems.length === 0, problems };
 }
 
+export function readPullRequestBody(env = process.env) {
+  if (env.GITHUB_EVENT_PATH) {
+    try {
+      const event = JSON.parse(readFileSync(env.GITHUB_EVENT_PATH, "utf8"));
+      const body = event?.pull_request?.body;
+      return { body: typeof body === "string" ? body : "" };
+    } catch {
+      return { error: true };
+    }
+  }
+  return { body: typeof env.PR_BODY === "string" ? env.PR_BODY : "" };
+}
+
 function main() {
-  const result = checkPrBody(process.env.PR_BODY);
+  const read = readPullRequestBody();
+  if (read.error) {
+    console.error("No se pudo leer el cuerpo desde el archivo del evento.");
+    process.exit(1);
+  }
+  const result = checkPrBody(read.body);
   if (result.ok) {
     return;
   }
