@@ -6,11 +6,16 @@ import { fileURLToPath } from "node:url";
 import { parse, type HTMLElement } from "node-html-parser";
 
 import { pageMeta } from "../data/page-meta.ts";
-import { workProjects } from "../data/work.ts";
 
 const SITE = "https://neutro.solutions";
 const INDEX_CANONICAL = "https://neutro.solutions/trabajo";
-const PUBLISHED_CASE_LINKS = 5;
+const PUBLISHED_CASE_PATHS = [
+  "/trabajo/conexion-laboral",
+  "/trabajo/afectiva",
+  "/trabajo/capa-automotores",
+  "/trabajo/suplementacion-ciencia",
+  "/trabajo/luxurycars",
+] as const;
 const LANDING_CARDS = 4;
 const HIDE_CLASSES = ["is-collapsed", "is-enhanced"] as const;
 
@@ -73,33 +78,115 @@ function isInternalHref(href: string): boolean {
   }
 }
 
-function declaresDisplayNone(style: string): boolean {
-  return style.split(";").some((declaration) => {
+function styleValue(style: string, propName: string): string | undefined {
+  for (const declaration of style.split(";")) {
     const colon = declaration.indexOf(":");
-    if (colon === -1) return false;
+    if (colon === -1) continue;
     const prop = declaration.slice(0, colon).trim().toLowerCase();
-    const value = declaration
+    if (prop !== propName) continue;
+    return declaration
       .slice(colon + 1)
       .trim()
       .toLowerCase()
-      .replace(/\s*!important\s*$/, "");
-    return prop === "display" && value === "none";
-  });
+      .replace(/\s*!important\s*$/, "")
+      .trim();
+  }
+  return undefined;
+}
+
+function opacityIsZero(value: string): boolean {
+  const numeric = value.endsWith("%")
+    ? Number(value.slice(0, -1)) / 100
+    : Number(value);
+  return value !== "" && Number.isFinite(numeric) && numeric === 0;
+}
+
+function foldLabel(text: string): string {
+  return text
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+function nodeLabel(node: HTMLElement): string {
+  const tag = node.tagName.toLowerCase();
+  const className = node.getAttribute("class");
+  const href = node.getAttribute("href");
+  const style = node.getAttribute("style");
+  const ariaHidden = node.getAttribute("aria-hidden");
+  const parts = [`<${tag}`];
+  if (className) parts.push(` class="${className}"`);
+  if (href) parts.push(` href="${href}"`);
+  if (style) parts.push(` style="${style}"`);
+  if (ariaHidden !== undefined) parts.push(` aria-hidden="${ariaHidden}"`);
+  if (node.hasAttribute("hidden")) parts.push(" hidden");
+  return `${parts.join("")}>`;
+}
+
+function cardScope(card: HTMLElement): HTMLElement[] {
+  const nodes = [card, ...card.querySelectorAll("*")];
+  let parent = card.parentNode;
+  while (parent) {
+    nodes.push(parent);
+    if (parent.hasAttribute("data-work-grid") || parent.tagName === "UL") {
+      break;
+    }
+    parent = parent.parentNode;
+  }
+  return nodes;
+}
+
+function assertCaseStaysVisible(root: HTMLElement, path: string): void {
+  const anchor = root.querySelector(`a[href="${path}"]`);
+  const card = anchor?.closest("li.work-card");
+  assert.ok(
+    card,
+    `dist/trabajo.html no tiene card para ${path}; el caso no puede faltar ni quedar fuera de la lista`,
+  );
+  for (const node of cardScope(card)) {
+    assert.ok(
+      !node.hasAttribute("hidden"),
+      `${path} queda oculto: hidden en ${nodeLabel(node)}`,
+    );
+    const ariaHidden = node.getAttribute("aria-hidden");
+    assert.ok(
+      ariaHidden?.toLowerCase() !== "true",
+      `${path} queda oculto: aria-hidden="true" en ${nodeLabel(node)}`,
+    );
+    const style = node.getAttribute("style") ?? "";
+    assert.notEqual(
+      styleValue(style, "display"),
+      "none",
+      `${path} queda oculto: style inline display:none en ${nodeLabel(node)}`,
+    );
+    assert.notEqual(
+      styleValue(style, "visibility"),
+      "hidden",
+      `${path} queda oculto: style inline visibility:hidden en ${nodeLabel(node)}`,
+    );
+    const opacity = styleValue(style, "opacity");
+    assert.ok(
+      opacity === undefined || !opacityIsZero(opacity),
+      `${path} queda oculto: style inline opacity:0 en ${nodeLabel(node)}`,
+    );
+  }
 }
 
 describe("dist/trabajo.html", () => {
-  it("incluye exactamente los 5 links /trabajo/<slug> de workProjects", () => {
+  it("incluye exactamente los 5 paths /trabajo/<slug> del ADR 0005", () => {
     const found = casePaths(readDistPage("trabajo.html"));
-    const expected = workProjects.map((project) => project.href);
+    const expected = [...PUBLISHED_CASE_PATHS];
     assert.equal(
       found.length,
-      PUBLISHED_CASE_LINKS,
-      `dist/trabajo.html tiene ${found.length} links a /trabajo/<slug> (${found.join(", ")}); se exigen ${PUBLISHED_CASE_LINKS}, los de workProjects (${expected.join(", ")})`,
+      expected.length,
+      `dist/trabajo.html tiene ${found.length} links a /trabajo/<slug> (${found.join(", ")}); se exigen ${expected.length}: ${expected.join(", ")}`,
     );
     assert.deepEqual(
       found,
       expected,
-      `los links /trabajo/<slug> de dist/trabajo.html (${found.join(", ")}) no siguen workProjects (${expected.join(", ")})`,
+      `los links de dist/trabajo.html (${found.join(", ")}) no son los paths fijos del ADR 0005 (${expected.join(", ")})`,
     );
   });
 
@@ -163,29 +250,18 @@ describe("dist/trabajo.html", () => {
       for (const name of HIDE_CLASSES) {
         assert.ok(
           !el.classList.contains(name),
-          `dist/trabajo.html trae la clase ${name} en <${el.tagName.toLowerCase()} class="${el.getAttribute("class") ?? ""}">; sin JS esa clase no puede estar en el markup`,
+          `dist/trabajo.html trae la clase ${name} en ${nodeLabel(el)}; sin JS esa clase no puede estar en el markup`,
         );
       }
     }
 
-    for (const card of root.querySelectorAll("li.work-card")) {
-      const nodes = [card, ...card.querySelectorAll("*")];
-      for (const node of nodes) {
-        assert.ok(
-          !node.hasAttribute("hidden"),
-          `una card de dist/trabajo.html (o un hijo) tiene hidden: <${node.tagName.toLowerCase()} class="${node.getAttribute("class") ?? ""}">`,
-        );
-        const style = node.getAttribute("style") ?? "";
-        assert.ok(
-          !declaresDisplayNone(style),
-          `una card de dist/trabajo.html tiene display:none inline: <${node.tagName.toLowerCase()} style="${style}">`,
-        );
-      }
+    for (const path of PUBLISHED_CASE_PATHS) {
+      assertCaseStaysVisible(root, path);
     }
 
     const buttons = root
       .querySelectorAll("button")
-      .filter((el) => el.text.trim() === "Cargar más");
+      .filter((el) => foldLabel(el.text) === "cargar mas");
     const button = buttons[0];
     assert.ok(
       button,
@@ -208,9 +284,7 @@ describe("dist/trabajo.html", () => {
     const trabajoCards =
       readDistPage("trabajo.html").querySelectorAll("li.work-card");
     const homeHrefs = casePaths(readDistPage("index.html"));
-    const landingHrefs = workProjects
-      .slice(0, LANDING_CARDS)
-      .map((project) => project.href);
+    const landingPaths = [...PUBLISHED_CASE_PATHS.slice(0, LANDING_CARDS)];
     assert.equal(
       homeCards.length,
       LANDING_CARDS,
@@ -218,13 +292,13 @@ describe("dist/trabajo.html", () => {
     );
     assert.deepEqual(
       homeHrefs,
-      landingHrefs,
-      `las cards de dist/index.html (${homeHrefs.join(", ")}) no son las primeras ${LANDING_CARDS} de workProjects (${landingHrefs.join(", ")})`,
+      landingPaths,
+      `las cards de dist/index.html (${homeHrefs.join(", ")}) no son las primeras ${LANDING_CARDS} del ADR 0005 (${landingPaths.join(", ")})`,
     );
     assert.equal(
       trabajoCards.length,
-      PUBLISHED_CASE_LINKS,
-      `dist/trabajo.html tiene ${trabajoCards.length} cards; /trabajo muestra ${PUBLISHED_CASE_LINKS}`,
+      PUBLISHED_CASE_PATHS.length,
+      `dist/trabajo.html tiene ${trabajoCards.length} cards; /trabajo muestra ${PUBLISHED_CASE_PATHS.length}`,
     );
   });
 });

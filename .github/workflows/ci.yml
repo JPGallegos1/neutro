@@ -48,3 +48,5 @@ jobs:
         run: pnpm check
       - name: Test
         run: pnpm --filter @neutro/web test
+      - name: Contract
+        run: pnpm --filter @neutro/web test:contract
