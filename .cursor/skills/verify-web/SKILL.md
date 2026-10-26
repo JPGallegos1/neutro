@@ -73,7 +73,7 @@ Ejemplo: `evidencia/46-c140955/`.
 
 - Creala antes de la primera puerta. No la commitees. No la borres al final. No uses `/tmp` para el informe: la limpieza de la copia no tiene que llevarse la evidencia.
 - Adentro: `informe.md`, las salidas `.txt`, capturas `.png`, `trace.zip` y, si aplica, `.webm`.
-- `git status` al cierre no puede mostrar esa carpeta en el índice. Un `git add -A` la subiría: agregá archivos por nombre.
+- `evidencia/` está en `.gitignore`. Igual agregá archivos por nombre. `git status` al cierre no puede mostrar esa carpeta en el índice.
 
 Nombres de salida:
 
@@ -162,18 +162,21 @@ El proceso de build no tiene que recibir `PUBLIC_POSTHOG_KEY` ni `PUBLIC_ANALYTI
 env -u PUBLIC_POSTHOG_KEY -u PUBLIC_ANALYTICS_ENABLED pnpm build
 ```
 
-Después, en `07-build.txt`, el conteo y la lista de archivos:
+Después, en `07-build.txt`, el conteo y la lista de archivos. La búsqueda no distingue mayúsculas: el copy legal escribe `PostHog` y el chunk escribe `posthog`.
 
 ```bash
-rg -l -F posthog apps/web/dist
-rg -o -F posthog apps/web/dist | wc -l
+rg -l -i -F posthog apps/web/dist
+rg -o -i -F posthog apps/web/dist | wc -l
 ```
 
-Si `rg` no está, el mismo criterio con `grep -R -F -o posthog apps/web/dist`.
+Si `rg` no está, el mismo criterio con `grep -R -i -F -o posthog apps/web/dist`.
 
 - Exit del build: `0`.
-- El conteo se anota siempre. Un número mayor que cero no falla solo esta puerta. El import de `posthog-js` es dinámico y el bundler puede emitir el chunk sin cargarlo ([ADR 0001](../../../docs/adr/0001-analytics-off-by-default.md)).
-- Lo que sí es hallazgo alto: una request a `/ingest` o a un host de PostHog durante la pasada de Playwright, o un valor de `PUBLIC_POSTHOG_KEY` dentro de `dist`. El valor no se pega: archivo y `‹redactado›`.
+- El conteo se anota siempre. Un número mayor que cero no falla solo esta puerta.
+- Un build limpio de la base deja coincidencias en `apps/web/dist/privacidad.html` y `apps/web/dist/cookies.html`: los textos legales nombran a PostHog. Eso es texto legal, no el SDK.
+- Además, el import de `posthog-js` es dinámico y el bundler puede emitir el chunk sin cargarlo ([ADR 0001](../../../docs/adr/0001-analytics-off-by-default.md)).
+- En `07-build.txt` y en el informe, listá cada archivo con coincidencia y clasificalo: `texto legal`, `chunk JS` u `otro`.
+- Hallazgo alto: un archivo JS con la key, o una request a `/ingest` o a un host de PostHog durante la pasada. La key en cualquier otro archivo de `dist` también es hallazgo alto: es un secreto. El valor no se pega: archivo y `‹redactado›`.
 - La búsqueda de requests queda en `08-posthog-red.txt` (puerta de Playwright). Cero requests de analytics es lo esperado en este build.
 
 ### 8. `test:dist`, sólo si el script existe
@@ -424,7 +427,7 @@ Un solo `informe.md` por PR, con la plantilla.
 
 Severidad, para no dispersar:
 
-- Alta: puerta en rojo, secreto, comentario nuevo en código de aplicación, más de 10 archivos, request de analytics, discrepancia entre los dos verificadores.
+- Alta: puerta en rojo, secreto, archivo JS con la key, comentario nuevo en código de aplicación, más de 10 archivos, request de analytics, discrepancia entre los dos verificadores.
 - Media: CI pendiente, comentario en YAML o CSS, cuerpo del PR incompleto.
 - Baja: desvío que no rompe una puerta y queda acotado a un archivo.
 

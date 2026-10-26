@@ -40,7 +40,7 @@ sin hallazgos
 | Typecheck | `pnpm check` | | `05-check.txt` |
 | Tests | `pnpm test` | | `06-test.txt` |
 | Build sin analytics | `env -u PUBLIC_POSTHOG_KEY -u PUBLIC_ANALYTICS_ENABLED pnpm build` | | `07-build.txt` |
-| Conteo de `posthog` en `dist` | `rg -o -F posthog apps/web/dist` | | `07-build.txt` |
+| Conteo de `posthog` en `dist` | `rg -o -i -F posthog apps/web/dist` | | `07-build.txt` |
 | Requests de analytics | búsqueda en `trace.zip` | | `08-posthog-red.txt` |
 | Contrato sobre `dist` | `pnpm --filter @neutro/web test:dist` | | |
 | Comentarios en el diff | `git diff -U0 BASE...HEAD` | | `09-comentarios.txt` |

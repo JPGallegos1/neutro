@@ -39,7 +39,7 @@ Cada regla tiene un mecanismo y un dueño. La skill no reemplaza al mecanismo: l
 | Lint, typecheck, tests y build | La skill corre `pnpm lint`, `pnpm test:lint-rules`, `pnpm check`, `pnpm test` y `pnpm build` | Skill, más ancha que el CI de esta base | El verde remoto no sustituye el `pnpm test` de la raíz |
 | Contraste y axe, claro y oscuro | `@axe-core/playwright` en el mismo Playwright | Hamilton, PR posterior | Corre el spec y adjunta la salida. No lo escribe |
 | 4 cards en la home y todas en `/trabajo` | Contrato sobre el HTML construido, contra [ADR 0005](0005-trabajo-routing-and-seo.md) | Hamilton, PR posterior | No lo duplica en esta skill |
-| Analytics apagado en la corrida | Build sin las dos variables públicas, conteo de `posthog` en `dist`, cero requests a `/ingest` y a hosts de PostHog | Skill. El spec fijo es posterior | El conteo se anota. Un chunk emitido y no cargado no falla solo |
+| Analytics apagado en la corrida | Build sin las dos variables públicas, conteo de `posthog` en `dist`, cero requests a `/ingest` y a hosts de PostHog | Skill. El spec fijo es posterior | El conteo se anota y se clasifica (texto legal, chunk JS u otro). Texto legal y un chunk sin key no fallan solos |
 | Cambio crítico | Segundo verificador, superficie, negativas, seguridad, migraciones, simulado contra verificado, lista para Juan | Lucy lo lanza. La skill fija el procedimiento | Sin veredicto de merge |
 
 Cambio crítico: todo lo que no sea visual ni CI/CD y pueda tocar base de datos, infraestructura crítica o seguridad.
@@ -101,8 +101,8 @@ El CLI cambia de modelo. Un id escrito en la skill queda viejo y parece una puer
 - La protección de rama sigue apagada. Un check rojo no impide el merge en GitHub. El proceso es el único bloqueo, y depende de que quien mergea lo respete. El OK de Juan tampoco lo pone la plataforma.
 - Playwright en un repo privado consume minutos de GitHub Actions. El plan de Actions no está verificado en este ADR. Cada corrida de `e2e` descarga o reusa Chromium y ocupa un runner cuando el diff entra en el filtro de paths. La mitigación ya está en el workflow de la base: un job, un browser, caché y paths. Baja el consumo y no lo elimina. Este ADR no lo mide.
 - La skill pide `pnpm test` y `pnpm build` aunque el job `Check` de esta base no haga las dos cosas. Un CI verde y una puerta local en rojo pueden convivir. Eso es un hallazgo del informe, no un cambio de YAML en este PR.
-- El conteo de la cadena `posthog` en `dist` puede ser mayor que cero con el SDK apagado, por el import dinámico. La puerta que falla es la request o la key en el artefacto, no el conteo solo. Si más adelante el spec de Hamilton exige cero requests, la skill lo corre tal cual.
-- La carpeta `evidencia/` no se commitea. Tampoco está en `.gitignore`: un `git add` amplio puede subirla. El verificador agrega archivos por nombre.
+- El conteo de la cadena `posthog` en `dist` puede ser mayor que cero con el SDK apagado. Un build limpio de la base coincide en `privacidad.html` y `cookies.html` porque los textos legales nombran a PostHog, y el import dinámico puede emitir un chunk que no se carga. El informe lista cada archivo y lo clasifica: texto legal, chunk JS u otro. Un archivo JS con la key, o una request de analytics, es hallazgo alto. El conteo solo no falla la puerta. Si más adelante el spec de Hamilton exige cero requests, la skill lo corre tal cual.
+- `evidencia/` está en `.gitignore`. Igual se agregan archivos por nombre.
 - El segundo verificador corre sólo en cambio crítico. Pide otra sesión de Codex CLI. Sin el CLI, el informe deja esa parte en NO VERIFICADO y no simula el pase.
 - El informe no autoriza el merge. Puede quedar todo en verde y el PR sigue esperando el OK de Juan.
 - Los contratos de SEO, links, cards, axe y el check de CI del cuerpo siguen afuera. Cuando Hamilton los sume, la skill los corre sin cambiar de forma: el comando ya está en la plantilla.
