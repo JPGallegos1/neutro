@@ -372,6 +372,8 @@ Tienen que estar estos `##`, en este orden, cada uno con texto propio antes del 
 5. Trade-offs
 6. Verificación
 
+El check de CI no se exime por autor ni por label. Si un PR de bot, como Dependabot o Renovate, no trae las seis secciones, falla y el mensaje dice qué falta.
+
 Exit: `0` si la estructura está, `1` si falta una sección, está vacía o el orden cambia. Esto no puntúa la calidad del texto. Anotá en `11-cuerpo.txt` qué sección faltó.
 
 ### 12. CI remoto del head
