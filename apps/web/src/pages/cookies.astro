@@ -36,12 +36,11 @@ import Legal from "@/layouts/Legal.astro";
     </h2>
     <div class="legal-section__body">
       <p class="legal-p">
-        <strong>
-          Este sitio no guarda cookies ni usa el almacenamiento local de tu
-          navegador.
-        </strong>{" "}
-        No usamos cookies técnicas, de estadísticas, de publicidad ni de redes
-        sociales.
+        <strong>Este sitio no guarda cookies.</strong> No usamos cookies de
+        estadísticas, de publicidad ni de redes sociales. Lo único que puede
+        quedar en tu navegador es un dato técnico: la preferencia de tema (clave{" "}
+        <code>neutro-theme</code>, en el localStorage del navegador), y sólo
+        cuando tocás el botón de tema.
       </p>
       <div class="legal-table-wrap">
         <table class="legal-table">
@@ -55,10 +54,11 @@ import Legal from "@/layouts/Legal.astro";
           <tbody>
             <tr>
               <td>Técnicas</td>
-              <td>No</td>
+              <td>Sí, sólo la preferencia de tema</td>
               <td>
-                Cloudflare, nuestro proveedor de hosting, no guarda cookies en
-                tu navegador.
+                La clave <code>neutro-theme</code> queda en el localStorage del
+                navegador, sólo si tocás el botón de tema. Cloudflare, nuestro
+                proveedor de hosting, no guarda cookies en tu navegador.
               </td>
             </tr>
             <tr>
@@ -88,8 +88,9 @@ import Legal from "@/layouts/Legal.astro";
       </p>
       <ul class="legal-list">
         <li>
-          <strong>No guarda nada en tu navegador</strong>: ni cookies ni
-          almacenamiento local.
+          <strong>PostHog no guarda nada en tu navegador</strong>: ni cookies ni
+          almacenamiento local. La preferencia de tema la guarda el sitio, no
+          PostHog, y sólo si tocás el botón.
         </li>
         <li>
           <strong>Descarta tu dirección IP</strong>: no queda guardada junto con
@@ -128,7 +129,7 @@ import Legal from "@/layouts/Legal.astro";
           <code>utm_source=youtube</code> o <code>utm_campaign=...</code>.
           <strong>No son cookies</strong>: son parte del link, no se guardan en
           tu navegador y no te identifican. Las leemos en la primera página que
-          abrís y después las sacamos de la barra de direcciones.
+          abrís.
         </li>
         <li>
           Los <strong>códigos QR</strong> de nuestros folletos llevan a una
@@ -149,9 +150,10 @@ import Legal from "@/layouts/Legal.astro";
     </h2>
     <div class="legal-section__body">
       <p class="legal-p">
-        Como no guardamos nada en tu navegador, no hay nada que aceptar ni
-        rechazar, y por eso no te mostramos ningún aviso para aceptar cookies.
-        Igual, podés borrar o bloquear las cookies cuando quieras desde la
+        No guardamos cookies, así que no hay nada que aceptar ni rechazar, y por
+        eso no te mostramos ningún aviso para aceptar cookies. La preferencia de
+        tema queda en tu navegador sólo si tocás el botón (punto 2). Igual,
+        podés borrar o bloquear las cookies cuando quieras desde la
         configuración de tu navegador. Si en algún momento agregamos cookies que
         no sean esenciales (por ejemplo, de publicidad), te vamos a pedir tu
         consentimiento explícito antes de usarlas, con la opción de rechazarlas.
