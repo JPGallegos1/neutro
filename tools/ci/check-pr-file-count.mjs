@@ -1,4 +1,6 @@
 import { execFileSync } from "node:child_process";
+import { realpathSync } from "node:fs";
+import { fileURLToPath } from "node:url";
 
 const MAX_FILES = 10;
 
@@ -13,6 +15,16 @@ const EXCLUDED_BASENAMES = new Set([
 function basename(path) {
   const parts = path.split("/");
   return parts[parts.length - 1] ?? path;
+}
+
+export function classifyChangedPaths(paths) {
+  const excluded = paths.filter((path) =>
+    EXCLUDED_BASENAMES.has(basename(path)),
+  );
+  const counted = paths.filter(
+    (path) => !EXCLUDED_BASENAMES.has(basename(path)),
+  );
+  return { excluded, counted, limit: MAX_FILES };
 }
 
 function listedFiles(baseSha, headSha) {
@@ -37,12 +49,7 @@ function main() {
   }
 
   const changed = listedFiles(baseSha, headSha);
-  const excluded = changed.filter((path) =>
-    EXCLUDED_BASENAMES.has(basename(path)),
-  );
-  const counted = changed.filter(
-    (path) => !EXCLUDED_BASENAMES.has(basename(path)),
-  );
+  const { excluded, counted } = classifyChangedPaths(changed);
 
   console.log(`PR file count (excluding lockfiles): ${counted.length}`);
   console.log(`Limit: ${MAX_FILES}`);
@@ -69,4 +76,18 @@ function main() {
   }
 }
 
-main();
+function invokedAsScript() {
+  const entry = process.argv[1];
+  if (!entry) {
+    return false;
+  }
+  try {
+    return realpathSync(fileURLToPath(import.meta.url)) === realpathSync(entry);
+  } catch {
+    return false;
+  }
+}
+
+if (invokedAsScript()) {
+  main();
+}
