@@ -1,0 +1,83 @@
+---
+import WorkCasePage from "@/components/sections/WorkCasePage.astro";
+import Footer from "@/components/sections/Footer.astro";
+import Header from "@/components/sections/Header.astro";
+import {
+  getWorkCase,
+  workCaseCanonical,
+  workCaseDocumentTitle,
+  workCases,
+} from "@/data/work-cases";
+import Base from "@/layouts/base.astro";
+
+export function getStaticPaths() {
+  return workCases.map((workCase) => ({
+    params: { slug: workCase.slug },
+  }));
+}
+
+const { slug } = Astro.params;
+const workCase = getWorkCase(slug ?? "");
+if (!workCase) {
+  throw new Error(`Caso de trabajo no encontrado: ${slug}`);
+}
+
+const title = workCaseDocumentTitle(workCase);
+const caseUrl = workCaseCanonical(workCase.slug);
+const origin = new URL(caseUrl).origin;
+
+const jsonLd = {
+  "@context": "https://schema.org",
+  "@graph": [
+    {
+      "@type": "CreativeWork",
+      "@id": `${caseUrl}#work`,
+      url: caseUrl,
+      name: workCase.shortTitle,
+      headline: title,
+      description: workCase.metaDescription,
+      image: `${origin}${workCase.imageSrc}`,
+      inLanguage: "es-AR",
+      isPartOf: { "@id": `${origin}/#website` },
+      about: {
+        "@type": "Organization",
+        name: workCase.clientName,
+      },
+      publisher: { "@id": `${origin}/#organization` },
+    },
+    {
+      "@type": "BreadcrumbList",
+      "@id": `${caseUrl}#breadcrumb`,
+      itemListElement: [
+        {
+          "@type": "ListItem",
+          position: 1,
+          name: "Inicio",
+          item: `${origin}/`,
+        },
+        {
+          "@type": "ListItem",
+          position: 2,
+          name: "Trabajo",
+          item: `${origin}/trabajo`,
+        },
+        {
+          "@type": "ListItem",
+          position: 3,
+          name: workCase.shortTitle,
+          item: caseUrl,
+        },
+      ],
+    },
+  ],
+};
+---
+
+<Base title={title} description={workCase.metaDescription}>
+  <Header />
+  <main id="contenido">
+    <WorkCasePage workCase={workCase} />
+  </main>
+  <Footer />
+  <script type="application/ld+json" set:html={JSON.stringify(jsonLd)} />
+</Base>

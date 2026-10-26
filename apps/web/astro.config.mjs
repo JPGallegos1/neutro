@@ -7,6 +7,14 @@ const site = "https://neutro.solutions";
 
 const legalPaths = ["/cookies", "/privacidad", "/terminos", "/alerta-estafa"];
 
+const trabajoCasePaths = [
+  "/trabajo/conexion-laboral",
+  "/trabajo/afectiva",
+  "/trabajo/capa-automotores",
+  "/trabajo/suplementacion-ciencia",
+  "/trabajo/luxurycars",
+];
+
 export default defineConfig({
   site,
   output: "static",
@@ -21,7 +29,9 @@ export default defineConfig({
         const pathname = new URL(page).pathname.replace(/\/+$/, "") || "/";
         return pathname !== "/404";
       },
-      customPages: legalPaths.map((path) => new URL(path, site).href),
+      customPages: [...legalPaths, ...trabajoCasePaths].map(
+        (path) => new URL(path, site).href,
+      ),
     }),
   ],
   vite: {

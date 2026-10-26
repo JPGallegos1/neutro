@@ -11,7 +11,7 @@
     "preview:cloudflare": "wrangler dev",
     "deploy": "wrangler deploy",
     "deploy:check": "wrangler deploy --dry-run",
-    "test": "node --experimental-strip-types --test worker/posthog.test.ts worker/seo.test.ts src/components/sections/video-section.test.ts src/data/services.test.ts src/data/work.test.ts",
+    "test": "node --experimental-strip-types --test worker/posthog.test.ts worker/seo.test.ts src/components/sections/video-section.test.ts src/data/services.test.ts src/data/work.test.ts src/data/work-cases.test.ts",
     "test:e2e": "playwright test"
   },
   "dependencies": {
