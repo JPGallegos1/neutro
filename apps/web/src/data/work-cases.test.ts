@@ -19,6 +19,15 @@ const EXPECTED_SLUGS = [
   "luxurycars",
 ];
 
+const EXPECTED_OUTCOME_TITLES = {
+  "conexion-laboral": "agendar una asesoría gratuita con una sola página",
+  afectiva: "un sitio propio para mostrar todo lo que hace la agencia",
+  "capa-automotores": "un catálogo propio con panel para manejar el stock",
+  "suplementacion-ciencia": "una tienda online que muestra la ciencia detrás",
+  luxurycars:
+    "una plataforma a medida para el mercado de autos de lujo en Suiza",
+} as const;
+
 describe("workCases", () => {
   it("expone los cinco casos con slug, meta y URL externa", () => {
     assert.deepEqual(
@@ -37,10 +46,16 @@ describe("workCases", () => {
       );
       assert.ok(!workCaseCanonical(workCase.slug).endsWith("/"));
       assert.equal(workCase.tag, "En producción");
-      assert.equal(workCase.outcomeTitle, null);
-      assert.match(
+      assert.notEqual(workCase.outcomeTitle, null);
+      assert.equal(
+        workCase.outcomeTitle,
+        EXPECTED_OUTCOME_TITLES[
+          workCase.slug as keyof typeof EXPECTED_OUTCOME_TITLES
+        ],
+      );
+      assert.equal(
         workCaseDocumentTitle(workCase),
-        new RegExp(`^${workCase.clientName} \\| Neutro Solutions$`),
+        `${workCase.clientName}: ${workCase.outcomeTitle} | Neutro Solutions`,
       );
     }
   });

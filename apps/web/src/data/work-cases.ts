@@ -40,7 +40,7 @@ export const workCases: WorkCase[] = [
     shortTitle: "Conexión Laboral",
     titleLines: ["Conexión Laboral"],
     clientName: "Conexión Laboral",
-    outcomeTitle: null,
+    outcomeTitle: "agendar una asesoría gratuita con una sola página",
     metaDescription:
       "Reclutamiento para PyMEs en Argentina: busca, filtra y presenta los 3 mejores candidatos con informe. Una sola página para agendar asesoría gratuita.",
     tag: "En producción",
@@ -82,7 +82,7 @@ export const workCases: WorkCase[] = [
     shortTitle: "Afectiva",
     titleLines: ["Afectiva"],
     clientName: "Afectiva Comunicaciones",
-    outcomeTitle: null,
+    outcomeTitle: "un sitio propio para mostrar todo lo que hace la agencia",
     metaDescription:
       "Agencia de comunicación: estrategia, diseño, contenido y producción para marcas con historia. Sitio de una página con WhatsApp como acción principal.",
     tag: "En producción",
@@ -126,7 +126,7 @@ export const workCases: WorkCase[] = [
     shortTitle: "Capa",
     titleLines: ["Capa"],
     clientName: "Capa Automotores",
-    outcomeTitle: null,
+    outcomeTitle: "un catálogo propio con panel para manejar el stock",
     metaDescription:
       "Concesionaria de usados y 0km en Rosario, con financiación hasta 60% y toma de tu usado. Catálogo propio con panel para actualizar el stock.",
     tag: "En producción",
@@ -167,7 +167,8 @@ export const workCases: WorkCase[] = [
     shortTitle: "SCC",
     titleLines: ["SCC"],
     clientName: "Suplementación con Ciencia",
-    outcomeTitle: null,
+    outcomeTitle:
+      "una tienda online que muestra la ciencia detrás",
     metaDescription:
       "Tienda online de suplementos deportivos con información respaldada por ciencia y envíos a todo el país. Catálogo, pagos y diseño a medida sobre Tiendanube.",
     tag: "En producción",
@@ -207,7 +208,8 @@ export const workCases: WorkCase[] = [
     shortTitle: "Luxury Cars",
     titleLines: ["Luxury", "Cars"],
     clientName: "Luxury Cars",
-    outcomeTitle: null,
+    outcomeTitle:
+      "una plataforma a medida para el mercado de autos de lujo en Suiza",
     metaDescription:
       "Plataforma suiza de referencia para comprar y vender autos de lujo online, con buscador, anuncios, cuentas de usuarios y concesionarias, y varios idiomas.",
     tag: "En producción",
