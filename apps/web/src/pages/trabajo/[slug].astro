@@ -4,8 +4,8 @@ import Footer from "@/components/sections/Footer.astro";
 import Header from "@/components/sections/Header.astro";
 import {
   getWorkCase,
+  workCaseCanonical,
   workCaseDocumentTitle,
-  workCasePath,
   workCases,
 } from "@/data/work-cases";
 import Base from "@/layouts/base.astro";
@@ -22,9 +22,9 @@ if (!workCase) {
   throw new Error(`Caso de trabajo no encontrado: ${slug}`);
 }
 
-const origin = "https://neutro.solutions";
 const title = workCaseDocumentTitle(workCase);
-const caseUrl = `${origin}${workCasePath(workCase.slug)}`;
+const caseUrl = workCaseCanonical(workCase.slug);
+const origin = new URL(caseUrl).origin;
 
 const jsonLd = {
   "@context": "https://schema.org",

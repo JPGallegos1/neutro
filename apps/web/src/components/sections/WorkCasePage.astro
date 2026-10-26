@@ -26,12 +26,13 @@ const related = relatedWorkProjects(workCase.slug, 3);
       </h1>
       <p class="work-case__tag">{workCase.tag}</p>
       <a
-        class="rounded-md bg-primary px-4 py-2 text-sm text-primary-foreground hover:bg-primary/90 work-case__visit"
+        class="rounded-md bg-primary px-4 py-2 text-sm hover:bg-primary/90 work-case__visit"
         href={workCase.externalUrl}
         target="_blank"
         rel="noopener noreferrer"
       >
         <span>Visitar sitio</span>
+        <span class="sr-only"> (se abre en una pestaña nueva)</span>
         <span class="work-case__visit-icon" aria-hidden="true">
           <ArrowUpRight size={14} />
         </span>
@@ -212,10 +213,15 @@ const related = relatedWorkProjects(workCase.slug, 3);
     display: inline-flex;
     align-items: center;
     gap: 8px;
+    color: var(--neutro-on-blue);
     text-decoration: none;
     transition:
       transform 160ms var(--ease-out),
       opacity 160ms var(--ease-out);
+  }
+
+  :global(.dark) .work-case__visit {
+    color: var(--neutro-bg);
   }
 
   .work-case__visit:active {
