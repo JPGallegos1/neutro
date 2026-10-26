@@ -7,10 +7,13 @@ const landingProjects = workProjects.slice(0, LANDING_WORK_LIMIT);
 
 <section id="trabajo" class="work" aria-labelledby="trabajo-heading">
   <div class="landing-shell">
-    <div class="landing-gutter">
+    <div class="landing-gutter work__header">
       <h2 id="trabajo-heading" class="work__title">
         Trabajo
       </h2>
+      <a class="landing-link work__all" href="/trabajo">
+        Ver todos
+      </a>
     </div>
     <ul class="work__grid">
       {landingProjects.map((project) => (
@@ -32,8 +35,23 @@ const landingProjects = workProjects.slice(0, LANDING_WORK_LIMIT);
     }
   }
 
+  .work__header {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 12px 24px;
+    margin-bottom: 32px;
+  }
+
+  @media (min-width: 1024px) {
+    .work__header {
+      margin-bottom: 48px;
+    }
+  }
+
   .work__title {
-    margin: 0 0 32px;
+    margin: 0;
     font-size: 40px;
     font-weight: 500;
     line-height: 1;
@@ -43,9 +61,20 @@ const landingProjects = workProjects.slice(0, LANDING_WORK_LIMIT);
 
   @media (min-width: 1024px) {
     .work__title {
-      margin-bottom: 48px;
       font-size: 56px;
       letter-spacing: -1.96px;
+    }
+  }
+
+  .work__all {
+    font-size: 15px;
+    font-weight: 500;
+    color: var(--neutro-text-muted);
+  }
+
+  @media (min-width: 1024px) {
+    .work__all {
+      font-size: 16px;
     }
   }
 

@@ -5,7 +5,13 @@ import { defineConfig } from "astro/config";
 
 const site = "https://neutro.solutions";
 
-const legalPaths = ["/cookies", "/privacidad", "/terminos", "/alerta-estafa"];
+const slashlessPaths = [
+  "/cookies",
+  "/privacidad",
+  "/terminos",
+  "/alerta-estafa",
+  "/trabajo",
+];
 
 const trabajoCasePaths = [
   "/trabajo/conexion-laboral",
@@ -29,7 +35,7 @@ export default defineConfig({
         const pathname = new URL(page).pathname.replace(/\/+$/, "") || "/";
         return pathname !== "/404";
       },
-      customPages: [...legalPaths, ...trabajoCasePaths].map(
+      customPages: [...slashlessPaths, ...trabajoCasePaths].map(
         (path) => new URL(path, site).href,
       ),
     }),

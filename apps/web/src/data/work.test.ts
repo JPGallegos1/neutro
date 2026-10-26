@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 
+import { pageMeta } from "./page-meta.ts";
 import { LANDING_WORK_LIMIT, workProjects } from "./work.ts";
 
 const PUBLISHED = [
@@ -65,5 +66,46 @@ describe("workProjects", () => {
       workProjects.slice(0, LANDING_WORK_LIMIT).map((project) => project.id),
       LANDING_IDS,
     );
+  });
+
+  it("deja LuxuryCars fuera del tope de cuatro para Cargar más", () => {
+    assert.ok(workProjects.length > LANDING_WORK_LIMIT);
+    assert.deepEqual(
+      workProjects.slice(0, LANDING_WORK_LIMIT).map((project) => project.id),
+      LANDING_IDS,
+    );
+    assert.deepEqual(
+      workProjects.slice(LANDING_WORK_LIMIT).map((project) => project.id),
+      ["luxurycars"],
+    );
+  });
+
+  it("expone los cinco hrefs /trabajo/<slug> sin query de página", () => {
+    assert.deepEqual(
+      workProjects.map((project) => project.href),
+      PUBLISHED.map((project) => project.href),
+    );
+    for (const project of workProjects) {
+      assert.ok(!project.href.includes("?"));
+      assert.ok(!project.href.includes("page="));
+    }
+  });
+});
+
+describe("pageMeta.trabajo", () => {
+  it("define title, description y canonical slashless sin query", () => {
+    assert.equal(pageMeta.trabajo.path, "/trabajo");
+    assert.equal(
+      pageMeta.trabajo.title,
+      "Casos y proyectos | Neutro Solutions",
+    );
+    assert.equal(
+      pageMeta.trabajo.canonical,
+      "https://neutro.solutions/trabajo",
+    );
+    assert.ok(!pageMeta.trabajo.canonical.includes("?"));
+    assert.ok(!pageMeta.trabajo.canonical.includes("page="));
+    assert.ok(pageMeta.trabajo.description.length > 80);
+    assert.equal(pageMeta.trabajo.heading, "TRABAJO");
   });
 });

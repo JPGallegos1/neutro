@@ -1,0 +1,241 @@
+---
+import WorkCard from "@/components/sections/WorkCard.astro";
+import { LANDING_WORK_LIMIT, workProjects } from "@/data/work";
+
+const showLoadMore = workProjects.length > LANDING_WORK_LIMIT;
+---
+
+<section class="work-index" aria-labelledby="trabajo-heading" data-work-index>
+  <div class="landing-shell">
+    <div class="landing-gutter work-index__intro">
+      <h1 id="trabajo-heading" class="work-index__title">
+        TRABAJO
+      </h1>
+      <p class="work-index__lead">Explorá nuestro trabajo seleccionado.</p>
+    </div>
+    <ul
+      class="work-index__grid"
+      data-work-grid
+      data-page-size={LANDING_WORK_LIMIT}
+    >
+      {workProjects.map((project) => (
+        <WorkCard project={project} titleAs="h2" />
+      ))}
+    </ul>
+    {showLoadMore && (
+      <div class="work-index__more landing-gutter" data-work-more hidden>
+        <button
+          type="button"
+          class="work-index__load"
+          data-work-load-more
+          hidden
+        >
+          Cargar más
+        </button>
+      </div>
+    )}
+    <p class="sr-only" aria-live="polite" data-work-live></p>
+  </div>
+</section>
+
+<script>
+  function initWorkIndex(root: ParentNode = document) {
+    const index = root.querySelector<HTMLElement>("[data-work-index]");
+    if (!index || index.dataset.enhanced === "true") return;
+
+    const grid = index.querySelector<HTMLElement>("[data-work-grid]");
+    const moreEl = index.querySelector<HTMLElement>("[data-work-more]");
+    const button = index.querySelector<HTMLButtonElement>(
+      "[data-work-load-more]",
+    );
+    const liveEl = index.querySelector<HTMLElement>("[data-work-live]");
+    if (!grid || !moreEl || !button || !liveEl) return;
+
+    const more = moreEl;
+    const loadButton = button;
+    const live = liveEl;
+    const pageSize = Number(grid.dataset.pageSize ?? "4");
+    if (!Number.isFinite(pageSize) || pageSize < 1) return;
+
+    const cards = Array.from(
+      grid.querySelectorAll<HTMLElement>(":scope > .work-card"),
+    );
+    if (cards.length <= pageSize) return;
+
+    let visible = pageSize;
+
+    function sync(options?: { focusFirstNewFrom?: number }) {
+      const focusFrom = options?.focusFirstNewFrom;
+      cards.forEach((card, i) => {
+        card.classList.toggle("is-collapsed", i >= visible);
+      });
+      if (
+        typeof focusFrom === "number" &&
+        focusFrom < visible &&
+        document.activeElement === loadButton
+      ) {
+        const focusCard = cards[focusFrom];
+        const focusLink = focusCard?.querySelector<HTMLAnchorElement>(
+          "a.work-card__inner",
+        );
+        focusLink?.focus();
+      }
+      const showMore = visible < cards.length;
+      loadButton.hidden = !showMore;
+      more.hidden = !showMore;
+    }
+
+    function revealNext() {
+      const previous = visible;
+      visible = Math.min(visible + pageSize, cards.length);
+      const added = visible - previous;
+      sync({ focusFirstNewFrom: previous });
+      if (added === 1) {
+        live.textContent = "Se cargó 1 proyecto más.";
+      } else if (added > 1) {
+        live.textContent = `Se cargaron ${added} proyectos más.`;
+      }
+    }
+
+    grid.classList.add("is-enhanced");
+    index.dataset.enhanced = "true";
+    sync();
+
+    loadButton.addEventListener("click", () => {
+      revealNext();
+    });
+  }
+
+  initWorkIndex();
+</script>
+
+<style>
+  .work-index {
+    background: var(--neutro-bg);
+    color: var(--neutro-text);
+    padding-block: 48px 72px;
+  }
+
+  @media (min-width: 1024px) {
+    .work-index {
+      padding-block: 80px 120px;
+    }
+  }
+
+  .work-index__intro {
+    margin-bottom: 32px;
+  }
+
+  @media (min-width: 1024px) {
+    .work-index__intro {
+      margin-bottom: 48px;
+    }
+  }
+
+  .work-index__title {
+    margin: 0 0 16px;
+    font-size: 40px;
+    font-weight: 700;
+    line-height: 0.93;
+    letter-spacing: -0.04em;
+    text-transform: uppercase;
+    color: var(--neutro-text);
+  }
+
+  @media (min-width: 1024px) {
+    .work-index__title {
+      font-size: 72px;
+    }
+  }
+
+  .work-index__lead {
+    margin: 0;
+    max-width: 42rem;
+    font-size: 16px;
+    line-height: 1.45;
+    color: var(--neutro-text-muted);
+  }
+
+  @media (min-width: 1024px) {
+    .work-index__lead {
+      font-size: 17px;
+    }
+  }
+
+  .work-index__grid {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: 0;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  @media (min-width: 1024px) {
+    .work-index__grid {
+      grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    }
+  }
+
+  .work-index__grid.is-enhanced > :global(.work-card.is-collapsed) {
+    display: none;
+  }
+
+  .work-index__more {
+    margin-top: 32px;
+    padding-top: 24px;
+    border-top: 1px solid var(--neutro-border);
+    display: flex;
+    justify-content: flex-start;
+  }
+
+  @media (min-width: 1024px) {
+    .work-index__more {
+      margin-top: 48px;
+      padding-top: 32px;
+      justify-content: center;
+    }
+  }
+
+  .work-index__load {
+    appearance: none;
+    border: 0;
+    margin: 0;
+    padding: 12px 20px;
+    border-radius: 4px;
+    background: var(--neutro-accent-blue);
+    color: var(--neutro-on-blue);
+    font-family: inherit;
+    font-size: 15px;
+    font-weight: 500;
+    line-height: 1.2;
+    cursor: pointer;
+    transition:
+      transform 160ms var(--ease-out, cubic-bezier(0.23, 1, 0.32, 1)),
+      opacity 160ms var(--ease-out, cubic-bezier(0.23, 1, 0.32, 1));
+  }
+
+  :global(.dark) .work-index__load {
+    color: var(--neutro-bg);
+  }
+
+  .work-index__load:active {
+    transform: scale(0.97);
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .work-index__load {
+      transition: none;
+    }
+
+    .work-index__load:active {
+      transform: none;
+    }
+  }
+
+  @media (hover: hover) and (prefers-reduced-motion: no-preference) {
+    .work-index__load:hover {
+      opacity: 0.92;
+    }
+  }
+</style>
