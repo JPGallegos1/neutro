@@ -19,7 +19,7 @@ Numbering: this ADR is **0003** so it does not collide with **0001** (analytics,
 
 ### Allowed exceptions (minimal)
 
-Only tool/runtime directives required for correct tooling. Matched on the trimmed comment body. A directive name must end the body or be followed by whitespace, except where the table names another terminator (`:` for webpack, `=` for `sourceMappingURL`). Two exceptions use the raw body and the comment type: the `/*!` banner (block only) and triple-slash directives (line only).
+Only tool/runtime directives required for correct tooling. Matched on the trimmed comment body. A directive name must end the body or be followed by whitespace, except where the table names another terminator (`:` for webpack, `=` for `sourceMappingURL`). Raw body for the `/*!` banner (block only); trimmed body and Line type for `///`.
 
 | Pattern                                                                                                                                                               | Why                                                                                                                                                                                                                                           |
 | --------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
