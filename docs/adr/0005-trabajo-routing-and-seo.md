@@ -85,7 +85,7 @@ Index behavior:
 4. Render **every** case `<a href="/trabajo/<slug>">` in the **server HTML** (including items beyond the first four). Items 5+ may be visually hidden **only after** JS applies client state (for example a class). Do **not** omit those links from the served HTML and do **not** rely on paginated URLs.
 5. Every published case URL is included in the sitemap. The sitemap lists `/trabajo` once (no paginated index URLs).
 
-**Scale trigger:** when the published list grows enough that keeping every case in one HTML document becomes a problem, revisit this decision. The numeric threshold is **umbral a fijar por Juan** (not invented here). Until then, do not introduce `?page=N` or other paginated index URLs.
+**Scale trigger:** when the published list reaches **12** cases, reopen the decision on `/trabajo` pagination and also evaluate a CMS, according to the tactical order of the code and call performance. Until then, do not introduce `?page=N` or other paginated index URLs.
 
 Verification gates (`curl` or equivalent, no JS):
 
@@ -95,7 +95,7 @@ Verification gates (`curl` or equivalent, no JS):
 
 ### Design (v34)
 
-Reuse the landing **Card / Work** components and the landing Trabajo grid for cards. Case pages follow Iris **v34**: sticky title column, visible **En producción** tag on cards and case pages, primary CTA for **Visitar sitio**, 16:9 cover, sectioned body + featured quote; **no 1px dividers**. Primary **Cargar más** button: `#2B4BFF`, centered on desktop, left-aligned on mobile. Site nav label `Trabajo` links to `/trabajo`.
+Reuse the landing **Card / Work** components and the landing Trabajo grid for cards. Case pages follow Iris **v34**: sticky title column, visible **En producción** tag on cards and case pages, primary CTA for **Visitar sitio**, 16:9 cover, sectioned body + featured quote; **no 1px dividers**, with one exception already noted in `AGENTS.md`: the `border-top` on `.work-index__more` above **Cargar más** on `/trabajo`. Primary **Cargar más** button: `#2B4BFF`, centered on desktop, left-aligned on mobile. Site nav label `Trabajo` links to `/trabajo`.
 
 ## Consequences
 
@@ -103,5 +103,5 @@ Reuse the landing **Card / Work** components and the landing Trabajo grid for ca
 - SEO tooling and sitemap generation assume slashless absolute URLs under `https://neutro.solutions/trabajo…`, with a single index canonical and no `?page=N` index URLs.
 - Changing a published slug is an ops/content event (301), not a silent rename.
 - Implementation PRs must satisfy the curl href and no-trailing-slash checks before claiming SEO readiness.
-- Design follows v34 (Iris / Juan): **En producción** ships; card/case chrome avoids 1px borders.
-- Revisit pagination only after Juan sets the scale threshold.
+- Design follows v34 (Iris / Juan): **En producción** ships; card/case chrome avoids 1px borders except `.work-index__more` `border-top` on `/trabajo`.
+- At **12** published cases, reopen `/trabajo` pagination and evaluate a CMS (code order + call performance).

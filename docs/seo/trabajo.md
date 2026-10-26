@@ -97,7 +97,7 @@ These are non-negotiable for SEO:
 4. The button **only reveals** nodes already present in the server HTML. **No fetch** — never request the network.
 5. **No** `?page=N` links, responses, or canonicals for the index.
 6. **Sitemap** lists every published case URL and the single index URL `/trabajo`.
-7. **Scale trigger:** when the list grows enough that one HTML document becomes a problem, revisit. Numeric threshold is **umbral a fijar por Juan** (see ADR 0005).
+7. **Scale trigger:** at **12** published cases, reopen the `/trabajo` pagination decision and also evaluate a CMS, according to the tactical order of the code and call performance (see ADR 0005).
 
 ### Verification
 
@@ -129,7 +129,7 @@ Never invent outcome lines solely to fill the title pattern.
 ## Design (v34)
 
 - Reuse landing **Card / Work** components and the landing Trabajo grid for cards.
-- Case pages follow Iris **v34**: sticky title column, visible **En producción** on cards and cases, primary **Visitar sitio**, 16:9 cover, sectioned body + quote; **no 1px dividers**.
+- Case pages follow Iris **v34**: sticky title column, visible **En producción** on cards and cases, primary **Visitar sitio**, 16:9 cover, sectioned body + quote; **no 1px dividers**, except the `border-top` on `.work-index__more` above **Cargar más** on `/trabajo` (see `AGENTS.md`).
 - Primary **Cargar más** button: `#2B4BFF`, centered on desktop, left-aligned on mobile.
 - Header nav label `Trabajo` links to `/trabajo`.
 
