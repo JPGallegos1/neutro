@@ -46,7 +46,7 @@ describe("isAllowedCommentValue — other tool directives", () => {
 });
 
 describe("isAllowedCommentValue — lint suppressions", () => {
-  it("allows disable, enable, and ignore when the keyword is complete", () => {
+  it("allows disable and enable when the keyword is complete", () => {
     assert.equal(isAllowedCommentValue("eslint-disable"), true);
     assert.equal(isAllowedCommentValue("eslint-disable no-console"), true);
     assert.equal(isAllowedCommentValue("eslint-disable-line no-console"), true);
@@ -55,7 +55,6 @@ describe("isAllowedCommentValue — lint suppressions", () => {
       true,
     );
     assert.equal(isAllowedCommentValue("eslint-enable no-console"), true);
-    assert.equal(isAllowedCommentValue("eslint-ignore"), true);
     assert.equal(isAllowedCommentValue("oxlint-disable"), true);
     assert.equal(isAllowedCommentValue("oxlint-disable-line foo"), true);
     assert.equal(isAllowedCommentValue("oxlint-disable-next-line foo"), true);
@@ -65,7 +64,6 @@ describe("isAllowedCommentValue — lint suppressions", () => {
     );
     assert.equal(isAllowedCommentValue("oxlint-disable\n  no-console"), true);
     assert.equal(isAllowedCommentValue("oxlint-enable"), true);
-    assert.equal(isAllowedCommentValue("  oxlint-ignore something"), true);
     assert.equal(isAllowedCommentValue(" eslint-disable no-console "), true);
   });
 
@@ -78,7 +76,7 @@ describe("isAllowedCommentValue — lint suppressions", () => {
     assert.equal(
       isAllowedCommentValue(" eslint-env node"),
       false,
-      "eslint-env is not disable, enable, or ignore",
+      "eslint-env is not disable or enable",
     );
     assert.equal(
       isAllowedCommentValue("eslint-disablefoo"),
@@ -90,9 +88,24 @@ describe("isAllowedCommentValue — lint suppressions", () => {
     assert.equal(isAllowedCommentValue("oxlint-disable-everything"), false);
     assert.equal(isAllowedCommentValue("oxlint-enable-next-line foo"), false);
     assert.equal(
+      isAllowedCommentValue("eslint-ignore"),
+      false,
+      "eslint-ignore is not a suppression",
+    );
+    assert.equal(
+      isAllowedCommentValue("oxlint-ignore"),
+      false,
+      "oxlint-ignore is not a suppression",
+    );
+    assert.equal(
+      isAllowedCommentValue("  oxlint-ignore something"),
+      false,
+      "oxlint-ignore is not a suppression",
+    );
+    assert.equal(
       isAllowedCommentValue("oxlint-ignore-this-prose"),
       false,
-      "ignore is a closed keyword, not an open prefix",
+      "oxlint-ignore is not a suppression",
     );
     assert.equal(isAllowedCommentValue("oxlint-ignore-next-line foo"), false);
   });

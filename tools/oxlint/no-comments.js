@@ -1,7 +1,7 @@
 import { definePlugin, defineRule } from "@oxlint/plugins";
 
 const LINT_SUPPRESSION_RE =
-  /^(?:eslint|oxlint)-(?:disable-next-line|disable-line|disable|enable|ignore)(?=$|\s)/;
+  /^(?:eslint|oxlint)-(?:disable-next-line|disable-line|disable|enable)(?=$|\s)/;
 
 const LICENSE_BANG_RE =
   /^!(?:[ \t]*@(?:license|preserve)\b|[\s\S]*[\s*]@(?:license|preserve)\b)/;
