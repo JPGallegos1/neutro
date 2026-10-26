@@ -106,6 +106,6 @@ describe("pageMeta.trabajo", () => {
     assert.ok(!pageMeta.trabajo.canonical.includes("?"));
     assert.ok(!pageMeta.trabajo.canonical.includes("page="));
     assert.ok(pageMeta.trabajo.description.length > 80);
-    assert.equal(pageMeta.trabajo.heading, "TRABAJO");
+    assert.equal(pageMeta.trabajo.heading, "Trabajo");
   });
 });

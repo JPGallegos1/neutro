@@ -274,4 +274,49 @@ describe("dist/trabajo.html", () => {
       `dist/trabajo.html tiene ${trabajoCards.length} cards; /trabajo muestra ${PUBLISHED_CASE_PATHS.length}`,
     );
   });
+
+  it("tiene un solo h1 con texto Trabajo y uppercase por CSS", () => {
+    const root = readDistPage("trabajo.html");
+    const headings = root.querySelectorAll("h1");
+    assert.equal(
+      headings.length,
+      1,
+      `dist/trabajo.html tiene ${headings.length} h1; se exige uno`,
+    );
+    const h1 = headings[0];
+    assert.ok(h1, "falta el h1 en dist/trabajo.html");
+    const h1Text = h1.text.trim();
+    assert.equal(
+      h1Text,
+      "Trabajo",
+      `el h1 de dist/trabajo.html es «${h1Text}»; se exige «Trabajo»`,
+    );
+    assert.equal(
+      h1Text,
+      pageMeta.trabajo.heading,
+      `el h1 («${h1Text}») no coincide con pageMeta.trabajo.heading («${pageMeta.trabajo.heading}»)`,
+    );
+    assert.notEqual(
+      h1Text,
+      "TRABAJO",
+      "el h1 no puede ir en mayúsculas en el HTML; la apariencia va por CSS",
+    );
+    const className = h1.getAttribute("class") ?? "";
+    assert.ok(
+      className.split(/\s+/).includes("work-index__title"),
+      `el h1 tiene class="${className}"; se exige work-index__title`,
+    );
+    const styleBlocks = root.querySelectorAll("style").map((el) => el.text);
+    assert.ok(
+      styleBlocks.length > 0,
+      "dist/trabajo.html no trae <style> para verificar text-transform",
+    );
+    const uppercaseRule = styleBlocks.some((css) =>
+      /\.work-index__title[^{]*\{[^}]*text-transform\s*:\s*uppercase/i.test(css),
+    );
+    assert.ok(
+      uppercaseRule,
+      "ningún <style> de dist/trabajo.html define .work-index__title { text-transform: uppercase }",
+    );
+  });
 });
