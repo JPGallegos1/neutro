@@ -11,7 +11,7 @@ Varios criterios de revisión del sitio estaban sólo en [`AGENTS.md`](../../AGE
 Lo que ya está en el repo, y esta decisión no vuelve a implementar:
 
 - Tope de 10 archivos: job `Max 10 files`, `tools/ci/check-pr-file-count.mjs` ([ADR 0004](0004-max-pr-files.md)).
-- Sin comentarios en JS, TS y en el frontmatter y los `<script>` de Astro: `pnpm lint` y `pnpm test:lint-rules` ([ADR 0003](0003-no-source-comments.md)). Oxlint no mira HTML de plantilla, CSS, `wrangler.jsonc` ni YAML.
+- Sin comentarios en JS, TS y en el frontmatter y los `<script>` de Astro: `pnpm lint` y `pnpm test:lint-rules` ([ADR 0003](0003-no-source-comments.md)). Ese ADR limita el alcance a eso. El HTML de plantilla y el CSS quedan afuera de oxlint, y no afirma que los haga cumplir. No habla de YAML ni de un campo `razon`.
 - CI de `Lint` y `Check`. En la base de Playwright, `Check` corre `pnpm check` y `pnpm --filter @neutro/web test`. No corre `pnpm test` de la raíz ni un job de build propio. El workflow `e2e` sí construye, sin `PUBLIC_POSTHOG_KEY` ni `PUBLIC_ANALYTICS_ENABLED`, y corre Chromium.
 - Analytics apagado salvo las dos variables de build ([ADR 0001](0001-analytics-off-by-default.md)). El Worker hace `/f/N`, `/t`, `/ingest` y el redirect de barra final ([ADR 0002](0002-qr-redirect-routes.md)). `astro preview` no ejecuta ese Worker.
 
@@ -27,26 +27,26 @@ Este ADR no edita workflows, no crea `staging` y no prende checks requeridos.
 
 Cada regla tiene un mecanismo y un dueño. La skill no reemplaza al mecanismo: lo corre, guarda la salida y marca lo que no pudo ver.
 
-| Regla | Mecanismo | Dueño | Qué hace la skill |
-| --- | --- | --- | --- |
-| Máximo 10 archivos, lockfiles afuera | CI, job `Max 10 files` | Ya está. [ADR 0004](0004-max-pr-files.md) | Vuelve a correr el mismo script con los SHA del PR |
-| Sin comentarios en el fuente | `pnpm lint` y `pnpm test:lint-rules` | Ya está. [ADR 0003](0003-no-source-comments.md) | Recorre además las líneas agregadas del diff (HTML, CSS, YAML, JSONC) |
-| Cards de Trabajo sin JavaScript | Playwright, spec fijo | Hamilton, PR posterior | Lo corre cuando el archivo está |
-| Botón, foco y `aria-live` | Playwright, spec fijo | Hamilton, PR posterior | Lo corre cuando el archivo está |
-| Sitemap, canonical, title y description | Contrato sobre `dist` | Hamilton, PR posterior | Corre `test:dist` sólo si el script existe |
-| Links externos con `noopener` y `noreferrer` | Contrato sobre `dist` | Hamilton, PR posterior | Entra por el mismo script, cuando exista |
-| Cuerpo del PR en First Principles | La skill, ahora. Un check de CI queda para un PR posterior | Skill | Exige los seis `##`, en orden, con texto |
-| Lint, typecheck, tests y build | La skill corre `pnpm lint`, `pnpm test:lint-rules`, `pnpm check`, `pnpm test` y `pnpm build` | Skill, más ancha que el CI de esta base | El verde remoto no sustituye el `pnpm test` de la raíz |
-| Contraste y axe, claro y oscuro | `@axe-core/playwright` en el mismo Playwright | Hamilton, PR posterior | Corre el spec y adjunta la salida. No lo escribe |
-| 4 cards en la home y todas en `/trabajo` | Contrato sobre el HTML construido, contra [ADR 0005](0005-trabajo-routing-and-seo.md) | Hamilton, PR posterior | No lo duplica en esta skill |
-| Analytics apagado en la corrida | Build sin las dos variables públicas, conteo de `posthog` en `dist`, cero requests a `/ingest` y a hosts de PostHog | Skill. El spec fijo es posterior | El conteo se anota y se clasifica (texto legal, chunk JS u otro). Texto legal y un chunk sin key no fallan solos |
-| Cambio crítico | Segundo verificador, superficie, negativas, seguridad, migraciones, simulado contra verificado, lista para Juan | Lucy lo lanza. La skill fija el procedimiento | Sin veredicto de merge |
+| Regla                                        | Mecanismo                                                                                                           | Dueño                                           | Qué hace la skill                                                                                                |
+| -------------------------------------------- | ------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------- | ---------------------------------------------------------------------------------------------------------------- |
+| Máximo 10 archivos, lockfiles afuera         | CI, job `Max 10 files`                                                                                              | Ya está. [ADR 0004](0004-max-pr-files.md)       | Vuelve a correr el mismo script con los SHA del PR                                                               |
+| Sin comentarios en el fuente                 | `pnpm lint` y `pnpm test:lint-rules`                                                                                | Ya está. [ADR 0003](0003-no-source-comments.md) | Recorre además las líneas agregadas que ese ADR no cubre                                                         |
+| Cards de Trabajo sin JavaScript              | Playwright, spec fijo                                                                                               | Hamilton, PR posterior                          | Lo corre cuando el archivo está                                                                                  |
+| Botón, foco y `aria-live`                    | Playwright, spec fijo                                                                                               | Hamilton, PR posterior                          | Lo corre cuando el archivo está                                                                                  |
+| Sitemap, canonical, title y description      | Contrato sobre `dist`                                                                                               | Hamilton, PR posterior                          | Corre `test:dist` sólo si el script existe                                                                       |
+| Links externos con `noopener` y `noreferrer` | Contrato sobre `dist`                                                                                               | Hamilton, PR posterior                          | Entra por el mismo script, cuando exista                                                                         |
+| Cuerpo del PR en First Principles            | La skill, ahora. Un check de CI queda para un PR posterior                                                          | Skill                                           | Exige los seis `##`, en orden, con texto                                                                         |
+| Lint, typecheck, tests y build               | La skill corre `pnpm lint`, `pnpm test:lint-rules`, `pnpm check`, `pnpm test` y `pnpm build`                        | Skill, más ancha que el CI de esta base         | El verde remoto no sustituye el `pnpm test` de la raíz                                                           |
+| Contraste y axe, claro y oscuro              | `@axe-core/playwright` en el mismo Playwright                                                                       | Hamilton, PR posterior                          | Corre el spec y adjunta la salida. No lo escribe                                                                 |
+| 4 cards en la home y todas en `/trabajo`     | Contrato sobre el HTML construido, contra [ADR 0005](0005-trabajo-routing-and-seo.md)                               | Hamilton, PR posterior                          | No lo duplica en esta skill                                                                                      |
+| Analytics apagado en la corrida              | Build sin las dos variables públicas, conteo de `posthog` en `dist`, cero requests a `/ingest` y a hosts de PostHog | Skill. El spec fijo es posterior                | El conteo se anota y se clasifica (texto legal, chunk JS u otro). Texto legal y un chunk sin key no fallan solos |
+| Cambio crítico                               | Segundo verificador, superficie, negativas, seguridad, migraciones, simulado contra verificado, lista para Juan     | Lucy lo lanza. La skill fija el procedimiento   | Sin veredicto de merge                                                                                           |
 
 Cambio crítico: todo lo que no sea visual ni CI/CD y pueda tocar base de datos, infraestructura crítica o seguridad.
 
 ### Playwright
 
-Es la base para probar el sitio construido. El comando de la skill es `pnpm --filter @neutro/web exec playwright test --trace on`. El script `test:e2e` es `playwright test`. `--trace on` hace que un verde también deje `trace.zip`.
+Es la base para probar el sitio construido. El comando de la skill es `pnpm --filter @neutro/web exec playwright test --trace on`. El script `test:e2e` es `playwright test`. `--trace on` hace que un verde también deje un `trace.zip` por test. Playwright los nombra igual. La skill los copia aparte, uno por carpeta de `test-results`, para que no se pisen.
 
 El workflow de la base ya acota el costo: un job, un browser (Chromium), caché del browser, y corre cuando cambia `apps/web`, `packages`, el lockfile o el propio workflow. Esta decisión no le cambia el YAML.
 
@@ -101,7 +101,7 @@ El CLI cambia de modelo. Un id escrito en la skill queda viejo y parece una puer
 - La protección de rama sigue apagada. Un check rojo no impide el merge en GitHub. El proceso es el único bloqueo, y depende de que quien mergea lo respete. El OK de Juan tampoco lo pone la plataforma.
 - Playwright en un repo privado consume minutos de GitHub Actions. El plan de Actions no está verificado en este ADR. Cada corrida de `e2e` descarga o reusa Chromium y ocupa un runner cuando el diff entra en el filtro de paths. La mitigación ya está en el workflow de la base: un job, un browser, caché y paths. Baja el consumo y no lo elimina. Este ADR no lo mide.
 - La skill pide `pnpm test` y `pnpm build` aunque el job `Check` de esta base no haga las dos cosas. Un CI verde y una puerta local en rojo pueden convivir. Eso es un hallazgo del informe, no un cambio de YAML en este PR.
-- El conteo de la cadena `posthog` en `dist` puede ser mayor que cero con el SDK apagado. Un build limpio de la base coincide en `privacidad.html` y `cookies.html` porque los textos legales nombran a PostHog, y el import dinámico puede emitir un chunk que no se carga. El informe lista cada archivo y lo clasifica: texto legal, chunk JS u otro. Un archivo JS con la key, o una request de analytics, es hallazgo alto. El conteo solo no falla la puerta. Si más adelante el spec de Hamilton exige cero requests, la skill lo corre tal cual.
+- El conteo de la cadena `posthog` en `dist` puede ser mayor que cero con el SDK apagado. La búsqueda es `rg -i`: el texto legal escribe `PostHog` y el chunk escribe `posthog`. Un build limpio de la base coincide en `privacidad.html` y `cookies.html` porque los textos legales nombran a PostHog, y el import dinámico puede emitir un chunk que no se carga. El informe lista cada archivo y lo clasifica: texto legal, chunk JS u otro. Un archivo JS con la key, o una request de analytics, es hallazgo alto. El conteo solo no falla la puerta. Si más adelante el spec de Hamilton exige cero requests, la skill lo corre tal cual.
 - `evidencia/` está en `.gitignore`. Igual se agregan archivos por nombre.
 - El segundo verificador corre sólo en cambio crítico. Pide otra sesión de Codex CLI. Sin el CLI, el informe deja esa parte en NO VERIFICADO y no simula el pase.
 - El informe no autoriza el merge. Puede quedar todo en verde y el PR sigue esperando el OK de Juan.

@@ -50,13 +50,29 @@ pnpm --version
 
 4. Si Node o pnpm no coinciden, frená. El resto de las puertas queda en NO VERIFICADO con ese motivo. No sigas con otra versión.
 5. npm y yarn no se usan. No regeneres el lockfile. La instalación de la puerta 2 es la única, y va con `--frozen-lockfile`.
+6. Nombres de archivos de entorno, en la raíz y en `apps/web`. Sólo el nombre. No abras el contenido. No uses `cat` ni `source`. No vuelques el entorno. La salida va a `00-entorno-nombres.txt`.
+
+```bash
+find . -maxdepth 1 \( -name '.env*' -o -name '.dev.vars*' \) -printf '%f\n'
+find apps/web -maxdepth 1 \( -name '.env*' -o -name '.dev.vars*' \) -printf '%f\n'
+```
+
+En el repo están `apps/web/.env.example` y `apps/web/.dev.vars.example`. Esos dos no prenden analytics: Vite y Wrangler no cargan un archivo `.example`. Cualquier otro `.env*` o `.dev.vars*` sí puede.
+
+Astro no define `envDir` en `apps/web/astro.config.mjs`. El build corre en `apps/web`. Vite, en modo production, carga `.env`, `.env.local`, `.env.production` y `.env.production.local` de esa carpeta. `PUBLIC_*` entra al cliente por `import.meta.env` en `apps/web/src/lib/analytics.ts`. Una variable que ya está en el proceso no la pisa el archivo. `env -u` la saca del proceso y, si el archivo existe, el archivo la vuelve a poner. `env -u` solo no deja el analytics apagado.
+
+`apps/web/wrangler.jsonc` trae `ANALYTICS_ENABLED` en `"true"`. Wrangler, con ese config, lee `.dev.vars` de `apps/web`. Si no hay `.dev.vars`, puede leer `.env`. El Worker registra `captureQrScanned` en `ctx.waitUntil` antes de devolver el redirect, y sólo si `isServerAnalyticsEnabled(env)` y `env.POSTHOG_KEY` (`apps/web/worker/index.ts`, `apps/web/worker/posthog.ts`). `isServerAnalyticsEnabled` pide `ANALYTICS_ENABLED === "true"` y la key. Sin `POSTHOG_KEY` no se manda `qr_scanned`. Con la key y el flag en `"true"`, sí.
+
+Si aparece un archivo que no es uno de los dos ejemplos, seguí en una copia descartable y borrá ahí esos archivos. No borres los del árbol original y no borres los `.example`. Si no armás esa copia, el build sin analytics y todo lo que dependa del Worker local quedan NO VERIFICADO. Motivo: hay un archivo de entorno y no se garantizó que no entre en la corrida.
+
+No exportes `POSTHOG_KEY`. No pongas `CLOUDFLARE_INCLUDE_PROCESS_ENV=true`.
 
 ## Restricciones del repo
 
 Estas restricciones se respetan al verificar y al proponer un arreglo. El detalle está en los ADR; acá va lo que cambia la corrida.
 
 - Máximo 10 archivos por PR. Los lockfiles no cuentan. Basenames excluidos: `pnpm-lock.yaml`, `package-lock.json`, `yarn.lock`, `bun.lock`, `bun.lockb`. Si hace falta un arreglo, se parte en PRs apilados ([ADR 0004](../../../docs/adr/0004-max-pr-files.md)).
-- Sin comentarios en el código que se cree o se edite ([ADR 0003](../../../docs/adr/0003-no-source-comments.md)). En YAML el motivo va en el `name:` del paso. En una lista de excepciones, en un campo `razon`. Esta skill es Markdown: la prosa sí va.
+- Sin comentarios en el código que se cree o se edite ([ADR 0003](../../../docs/adr/0003-no-source-comments.md)). El alcance de ese ADR es JavaScript/TypeScript y el frontmatter y los `<script>` de Astro. El HTML de plantilla y el CSS quedan afuera de oxlint. El ADR no dice que los haga cumplir, y pide no dejar prosa ahí. No habla de YAML ni de un campo `razon`. El sentido que iba en un comentario va en nombres, tipos, tests o en un doc. Esta skill es Markdown: la prosa sí va.
 - pnpm, versiones exactas (`saveExact: true`) y `strictPeerDependencies: true`. `minimumReleaseAgeExclude` en `pnpm-workspace.yaml` puede rechazar una dependencia nueva muy reciente. El valor de la antigüedad mínima no está verificado en esta skill: si el install falla por eso, pegá la salida y no fuerces el lockfile.
 - El sitio es estático: `output: "static"` en `apps/web/astro.config.mjs`, `build.format: "file"`, `trailingSlash: "never"`. El Worker `neutro-web` (`apps/web/worker/index.ts`, `run_worker_first`) ve cada request antes que los assets. Sirve `/f/N`, `/t`, `/ingest` y el redirect de barra final. No hay rutas SSR ni un adaptador nuevo.
 - `astro preview` no ejecuta el Worker. Con el build en formato file, `/nosotros/` con barra responde 404. Eso no es un hallazgo del producto: el 301 lo hace el Worker. Las rutas de preview van sin barra final.
@@ -72,30 +88,31 @@ Ruta fija, relativa al repo: `evidencia/<número del PR>-<7 caracteres del head>
 Ejemplo: `evidencia/46-c140955/`.
 
 - Creala antes de la primera puerta. No la commitees. No la borres al final. No uses `/tmp` para el informe: la limpieza de la copia no tiene que llevarse la evidencia.
-- Adentro: `informe.md`, las salidas `.txt`, capturas `.png`, `trace.zip` y, si aplica, `.webm`.
+- Adentro: `informe.md`, las salidas `.txt`, capturas `.png`, una traza por test en `trazas/` y, si aplica, `.webm`.
 - `evidencia/` está en `.gitignore`. Igual agregá archivos por nombre. `git status` al cierre no puede mostrar esa carpeta en el índice.
 
 Nombres de salida:
 
-| Archivo | Puerta |
-| --- | --- |
-| `00-preparacion.txt` | Versiones |
-| `01-identidad.txt` | Identidad y lista de archivos |
-| `02-install.txt` | Instalación limpia |
-| `03-lint.txt` | `pnpm lint` |
-| `04-lint-rules.txt` | `pnpm test:lint-rules` |
-| `05-check.txt` | `pnpm check` |
-| `06-test.txt` | `pnpm test` |
-| `07-build.txt` | `pnpm build` y conteo de `posthog` |
-| `08-posthog-red.txt` | Requests de analytics en la pasada |
-| `09-comentarios.txt` | Recorrido del diff |
-| `10-archivos.txt` | Tope de 10 |
-| `11-cuerpo.txt` | Cuerpo del PR |
-| `12-ci.txt` | CI remoto |
-| `13-falla-<puerta>.txt` | Fallo provocado, una por puerta nueva |
-| `14-e2e.txt` | Playwright |
-| `trazas/` | Cada `trace.zip` |
-| `flujo.webm` | Sólo si cambia un flujo completo |
+| Archivo                     | Puerta                                |
+| --------------------------- | ------------------------------------- |
+| `00-preparacion.txt`        | Versiones                             |
+| `01-identidad.txt`          | Identidad y lista de archivos         |
+| `02-install.txt`            | Instalación limpia                    |
+| `03-lint.txt`               | `pnpm lint`                           |
+| `04-lint-rules.txt`         | `pnpm test:lint-rules`                |
+| `05-check.txt`              | `pnpm check`                          |
+| `06-test.txt`               | `pnpm test`                           |
+| `07-build.txt`              | `pnpm build` y conteo de `posthog`    |
+| `08-posthog-red.txt`        | Requests de analytics en la pasada    |
+| `09-comentarios.txt`        | Recorrido del diff                    |
+| `10-archivos.txt`           | Tope de 10                            |
+| `11-cuerpo.txt`             | Cuerpo del PR                         |
+| `12-ci.txt`                 | CI remoto                             |
+| `13-falla-<puerta>.txt`     | Fallo provocado, una por puerta nueva |
+| `14-e2e.txt`                | Playwright                            |
+| `00-entorno-nombres.txt`    | Nombres de `.env*` y `.dev.vars*`     |
+| `trazas/<nombre>-trace.zip` | Una traza por test, sin pisar         |
+| `flujo.webm`                | Sólo si cambia un flujo completo      |
 
 Guardá el exit code del comando, no el de un pipe. Patrón:
 
@@ -121,10 +138,11 @@ gh pr view "$PR" --json number,url,title,headRefName,baseRefName,headRefOid,base
 
 - `headRefOid` y `baseRefOid` van completos (40 caracteres) en el encabezado. El sha corto del nombre de la carpeta son los primeros 7 del head.
 - Traé los dos commits al clon, sin pushear: `git fetch origin` de la rama head y de la rama base. Confirmá que el SHA local del head es el de `headRefOid`. Si la rama se movió, verificá el SHA del PR, no el tip nuevo.
-- Lista de archivos: `git diff --name-only "$BASE"... "$HEAD"`. Contá aparte los lockfiles.
+- Lista de archivos: `git diff --name-only "$BASE"..."$HEAD"`. Los tres puntos van pegados al SHA de la base y al del head. Si queda un espacio en el medio, git imprime el usage y sale 129. Contá aparte los lockfiles. Guardá el exit de git.
+- Una lista vacía no cierra la puerta, aunque git haya salido en 0.
 - Si no hay número de PR, no inventes uno. La identidad queda incompleta y el informe no se da por cerrado.
 
-Exit de la tabla: `0` si los dos SHA completos, la lista y el número están en `01-identidad.txt`. Si falta alguno, `1`.
+Exit de la tabla: `0` si los dos SHA completos, el exit de git es 0, la lista tiene al menos un archivo y el número está en `01-identidad.txt`. Si falta alguno, `1`.
 
 ### 2. Instalación limpia
 
@@ -172,8 +190,9 @@ rg -o -i -F posthog apps/web/dist | wc -l
 Si `rg` no está, el mismo criterio con `grep -R -i -F -o posthog apps/web/dist`.
 
 - Exit del build: `0`.
+- Esta puerta cuenta si la preparación no encontró un `.env*` ni un `.dev.vars*` real, o si la corrida es la copia sin esos archivos. Si no, queda NO VERIFICADO.
 - El conteo se anota siempre. Un número mayor que cero no falla solo esta puerta.
-- Un build limpio de la base deja coincidencias en `apps/web/dist/privacidad.html` y `apps/web/dist/cookies.html`: los textos legales nombran a PostHog. Eso es texto legal, no el SDK.
+- La búsqueda lleva `-i` porque el texto legal escribe `PostHog` y el chunk escribe `posthog`. Un build limpio de la base deja coincidencias en `apps/web/dist/privacidad.html` y `apps/web/dist/cookies.html`: los textos legales nombran a PostHog. Eso es texto legal, no el SDK.
 - Además, el import de `posthog-js` es dinámico y el bundler puede emitir el chunk sin cargarlo ([ADR 0001](../../../docs/adr/0001-analytics-off-by-default.md)).
 - En `07-build.txt` y en el informe, listá cada archivo con coincidencia y clasificalo: `texto legal`, `chunk JS` u `otro`.
 - Hallazgo alto: un archivo JS con la key, o una request a `/ingest` o a un host de PostHog durante la pasada. La key en cualquier otro archivo de `dist` también es hallazgo alto: es un secreto. El valor no se pega: archivo y `‹redactado›`.
@@ -187,21 +206,24 @@ Mirá `apps/web/package.json`. Si está `test:dist`:
 pnpm --filter @neutro/web test:dist
 ```
 
-Si no está, la fila es `no aplica`. Motivo: el contrato sobre `dist` todavía no está en el repo. No es un fallo del PR. `pnpm format:check` existe y no es puerta hasta que el equipo lo sume. No lo corras como puerta.
+Si no está, la fila es NO VERIFICADO. Motivo: «spec de Hamilton ausente». No es un fallo del PR. `pnpm format:check` existe y no es puerta hasta que el equipo lo sume. No lo corras como puerta.
 
 ### 9. Sin comentarios nuevos
 
-Recorré las líneas agregadas del diff. No alcanza con el exit de `pnpm lint`: oxlint no cubre el HTML de las plantillas Astro, el CSS, `wrangler.jsonc` ni el YAML.
+Recorré las líneas agregadas del diff. No alcanza con el exit de `pnpm lint`. [ADR 0003](../../../docs/adr/0003-no-source-comments.md) cubre JavaScript/TypeScript y el frontmatter y los `<script>` de Astro. El HTML de plantilla y el CSS quedan afuera. Este recorrido es de la skill: también mira `#` de comentario en YAML y `wrangler.jsonc`. El ADR 0003 no habla de YAML.
 
 ```bash
-git diff -U0 --no-color "$BASE"... "$HEAD"
+git diff -U0 --no-color "$BASE"..."$HEAD"
 ```
+
+Los tres puntos van pegados. Guardá el exit de git, aparte del texto del diff.
 
 - Sólo líneas que empiezan con `+` y no con `+++`.
 - Comentario de código: `//`, `/* */`, `<!-- -->`, y `#` de comentario en YAML.
 - No cuentan: texto de docs (`.md`, incluida esta skill y `AGENTS.md`), el interior de una cadena, una URL, un `#` entre comillas en YAML, ni una directiva de tooling de [ADR 0003](../../../docs/adr/0003-no-source-comments.md) (`@ts-expect-error`, `oxlint-*`, `prettier-ignore`, y el resto de esa tabla).
 - Cada coincidencia va a `09-comentarios.txt` con archivo y línea. Es un hallazgo.
-- Exit de la tabla: `0` si la lista está vacía, `1` si hay alguna.
+- Una salida vacía sólo vale como «sin comentarios» si el exit de git fue 0 y la lista de archivos del diff de la puerta 1 no está vacía. Si git salió distinto de 0, la puerta falla aunque el texto esté vacío. Un 129 es git rechazando el comando.
+- Exit de la tabla: `0` sólo en ese caso y con la lista de coincidencias vacía. Si hay alguna coincidencia, `1`.
 
 ### 10. Tope de 10 archivos
 
@@ -260,16 +282,16 @@ Procedimiento:
 
 Provocación mínima, cuando la puerta es una de estas:
 
-| Puerta | Qué se cambia en la copia |
-| --- | --- |
-| `pnpm lint` | Una línea `// puerta` en un `.ts` que oxlint ve |
-| `pnpm test:lint-rules` | Una aserción del test de la regla, invertida |
-| `pnpm check` | `const n: number = "x"` en un `.ts` del programa |
-| `pnpm test` | Una aserción que no puede cumplirse, en un archivo que el script ya lista |
-| `pnpm build` | Un import a un módulo que no existe |
-| Tope de 10 | Once archivos contados y el script de CI |
-| `test:e2e` | El título esperado del humo, cambiado |
-| Install congelado | Una dependencia en `package.json` sin tocar el lockfile |
+| Puerta                 | Qué se cambia en la copia                                                 |
+| ---------------------- | ------------------------------------------------------------------------- |
+| `pnpm lint`            | Una línea `// puerta` en un `.ts` que oxlint ve                           |
+| `pnpm test:lint-rules` | Una aserción del test de la regla, invertida                              |
+| `pnpm check`           | `const n: number = "x"` en un `.ts` del programa                          |
+| `pnpm test`            | Una aserción que no puede cumplirse, en un archivo que el script ya lista |
+| `pnpm build`           | Un import a un módulo que no existe                                       |
+| Tope de 10             | Once archivos contados y el script de CI                                  |
+| `test:e2e`             | El título esperado del humo, cambiado                                     |
+| Install congelado      | Una dependencia en `package.json` sin tocar el lockfile                   |
 
 Si la puerta nueva no tiene comando (es un recorrido de esta skill), el `.txt` muestra el diff mínimo y la coincidencia que el recorrido marca. Eso no es un exit de CI: VERIFICADO sólo si el `.txt` muestra el fallo. Si no lo hiciste, NO VERIFICADO.
 
@@ -286,16 +308,16 @@ pnpm --filter @neutro/web exec playwright test --trace on
 
 - Un solo browser: Chromium. No instales el resto.
 - Exit esperado: `0`. Salida en `14-e2e.txt`.
-- Copiá cada `trace.zip` de `apps/web/test-results/` a `evidencia/<pr>-<sha>/trazas/`. Dejá también el `trace.zip` del recorrido principal en la raíz de esa evidencia.
-- Descomprimí la traza y buscá `posthog` y `/ingest` en los archivos de red. El conteo va a `08-posthog-red.txt`. Cero es lo esperado. Redactá cookies y tokens.
+- Cada test deja su propio `trace.zip` adentro de `apps/web/test-results/`. Copiá uno por carpeta, sin pisar: `evidencia/<pr>-<sha>/trazas/<nombre-de-la-carpeta>-trace.zip`. El nombre sale del directorio de `test-results`, no de un único `trace.zip` en la raíz de la evidencia.
+- Descomprimí cada traza y buscá `posthog` y `/ingest` en los archivos de red. El conteo va a `08-posthog-red.txt`. Cero es lo esperado. Antes de guardar esa salida, aplicá la regla de ocultar URLs.
 - Rutas del humo, sin barra final. Una 404 en `/nosotros/` contra este servidor no es hallazgo.
-- Si el diff toca el Worker o el mapeo QR: cerrá el preview de Playwright y después levantá el Worker local, también sin las variables públicas de analytics. El script de la raíz vuelve a buildear:
+- Si el diff toca el Worker o el mapeo QR: cerrá el preview de Playwright. El script de la raíz `pnpm preview:cloudflare` vuelve a buildear y llama `wrangler dev` sin `--var`. No lo uses para esta pasada. El build ya está en la puerta 7. Levantá el Worker así, en la copia sin archivos de entorno reales o en un árbol que no los tenga:
 
 ```bash
-env -u PUBLIC_POSTHOG_KEY -u PUBLIC_ANALYTICS_ENABLED pnpm preview:cloudflare
+env -u POSTHOG_KEY -u PUBLIC_POSTHOG_KEY -u PUBLIC_ANALYTICS_ENABLED pnpm --filter @neutro/web exec wrangler dev --var ANALYTICS_ENABLED:false
 ```
 
-Leé la URL que imprime Wrangler. El puerto no está fijado en `wrangler.jsonc`. Probá en local el status y los headers de `/f/N` y de una ruta con barra. No sigas un `Location` hacia producción. No pidas `/ingest`. Marcalo como simulado.
+`--var` está en el CLI de `wrangler dev`: un par `clave:valor` que se inyecta al script. Hace falta porque `wrangler.jsonc` trae `ANALYTICS_ENABLED` en `"true"`. No está verificado que `--var` le gane a un `.dev.vars` que siga en el directorio. Por eso el archivo no puede estar. Leé la URL que imprime Wrangler. El puerto no está fijado en `wrangler.jsonc`. Si esta corrida garantiza que `POSTHOG_KEY` no está en el proceso ni en un archivo cargado, probá en local el status y los headers de `/f/N` y de una ruta con barra. Si no lo podés garantizar, no pidas `/f/N`. No sigas un `Location` hacia producción. No pidas `/ingest`. Marcalo como simulado.
 
 ### PR visual
 
@@ -351,7 +373,7 @@ for (const route of routes) {
 
 - Si el diff toca motion o el video de la home, sumá una captura con `prefers-reduced-motion: reduce`. El contrato de las `<source>` del video ya está en `video-section.test.ts`, que corre con `pnpm test`.
 - Axe, teclado, foco y la pasada sin JavaScript los cubren los specs de Hamilton cuando existan. Si el archivo no está, esa fila queda NO VERIFICADO con motivo «spec de Hamilton ausente». No armes un segundo checklist paralelo.
-- `trace.zip` de esta pasada también se copia.
+- Las trazas de esta pasada se copian igual, una por carpeta de `test-results`, como `trazas/<nombre-de-la-carpeta>-trace.zip`. No las pises.
 
 ### Video de un flujo completo
 
@@ -363,7 +385,9 @@ Sólo si el PR cambia un flujo completo (más de un paso con interacción). Un c
 
 ## Cambio crítico
 
-Aplica cuando el diff no es sólo visual ni sólo CI/CD, y puede tocar base de datos, infraestructura crítica o seguridad. En este repo entran, entre otros: el Worker, `wrangler.jsonc`, headers, secretos, variables `PUBLIC_*` o `POSTHOG_KEY`, auth, permisos, datos, migraciones y dependencias que cambian la superficie. Un PR mezclado entra por la parte que no es visual. Docs de reglas, lint y workflows no entran.
+Cambio crítico: todo lo que no sea visual ni CI/CD y pueda tocar base de datos, infraestructura crítica o seguridad.
+
+En este repo entran, entre otros: el Worker, `wrangler.jsonc`, headers, secretos, variables `PUBLIC_*` o `POSTHOG_KEY`, auth, permisos, datos, migraciones y dependencias que cambian la superficie. Un PR mezclado entra por la parte que no es visual. Docs de reglas, lint y workflows no entran.
 
 Si no aplica, en el informe: «Cambio crítico: no aplica», con una frase de motivo. El resto de esta sección no se corre.
 
@@ -375,7 +399,7 @@ Escribí `superficie-riesgo.md` antes de correr las puertas de esta sección. Qu
 
 Otra sesión de Codex CLI, con esfuerzo high. El modelo es el que ese CLI tenga configurado.
 
-Recibe el diff `BASE...HEAD`, esta skill y la plantilla. No recibe `informe.md`, los hallazgos ni la superficie del primero. Una sola sesión de chat no sirve para los dos.
+Recibe el diff `"$BASE"..."$HEAD"`, esta skill y la plantilla. No recibe `informe.md`, los hallazgos ni la superficie del primero. Una sola sesión de chat no sirve para los dos.
 
 Escribe `informe-codex.md` en la misma carpeta. Cuando los dos informes están en disco, las discrepancias se agregan como hallazgos abiertos, severidad alta, sin borrar ni reescribir el informe del segundo. Un hallazgo que sólo vio uno de los dos queda abierto.
 
@@ -386,7 +410,8 @@ Si el CLI no está, esta parte queda NO VERIFICADO. No se simula el segundo pase
 Obligatorias para la superficie declarada. Tienen que fallar cerrado. Guardá exit y salida.
 
 - Entrada inválida. En este repo, un id QR que no está en la tabla: el redirect sigue sin armar un evento.
-- Sin permiso, o sin la variable que prendría el efecto. Sin `POSTHOG_KEY`, el redirect de `/f/N` responde y no se manda `qr_scanned`.
+- Sin permiso. Es un caso aparte. Si la superficie tiene permisos, una llamada sin ese permiso tiene que fallar cerrada. Si el diff no toca permisos, la fila es `no aplica` con ese motivo. No la juntes con la variable ausente.
+- Sin la variable. Otro caso. Sin `POSTHOG_KEY`, el redirect de `/f/N` responde y no se llama `captureQrScanned`. Sólo si la ausencia de la key está garantizada, como en la pasada del Worker local.
 - Variable ausente en el build: la puerta 7, si la superficie incluye analytics.
 
 No inventes una negativa de un sistema que el diff no toca. Si no hay caso cerrado, es NO VERIFICADO con motivo, no un pasa.
@@ -422,6 +447,7 @@ Un solo `informe.md` por PR, con la plantilla.
 - Hallazgos numerados. Cada uno: severidad (alta, media, baja), `archivo:líneas @ commit corto`, qué pasa, qué se esperaba, evidencia. El commit corto son 7 caracteres del commit donde están esas líneas, casi siempre el head. Si no hay hallazgos, la sección dice exactamente `sin hallazgos`. Si hay, reemplazá esa línea por la lista.
 - Tabla de puertas: puerta, comando, exit code, enlace al archivo de evidencia.
 - VERIFICADO: se ejecutó y se vio. NO VERIFICADO: no se corrió o no se pudo, con el motivo.
+- En la evidencia, ocultá hosts de analytics, URLs de producción con parámetros y cualquier key: reemplazalos por `‹redactado›`. Los links públicos del sitio, sin parámetros, se dejan. Un `https://neutro.solutions/nosotros` queda. Un `https://neutro.solutions/` con query string no. Un host que contenga `posthog` no.
 - Secretos y datos personales como `‹redactado›`.
 - Sin veredicto de merge.
 
