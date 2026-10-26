@@ -11,7 +11,7 @@
     "preview:cloudflare": "wrangler dev",
     "deploy": "wrangler deploy",
     "deploy:check": "wrangler deploy --dry-run",
-    "test": "node --experimental-strip-types --test worker/posthog.test.ts worker/seo.test.ts src/components/sections/video-section.test.ts src/data/services.test.ts src/data/work.test.ts src/data/work-cases.test.ts"
+    "test": "astro build && node --experimental-strip-types --test worker/posthog.test.ts worker/seo.test.ts src/components/sections/video-section.test.ts src/data/services.test.ts src/data/work.test.ts src/data/work-cases.test.ts src/contract/trabajo-index.test.ts"
   },
   "dependencies": {
     "@astrojs/react": "7.1.0",
@@ -34,6 +34,7 @@
     "@types/node": "24.19.2",
     "@types/react": "19.3.0",
     "@types/react-dom": "19.3.0",
+    "node-html-parser": "9.0.5",
     "shadcn": "4.22.1",
     "tailwindcss": "4.3.3",
     "typescript": "6.0.3",
