@@ -9,6 +9,14 @@ import Footer from "@/components/sections/Footer.astro";
 ---
 
 <Base>
+  <Fragment slot="head">
+    <link
+      rel="preload"
+      as="image"
+      href="/video/neutro-poster.jpg"
+      fetchpriority="high"
+    />
+  </Fragment>
   <Header />
   <main id="contenido">
     <Hero />

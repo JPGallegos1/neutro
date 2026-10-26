@@ -18,8 +18,12 @@ const showLoadMore = workProjects.length > LANDING_WORK_LIMIT;
       data-work-grid
       data-page-size={LANDING_WORK_LIMIT}
     >
-      {workProjects.map((project) => (
-        <WorkCard project={project} titleAs="h2" />
+      {workProjects.map((project, index) => (
+        <WorkCard
+          project={project}
+          titleAs="h2"
+          priority={index === 0}
+        />
       ))}
     </ul>
     {showLoadMore && (
