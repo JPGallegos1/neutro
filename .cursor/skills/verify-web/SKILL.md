@@ -53,17 +53,21 @@ pnpm --version
 6. Nombres de archivos de entorno, en la raíz y en `apps/web`. Sólo el nombre. No abras el contenido. No uses `cat` ni `source`. No vuelques el entorno. La salida va a `00-entorno-nombres.txt`.
 
 ```bash
-find . -maxdepth 1 \( -name '.env*' -o -name '.dev.vars*' \) -printf '%f\n'
-find apps/web -maxdepth 1 \( -name '.env*' -o -name '.dev.vars*' \) -printf '%f\n'
+find . -maxdepth 1 \( -name '.env*' -o -name '.dev.vars*' \) -exec basename {} \;
+find apps/web -maxdepth 1 \( -name '.env*' -o -name '.dev.vars*' \) -exec basename {} \;
 ```
 
-En el repo están `apps/web/.env.example` y `apps/web/.dev.vars.example`. Esos dos no prenden analytics: Vite y Wrangler no cargan un archivo `.example`. Cualquier otro `.env*` o `.dev.vars*` sí puede.
+`-printf` es de GNU find. El find de macOS no lo tiene. El comando de arriba imprime sólo el nombre en los dos.
 
-Astro no define `envDir` en `apps/web/astro.config.mjs`. El build corre en `apps/web`. Vite, en modo production, carga `.env`, `.env.local`, `.env.production` y `.env.production.local` de esa carpeta. `PUBLIC_*` entra al cliente por `import.meta.env` en `apps/web/src/lib/analytics.ts`. Una variable que ya está en el proceso no la pisa el archivo. `env -u` la saca del proceso y, si el archivo existe, el archivo la vuelve a poner. `env -u` solo no deja el analytics apagado.
+En el repo están `apps/web/.env.example` y `apps/web/.dev.vars.example`. Esos dos nombres no cuentan como archivos reales de la corrida. Cualquier otro `.env*` o `.dev.vars*` sí.
 
-`apps/web/wrangler.jsonc` trae `ANALYTICS_ENABLED` en `"true"`. Wrangler, con ese config, lee `.dev.vars` de `apps/web`. Si no hay `.dev.vars`, puede leer `.env`. El Worker registra `captureQrScanned` en `ctx.waitUntil` antes de devolver el redirect, y sólo si `isServerAnalyticsEnabled(env)` y `env.POSTHOG_KEY` (`apps/web/worker/index.ts`, `apps/web/worker/posthog.ts`). `isServerAnalyticsEnabled` pide `ANALYTICS_ENABLED === "true"` y la key. Sin `POSTHOG_KEY` no se manda `qr_scanned`. Con la key y el flag en `"true"`, sí.
+`apps/web/astro.config.mjs` no define `envDir`. El build de la raíz corre en `apps/web`. `PUBLIC_*` las lee `apps/web/src/lib/analytics.ts`.
 
-Si aparece un archivo que no es uno de los dos ejemplos, seguí en una copia descartable y borrá ahí esos archivos. No borres los del árbol original y no borres los `.example`. Si no armás esa copia, el build sin analytics y todo lo que dependa del Worker local quedan NO VERIFICADO. Motivo: hay un archivo de entorno y no se garantizó que no entre en la corrida.
+Medido en esta base, con `env -u PUBLIC_POSTHOG_KEY -u PUBLIC_ANALYTICS_ENABLED` y `pnpm exec turbo run build --filter=@neutro/web --force` (exit 0 en cada caso). Un archivo solo, entre `apps/web/.env`, `apps/web/.env.local`, `apps/web/.env.production` y `apps/web/.env.production.local`, con `PUBLIC_ANALYTICS_ENABLED=true` y una key de prueba, igual dejó esa key en un `.js` de `apps/web/dist/_astro/`. `rg -l` encontró un archivo en cada una de las cuatro corridas. No está medido si una variable que ya está en el proceso le gana al archivo. `env -u` solo, con uno de esos archivos presente, no deja el analytics apagado.
+
+`apps/web/wrangler.jsonc` trae `ANALYTICS_ENABLED` en `"true"`. El Worker registra `captureQrScanned` en `ctx.waitUntil` antes de devolver el redirect, y sólo si `isServerAnalyticsEnabled(env)` y `env.POSTHOG_KEY` (`apps/web/worker/index.ts`, `apps/web/worker/posthog.ts`). `isServerAnalyticsEnabled` pide `ANALYTICS_ENABLED === "true"` y la key. Sin `POSTHOG_KEY` no se manda `qr_scanned`. Con la key y el flag en `"true"`, sí. No está medido, en el Worker `neutro-web`, si sin `.dev.vars` Wrangler carga un `.env`.
+
+Si aparece un archivo que no es uno de los dos ejemplos, seguí en la copia descartable. No borres los del árbol original y no borres los `.example`. Si no armás esa copia, el build sin analytics y todo lo que dependa del Worker local quedan NO VERIFICADO. Motivo: hay un archivo de entorno y no se garantizó que no entre en la corrida.
 
 No exportes `POSTHOG_KEY`. No pongas `CLOUDFLARE_INCLUDE_PROCESS_ENV=true`.
 
@@ -76,7 +80,7 @@ Estas restricciones se respetan al verificar y al proponer un arreglo. El detall
 - pnpm, versiones exactas (`saveExact: true`) y `strictPeerDependencies: true`. `minimumReleaseAgeExclude` en `pnpm-workspace.yaml` puede rechazar una dependencia nueva muy reciente. El valor de la antigüedad mínima no está verificado en esta skill: si el install falla por eso, pegá la salida y no fuerces el lockfile.
 - El sitio es estático: `output: "static"` en `apps/web/astro.config.mjs`, `build.format: "file"`, `trailingSlash: "never"`. El Worker `neutro-web` (`apps/web/worker/index.ts`, `run_worker_first`) ve cada request antes que los assets. Sirve `/f/N`, `/t`, `/ingest` y el redirect de barra final. No hay rutas SSR ni un adaptador nuevo.
 - `astro preview` no ejecuta el Worker. Con el build en formato file, `/nosotros/` con barra responde 404. Eso no es un hallazgo del producto: el 301 lo hace el Worker. Las rutas de preview van sin barra final.
-- `pnpm preview:cloudflare` (`wrangler dev` después de un build) es el único servidor local que ejecuta el Worker. Usalo sólo si el diff toca `apps/web/worker/` o el mapeo QR de `packages/core`. No lo levantes a la vez que el preview de Playwright (puerto `4173`).
+- El Worker local, sólo si el diff toca `apps/web/worker/` o el mapeo QR de `packages/core`, se levanta con el mismo comando de la sección Playwright: `env -u POSTHOG_KEY -u PUBLIC_POSTHOG_KEY -u PUBLIC_ANALYTICS_ENABLED pnpm --filter @neutro/web exec wrangler dev --var ANALYTICS_ENABLED:false`. Antes no puede haber un `.env*` ni un `.dev.vars*` real, o la corrida es la copia descartable. No lo levantes a la vez que el preview de Playwright (puerto `4173`). No uses un script de la raíz que vuelva a buildear y llame a `wrangler dev` sin `--var`.
 - Analytics apagado en la corrida ([ADR 0001](../../../docs/adr/0001-analytics-off-by-default.md)). Hacen falta las dos variables de build para prender el SDK en el cliente: `PUBLIC_POSTHOG_KEY` y `PUBLIC_ANALYTICS_ENABLED` igual a `true`. En el Worker hacen falta `POSTHOG_KEY` y `ANALYTICS_ENABLED`. `wrangler.jsonc` trae `ANALYTICS_ENABLED` en `"true"` para producción. Sin `POSTHOG_KEY` no sale `qr_scanned`. No copies el secret de producción.
 - La base del diff es la base declarada del PR, no siempre `main`. `staging` todavía no existe ([ADR 0006](../../../docs/adr/0006-workers-builds-delivery.md), Propuesto).
 - UI, motion e Impeccable están en [`AGENTS.md`](../../../AGENTS.md). `impeccable detect` lo corre quien abre el PR. No es una puerta de este informe. No commitees `.impeccable/`, `PRODUCT.md` ni `DESIGN.md`.
@@ -91,28 +95,44 @@ Ejemplo: `evidencia/46-c140955/`.
 - Adentro: `informe.md`, las salidas `.txt`, capturas `.png`, una traza por test en `trazas/` y, si aplica, `.webm`.
 - `evidencia/` está en `.gitignore`. Igual agregá archivos por nombre. `git status` al cierre no puede mostrar esa carpeta en el índice.
 
+## Copia descartable
+
+Hace falta si hay un `.env*` o un `.dev.vars*` que no sea uno de los dos ejemplos, o si la puerta 13 provoca un fallo. Desde la raíz del checkout original:
+
+```bash
+copia="$(mktemp -d "${TMPDIR:-/tmp}/neutro-copia.XXXXXX")"
+git clone --local --no-hardlinks "$(pwd)" "$copia"
+```
+
+`evidencia/<número del PR>-<7 caracteres del head>/` queda en el checkout original. La ruta es fija. `evidencia/` está en `.gitignore`. El clone no la trae.
+
+De `$copia` se copia de vuelta sólo lo que el informe cita: los `.txt` de las puertas corridas ahí, los `.png`, `trazas/<nombre>-trace.zip`, `.webm` y `13-falla-<puerta>.txt`. `informe.md` se escribe en esa carpeta del original. No se copian `node_modules`, `dist` ni archivos de entorno.
+
+Después, `rm -rf "$copia"`. No borres archivos de entorno del árbol original ni los `.example`.
+
 Nombres de salida:
 
-| Archivo                     | Puerta                                |
-| --------------------------- | ------------------------------------- |
-| `00-preparacion.txt`        | Versiones                             |
-| `01-identidad.txt`          | Identidad y lista de archivos         |
-| `02-install.txt`            | Instalación limpia                    |
-| `03-lint.txt`               | `pnpm lint`                           |
-| `04-lint-rules.txt`         | `pnpm test:lint-rules`                |
-| `05-check.txt`              | `pnpm check`                          |
-| `06-test.txt`               | `pnpm test`                           |
-| `07-build.txt`              | `pnpm build` y conteo de `posthog`    |
-| `08-posthog-red.txt`        | Requests de analytics en la pasada    |
-| `09-comentarios.txt`        | Recorrido del diff                    |
-| `10-archivos.txt`           | Tope de 10                            |
-| `11-cuerpo.txt`             | Cuerpo del PR                         |
-| `12-ci.txt`                 | CI remoto                             |
-| `13-falla-<puerta>.txt`     | Fallo provocado, una por puerta nueva |
-| `14-e2e.txt`                | Playwright                            |
-| `00-entorno-nombres.txt`    | Nombres de `.env*` y `.dev.vars*`     |
-| `trazas/<nombre>-trace.zip` | Una traza por test, sin pisar         |
-| `flujo.webm`                | Sólo si cambia un flujo completo      |
+| Archivo                      | Puerta                                   |
+| ---------------------------- | ---------------------------------------- |
+| `00-preparacion.txt`         | Versiones                                |
+| `01-identidad.txt`           | Identidad y lista de archivos            |
+| `02-install.txt`             | Instalación limpia                       |
+| `03-lint.txt`                | `pnpm lint`                              |
+| `04-lint-rules.txt`          | `pnpm test:lint-rules`                   |
+| `05-check.txt`               | `pnpm check`                             |
+| `06-test.txt`                | `pnpm test`                              |
+| `07-build.txt`               | `pnpm build` y conteo de `posthog`       |
+| `08-posthog-red.txt`         | Requests de analytics en la pasada       |
+| `09-comentarios.txt`         | Recorrido del diff                       |
+| `10-archivos.txt`            | Tope de 10                               |
+| `11-cuerpo.txt`              | Cuerpo del PR                            |
+| `12-ci.txt`                  | CI remoto                                |
+| `13-falla-<puerta>.txt`      | Fallo provocado, una por puerta nueva    |
+| `14-e2e.txt`                 | Playwright                               |
+| `00-entorno-nombres.txt`     | Nombres de `.env*` y `.dev.vars*`        |
+| `trazas/<nombre>-trace.zip`  | Traza del e2e, copiada antes de capturas |
+| `superficie-riesgo-codex.md` | Superficie del verificador Codex         |
+| `flujo.webm`                 | Sólo si cambia un flujo completo         |
 
 Guardá el exit code del comando, no el de un pipe. Patrón:
 
@@ -180,7 +200,7 @@ El proceso de build no tiene que recibir `PUBLIC_POSTHOG_KEY` ni `PUBLIC_ANALYTI
 env -u PUBLIC_POSTHOG_KEY -u PUBLIC_ANALYTICS_ENABLED pnpm build
 ```
 
-Después, en `07-build.txt`, el conteo y la lista de archivos. La búsqueda no distingue mayúsculas: el copy legal escribe `PostHog` y el chunk escribe `posthog`.
+Después, en `07-build.txt`, el conteo y la lista de archivos. La búsqueda no distingue mayúsculas: el copy legal escribe `PostHog`.
 
 ```bash
 rg -l -i -F posthog apps/web/dist
@@ -192,8 +212,9 @@ Si `rg` no está, el mismo criterio con `grep -R -i -F -o posthog apps/web/dist`
 - Exit del build: `0`.
 - Esta puerta cuenta si la preparación no encontró un `.env*` ni un `.dev.vars*` real, o si la corrida es la copia sin esos archivos. Si no, queda NO VERIFICADO.
 - El conteo se anota siempre. Un número mayor que cero no falla solo esta puerta.
-- La búsqueda lleva `-i` porque el texto legal escribe `PostHog` y el chunk escribe `posthog`. Un build limpio de la base deja coincidencias en `apps/web/dist/privacidad.html` y `apps/web/dist/cookies.html`: los textos legales nombran a PostHog. Eso es texto legal, no el SDK.
-- Además, el import de `posthog-js` es dinámico y el bundler puede emitir el chunk sin cargarlo ([ADR 0001](../../../docs/adr/0001-analytics-off-by-default.md)).
+- La búsqueda lleva `-i` porque el texto legal escribe `PostHog`. Si hay un chunk, la cadena puede ir en minúsculas.
+- Medido en esta base, sin `.env*` ni `.dev.vars*` reales, con `env -u PUBLIC_POSTHOG_KEY -u PUBLIC_ANALYTICS_ENABLED` y `pnpm exec turbo run build --filter=@neutro/web --force` (exit 0). `rg -l -i -F posthog apps/web/dist` listó sólo `apps/web/dist/privacidad.html` y `apps/web/dist/cookies.html`. `rg -o -i -F posthog` dio 4 en cookies, 6 en privacidad y 10 en total. `rg -l -F posthog` no listó archivos (exit 1). Ningún `.js` contenía la cadena. Eso es texto legal. Cada corrida anota sus propios archivos. Estos números son de esa medición, no un piso del PR que se verifica.
+- El import de `posthog-js` es dinámico ([ADR 0001](../../../docs/adr/0001-analytics-off-by-default.md)). En esa medición no hubo chunk con la cadena. No afirmes que el bundler emitió un chunk si `rg` no lo lista.
 - En `07-build.txt` y en el informe, listá cada archivo con coincidencia y clasificalo: `texto legal`, `chunk JS` u `otro`.
 - Hallazgo alto: un archivo JS con la key, o una request a `/ingest` o a un host de PostHog durante la pasada. La key en cualquier otro archivo de `dist` también es hallazgo alto: es un secreto. El valor no se pega: archivo y `‹redactado›`.
 - La búsqueda de requests queda en `08-posthog-red.txt` (puerta de Playwright). Cero requests de analytics es lo esperado en este build.
@@ -274,7 +295,7 @@ Sólo para una puerta que este PR agrega o cambia (un workflow, una regla de lin
 
 Procedimiento:
 
-1. Copia descartable del repo, fuera de `evidencia/`. Por ejemplo `git clone --local` a un directorio temporal. No es un remote.
+1. Copia descartable, con el comando de la sección «Copia descartable». No es un remote. Queda fuera de `evidencia/`.
 2. Provocá el fallo mínimo de esa puerta. No pushees. No uses producción.
 3. Corré sólo esa puerta. El exit tiene que ser distinto de `0`.
 4. Guardá la salida en `13-falla-<puerta>.txt`, con el exit.
@@ -308,16 +329,38 @@ pnpm --filter @neutro/web exec playwright test --trace on
 
 - Un solo browser: Chromium. No instales el resto.
 - Exit esperado: `0`. Salida en `14-e2e.txt`.
-- Cada test deja su propio `trace.zip` adentro de `apps/web/test-results/`. Copiá uno por carpeta, sin pisar: `evidencia/<pr>-<sha>/trazas/<nombre-de-la-carpeta>-trace.zip`. El nombre sale del directorio de `test-results`, no de un único `trace.zip` en la raíz de la evidencia.
-- Descomprimí cada traza y buscá `posthog` y `/ingest` en los archivos de red. El conteo va a `08-posthog-red.txt`. Cero es lo esperado. Antes de guardar esa salida, aplicá la regla de ocultar URLs.
+- Playwright vacía `apps/web/test-results/` al arrancar una corrida nueva. Antes de la pasada de capturas, copiá cada traza del e2e a `evidencia/<pr>-<sha>/trazas/<nombre>-trace.zip`. `<nombre>` es el directorio de `test-results` que contiene ese zip. Si el destino ya existe, no lo pises: usá `<nombre>-e2e-trace.zip` y anotalo.
+
+```bash
+sha7="$(git rev-parse HEAD | cut -c1-7)"
+mkdir -p "evidencia/${PR}-${sha7}/trazas"
+find apps/web/test-results -name trace.zip -print | while IFS= read -r zip; do
+  nombre="$(basename "$(dirname "$zip")")"
+  dest="evidencia/${PR}-${sha7}/trazas/${nombre}-trace.zip"
+  if [ -e "$dest" ]; then
+    dest="evidencia/${PR}-${sha7}/trazas/${nombre}-e2e-trace.zip"
+  fi
+  cp "$zip" "$dest"
+done
+```
+
+- Descomprimí cada traza ya copiada y buscá `posthog` y `/ingest` en los archivos de red. El conteo va a `08-posthog-red.txt`. Cero es lo esperado. Antes de guardar esa salida, aplicá la regla de ocultar URLs.
 - Rutas del humo, sin barra final. Una 404 en `/nosotros/` contra este servidor no es hallazgo.
-- Si el diff toca el Worker o el mapeo QR: cerrá el preview de Playwright. El script de la raíz `pnpm preview:cloudflare` vuelve a buildear y llama `wrangler dev` sin `--var`. No lo uses para esta pasada. El build ya está en la puerta 7. Levantá el Worker así, en la copia sin archivos de entorno reales o en un árbol que no los tenga:
+- Si el diff toca el Worker o el mapeo QR: cerrá el preview de Playwright. No vuelvas a buildear. El build ya está en la puerta 7. Hace falta la previa de la preparación: ningún `.env*` ni `.dev.vars*` real, o la copia descartable. El comando es el mismo de las restricciones:
 
 ```bash
 env -u POSTHOG_KEY -u PUBLIC_POSTHOG_KEY -u PUBLIC_ANALYTICS_ENABLED pnpm --filter @neutro/web exec wrangler dev --var ANALYTICS_ENABLED:false
 ```
 
-`--var` está en el CLI de `wrangler dev`: un par `clave:valor` que se inyecta al script. Hace falta porque `wrangler.jsonc` trae `ANALYTICS_ENABLED` en `"true"`. No está verificado que `--var` le gane a un `.dev.vars` que siga en el directorio. Por eso el archivo no puede estar. Leé la URL que imprime Wrangler. El puerto no está fijado en `wrangler.jsonc`. Si esta corrida garantiza que `POSTHOG_KEY` no está en el proceso ni en un archivo cargado, probá en local el status y los headers de `/f/N` y de una ruta con barra. Si no lo podés garantizar, no pidas `/f/N`. No sigas un `Location` hacia producción. No pidas `/ingest`. Marcalo como simulado.
+`--var` está en el CLI de `wrangler dev` (4.151.2 en esta base): un par `clave:valor` que se inyecta al script. Hace falta porque `wrangler.jsonc` trae `ANALYTICS_ENABLED` en `"true"`.
+
+Medido con Wrangler 4.151.2 en un Worker de prueba, no en `neutro-web`. El `wrangler.jsonc` de prueba traía `ANALYTICS_ENABLED` en `"true"`. El `.dev.vars` de prueba traía `ANALYTICS_ENABLED=from-file` y una key de prueba. No se pidió `/f/N` ni `/ingest`.
+
+- Con `--var ANALYTICS_ENABLED:false`, el log dijo `Using secrets defined in .dev.vars` y el body fue `{"analyticsEnabled":"false","posthogKeyPresent":true}`. `--var` pisó ese nombre en el archivo y en el jsonc. La key del archivo siguió cargada.
+- Sin `--var`, el body fue `{"analyticsEnabled":"from-file","posthogKeyPresent":true}`.
+- Sin `.dev.vars` y con `--var ANALYTICS_ENABLED:false`, el body fue `{"analyticsEnabled":"false","posthogKeyPresent":false}`. El log no dijo que usara `.dev.vars`.
+
+Eso no está medido en el Worker del repo. La pasada del producto igual no admite un `.dev.vars` real: la key se carga aunque el flag quede en `false`. Leé la URL que imprime Wrangler. El puerto no está fijado en `wrangler.jsonc`. Si esta corrida garantiza que `POSTHOG_KEY` no está en el proceso ni en un archivo cargado, probá en local el status y los headers de `/f/N` y de una ruta con barra. Si no lo podés garantizar, no pidas `/f/N`. No sigas un `Location` hacia producción. No pidas `/ingest`. Marcalo como simulado.
 
 ### PR visual
 
@@ -371,9 +414,9 @@ for (const route of routes) {
 }
 ```
 
-- Si el diff toca motion o el video de la home, sumá una captura con `prefers-reduced-motion: reduce`. El contrato de las `<source>` del video ya está en `video-section.test.ts`, que corre con `pnpm test`.
+- Si el diff toca motion o el video de la home, sumá una captura con `prefers-reduced-motion: reduce`. Nombre: `{slug}-reduce-{viewport}.png`. Si el diff no lo toca, la fila es `no aplica` con ese motivo. El contrato de las `<source>` del video ya está en `video-section.test.ts`, que corre con `pnpm test`.
 - Axe, teclado, foco y la pasada sin JavaScript los cubren los specs de Hamilton cuando existan. Si el archivo no está, esa fila queda NO VERIFICADO con motivo «spec de Hamilton ausente». No armes un segundo checklist paralelo.
-- Las trazas de esta pasada se copian igual, una por carpeta de `test-results`, como `trazas/<nombre-de-la-carpeta>-trace.zip`. No las pises.
+- Las trazas de las capturas se copian después, con el mismo `find`. Playwright ya vació `test-results/` al arrancar esa pasada: las del e2e tienen que estar en `evidencia/<pr>-<sha>/trazas/` desde antes. Si el destino existe, el sufijo es `-capturas` y no se pisa el zip del e2e.
 
 ### Video de un flujo completo
 
@@ -387,7 +430,9 @@ Sólo si el PR cambia un flujo completo (más de un paso con interacción). Un c
 
 Cambio crítico: todo lo que no sea visual ni CI/CD y pueda tocar base de datos, infraestructura crítica o seguridad.
 
-En este repo entran, entre otros: el Worker, `wrangler.jsonc`, headers, secretos, variables `PUBLIC_*` o `POSTHOG_KEY`, auth, permisos, datos, migraciones y dependencias que cambian la superficie. Un PR mezclado entra por la parte que no es visual. Docs de reglas, lint y workflows no entran.
+En este repo entran, entre otros: el Worker, `wrangler.jsonc`, headers, secretos, variables `PUBLIC_*` o `POSTHOG_KEY`, auth, permisos, datos, migraciones y dependencias que cambian la superficie. Un PR mezclado entra por la parte que no es visual.
+
+Docs de reglas y lint no cuentan como cambio crítico para sumar el verificador con Codex. Esos PR igual no se mergean hasta el OK explícito de Juan Gallegos.
 
 Si no aplica, en el informe: «Cambio crítico: no aplica», con una frase de motivo. El resto de esta sección no se corre.
 
@@ -446,7 +491,7 @@ Un solo `informe.md` por PR, con la plantilla.
 - Encabezado de identidad: número, URL, ramas, SHA completo de head y de base, cantidad de archivos (lockfile aparte) y la lista.
 - Hallazgos numerados. Cada uno: severidad (alta, media, baja), `archivo:líneas @ commit corto`, qué pasa, qué se esperaba, evidencia. El commit corto son 7 caracteres del commit donde están esas líneas, casi siempre el head. Si no hay hallazgos, la sección dice exactamente `sin hallazgos`. Si hay, reemplazá esa línea por la lista.
 - Tabla de puertas: puerta, comando, exit code, enlace al archivo de evidencia.
-- VERIFICADO: se ejecutó y se vio. NO VERIFICADO: no se corrió o no se pudo, con el motivo.
+- VERIFICADO, un bloque por ítem: comando ejecutado, salida literal o recorte, exit code. NO VERIFICADO, un bloque por ítem: comando ejecutado, salida literal o recorte, exit code, qué faltó y por qué.
 - En la evidencia, ocultá hosts de analytics, URLs de producción con parámetros y cualquier key: reemplazalos por `‹redactado›`. Los links públicos del sitio, sin parámetros, se dejan. Un `https://neutro.solutions/nosotros` queda. Un `https://neutro.solutions/` con query string no. Un host que contenga `posthog` no.
 - Secretos y datos personales como `‹redactado›`.
 - Sin veredicto de merge.
