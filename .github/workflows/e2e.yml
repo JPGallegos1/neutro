@@ -25,9 +25,6 @@ permissions:
 jobs:
   chromium:
     name: Chromium
-    permissions:
-      contents: read
-      actions: write
     runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:
