@@ -3,29 +3,36 @@ import { definePlugin, defineRule } from "@oxlint/plugins";
 const LINT_SUPPRESSION_RE =
   /^(?:eslint|oxlint)-(?:disable-next-line|disable-line|disable|enable)(?=$|\s)/;
 
-const LICENSE_BANG_RE =
-  /^!(?:[ \t]*@(?:license|preserve)\b|[\s\S]*[\s*]@(?:license|preserve)\b)/;
+const LICENSE_BANG_RE = /^![ \t\n\r*]*@(?:license|preserve)(?=$|\s)/;
+
+const TS_DIRECTIVE_RE = /^@ts-(?:expect-error|ignore|nocheck|check)(?=$|\s)/;
+
+const WEBPACK_MAGIC_RE =
+  /^webpack(?:ChunkName|Exclude|Exports|FetchPriority|Ignore|Include|Mode|Prefetch|Preload)(?=$|\s|:)/;
 
 const DIRECTIVE_BODY_RE =
-  /^(?:@ts-|@__PURE__|#__PURE__|@__NO_SIDE_EFFECTS__|#__NO_SIDE_EFFECTS__|prettier-ignore|oxfmt-ignore|@vite-ignore|webpack[A-Z]|v8 ignore|c8 ignore|istanbul ignore|@license\b|@preserve\b|sourceMappingURL|#\s*sourceMappingURL)/;
+  /^(?:@__PURE__|#__PURE__|@__NO_SIDE_EFFECTS__|#__NO_SIDE_EFFECTS__|prettier-ignore|oxfmt-ignore|@vite-ignore|v8 ignore|c8 ignore|istanbul ignore|@license|@preserve)(?=$|\s)|^(?:sourceMappingURL|#\s*sourceMappingURL)(?=$|\s|=)/;
 
 const TRIPLE_SLASH_DIRECTIVE_RE =
-  /^\/\s*<(?:reference|amd-module|amd-dependency)\b/;
+  /^\/\s*<(?:reference|amd-module|amd-dependency)(?=$|\s)/;
 
 const TOKEN_CHAR_RE = /[\w$]/;
 
 export function isAllowedCommentValue(rawValue, commentType) {
-  if (
-    (commentType === "Block" || commentType == null) &&
-    LICENSE_BANG_RE.test(rawValue)
-  ) {
+  if (commentType === "Block" && LICENSE_BANG_RE.test(rawValue)) {
     return true;
   }
   const value = rawValue.trim();
-  if (TRIPLE_SLASH_DIRECTIVE_RE.test(value)) {
+  if (commentType === "Line" && TRIPLE_SLASH_DIRECTIVE_RE.test(value)) {
     return true;
   }
   if (LINT_SUPPRESSION_RE.test(value)) {
+    return true;
+  }
+  if (TS_DIRECTIVE_RE.test(value)) {
+    return true;
+  }
+  if (WEBPACK_MAGIC_RE.test(value)) {
     return true;
   }
   return DIRECTIVE_BODY_RE.test(value);
