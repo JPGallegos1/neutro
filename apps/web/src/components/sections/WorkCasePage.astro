@@ -131,7 +131,7 @@ const related = relatedWorkProjects(workCase.slug, 3);
         </div>
         <ul class="work-case__related-grid">
           {related.map((project) => (
-            <WorkCard project={project} />
+            <WorkCard project={project} titleAs="h3" />
           ))}
         </ul>
       </div>
