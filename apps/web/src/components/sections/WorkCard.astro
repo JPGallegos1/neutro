@@ -4,9 +4,10 @@ import type { WorkProject } from "@/data/work";
 interface Props {
   project: WorkProject;
   titleAs?: "h2" | "h3";
+  priority?: boolean;
 }
 
-const { project, titleAs = "h3" } = Astro.props;
+const { project, titleAs = "h3", priority = false } = Astro.props;
 const TitleTag = titleAs;
 ---
 
@@ -17,11 +18,11 @@ const TitleTag = titleAs;
         class="work-card__image"
         src={project.imageSrc}
         alt=""
-        width="720"
-        height="405"
-        loading="eager"
+        width="1440"
+        height="810"
+        loading={priority ? "eager" : "lazy"}
         decoding="async"
-        fetchpriority="high"
+        fetchpriority={priority ? "high" : undefined}
       />
       <span class="work-card__tag">{project.tag}</span>
     </div>
