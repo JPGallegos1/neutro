@@ -35,17 +35,21 @@ Si una salida trae un secreto, reemplazalo por `‹redactado›` antes de guarda
 
 ## Preparación
 
-La versión la mandan los archivos del repo, no la máquina. Lo primero, parado en la raíz del checkout original y antes de cualquier clone:
+La versión la mandan los archivos del repo, no la máquina. Lo primero, definí las tres variables del PR. `$PR` es el número. `$BASE` y `$HEAD` son los SHA de 40 caracteres de la base y del head. Si `$PR` está vacío, frená: si no, la carpeta queda `evidencia/-<sha>`.
 
 ```bash
+: "${PR:?PR vacío. Definí PR con el número del pull request.}"
+: "${BASE:?BASE vacío. Definí BASE con el SHA de la base del PR.}"
+: "${HEAD:?HEAD vacío. Definí HEAD con el SHA del head del PR.}"
 origen="$(pwd)"
-sha7="$(git -C "$origen" rev-parse HEAD | cut -c1-7)"
+sha7="$(git -C "$origen" rev-parse "$HEAD" | cut -c1-7)"
 evidencia_abs="$origen/evidencia/${PR}-${sha7}"
 mkdir -p "$evidencia_abs/trazas"
 cd "$origen"
+workdir="$origen"
 ```
 
-`$origen` es esa raíz. `"$evidencia_abs"` es la carpeta absoluta del informe. El `find` de entorno corre ahí, antes de decidir la copia.
+`$origen` es la raíz del checkout original y no cambia. `$workdir` arranca igual a `$origen`. No lo reasignes más adelante. `"$evidencia_abs"` es la carpeta absoluta del informe. El `find` de entorno corre en `$origen`, antes de decidir si la corrida se muda.
 
 1. Node: el contenido de [`.node-version`](../../../.node-version). Al escribir esta skill es `24.18.0`. `node -v` tiene que ser esa versión, con la `v` adelante.
 2. pnpm: el campo `packageManager` de [`package.json`](../../../package.json). Al escribir esta skill es `pnpm@12.14.0`. También está pinneado en `engines.pnpm`.
@@ -59,7 +63,7 @@ pnpm --version
 ```
 
 4. Si Node o pnpm no coinciden, frená. El resto de las puertas queda en NO VERIFICADO con ese motivo. No sigas con otra versión.
-5. npm y yarn no se usan. No regeneres el lockfile. La instalación de la puerta 2 es la única de la corrida, va con `--frozen-lockfile` y corre en `$workdir`. Si hay copia descartable, no hay un segundo install en el checkout original.
+5. npm y yarn no se usan. No regeneres el lockfile. La puerta 2 instala una vez, con `--frozen-lockfile`, en `$workdir`. La puerta 13 instala otra vez, dentro de `$copia`, porque ese clone no trae `node_modules`. No son la misma instalación.
 6. Nombres de archivos de entorno, en la raíz y en `apps/web`. Una ruta relativa por línea, con la carpeta. No abras el contenido. No uses `cat` ni `source`. No vuelques el entorno. La salida va a `"$evidencia_abs/00-entorno-nombres.txt"`.
 
 ```bash
@@ -78,7 +82,7 @@ En el repo están `apps/web/.env.example` y `apps/web/.dev.vars.example`. Esos d
 
 `apps/web/wrangler.jsonc` trae `ANALYTICS_ENABLED` en `"true"`. El Worker registra `captureQrScanned` en `ctx.waitUntil` antes de devolver el redirect, y sólo si `isServerAnalyticsEnabled(env)` y `env.POSTHOG_KEY` (`apps/web/worker/index.ts`, `apps/web/worker/posthog.ts`). `isServerAnalyticsEnabled` pide `ANALYTICS_ENABLED === "true"` y la key. Sin `POSTHOG_KEY` no se manda `qr_scanned`. Con la key y el flag en `"true"`, sí. No está medido, en el Worker `neutro-web`, si sin `.dev.vars` Wrangler carga un `.env`.
 
-Si aparece un archivo que no es uno de los dos ejemplos, seguí en la copia descartable. No borres los del árbol original y no borres los `.example`. Si no armás esa copia, el build sin analytics y todo lo que dependa del Worker local quedan NO VERIFICADO. Motivo: hay un archivo de entorno y no se garantizó que no entre en la corrida.
+Si aparece un archivo que no es uno de los dos ejemplos, asigná `$workdir` una sola vez al clone de «Directorio de cada bloque». No borres los archivos del árbol original y no borres los `.example`. Si no armás ese clone, el build sin analytics y todo lo que dependa del Worker local quedan NO VERIFICADO. Motivo: hay un archivo de entorno y no se garantizó que no entre en la corrida.
 
 No exportes `POSTHOG_KEY`. No pongas `CLOUDFLARE_INCLUDE_PROCESS_ENV=true`.
 
@@ -91,7 +95,7 @@ Estas restricciones se respetan al verificar y al proponer un arreglo. El detall
 - pnpm, versiones exactas (`saveExact: true`) y `strictPeerDependencies: true`. `minimumReleaseAgeExclude` en `pnpm-workspace.yaml` puede rechazar una dependencia nueva muy reciente. El valor de la antigüedad mínima no está verificado en esta skill: si el install falla por eso, pegá la salida y no fuerces el lockfile.
 - El sitio es estático: `output: "static"` en `apps/web/astro.config.mjs`, `build.format: "file"`, `trailingSlash: "never"`. El Worker `neutro-web` (`apps/web/worker/index.ts`, `run_worker_first`) ve cada request antes que los assets. Sirve `/f/N`, `/t`, `/ingest` y el redirect de barra final. No hay rutas SSR ni un adaptador nuevo.
 - `astro preview` no ejecuta el Worker. Con el build en formato file, `/nosotros/` con barra responde 404. Eso no es un hallazgo del producto: el 301 lo hace el Worker. Las rutas de preview van sin barra final.
-- El Worker local, sólo si el diff toca `apps/web/worker/` o el mapeo QR de `packages/core`, se levanta con el mismo comando de la sección Playwright: `env -u POSTHOG_KEY -u PUBLIC_POSTHOG_KEY -u PUBLIC_ANALYTICS_ENABLED pnpm --filter @neutro/web exec wrangler dev --var ANALYTICS_ENABLED:false`. Antes no puede haber un `.env*` ni un `.dev.vars*` real, o la corrida es la copia descartable. No lo levantes a la vez que el preview de Playwright (puerto `4173`). No uses un script de la raíz que vuelva a buildear y llame a `wrangler dev` sin `--var`.
+- El Worker local, sólo si el diff toca `apps/web/worker/` o el mapeo QR de `packages/core`, se levanta con el mismo comando de la sección Playwright: `env -u POSTHOG_KEY -u PUBLIC_POSTHOG_KEY -u PUBLIC_ANALYTICS_ENABLED pnpm --filter @neutro/web exec wrangler dev --var ANALYTICS_ENABLED:false`. Antes no puede haber un `.env*` ni un `.dev.vars*` real, o `$workdir` es el clone sin esos archivos. No lo levantes a la vez que el preview de Playwright (puerto `4173`). No uses un script de la raíz que vuelva a buildear y llame a `wrangler dev` sin `--var`.
 - Analytics apagado en la corrida ([ADR 0001](../../../docs/adr/0001-analytics-off-by-default.md)). Hacen falta las dos variables de build para prender el SDK en el cliente: `PUBLIC_POSTHOG_KEY` y `PUBLIC_ANALYTICS_ENABLED` igual a `true`. En el Worker hacen falta `POSTHOG_KEY` y `ANALYTICS_ENABLED`. `wrangler.jsonc` trae `ANALYTICS_ENABLED` en `"true"` para producción. Sin `POSTHOG_KEY` no sale `qr_scanned`. No copies el secret de producción.
 - La base del diff es la base declarada del PR, no siempre `main`. `staging` todavía no existe ([ADR 0006](../../../docs/adr/0006-workers-builds-delivery.md), Propuesto).
 - UI, motion e Impeccable están en [`AGENTS.md`](../../../AGENTS.md). `impeccable detect` lo corre quien abre el PR. No es una puerta de este informe. No commitees `.impeccable/`, `PRODUCT.md` ni `DESIGN.md`.
@@ -102,25 +106,47 @@ Estas restricciones se respetan al verificar y al proponer un arreglo. El detall
 
 Adentro: `informe.md`, las salidas `.txt`, capturas `.png`, una traza por pasada en `trazas/` y, si aplica, `.webm`.
 
-## Copia descartable
+## Directorio de cada bloque
 
-Hace falta si hay un `.env*` o un `.dev.vars*` que no sea uno de los dos ejemplos, o si la puerta 13 provoca un fallo. Si no hace falta, `workdir="$origen"`.
+`$workdir` se asigna una sola vez, acá, y no se vuelve a asignar. La puerta 13 no lo toca.
 
-Si hace falta, desde `$origen`:
+Si el `find` no vio un `.env*` ni un `.dev.vars*` fuera de los dos ejemplos, `$workdir` sigue siendo `$origen`.
+
+Si vio alguno, la corrida principal se muda a un clone y `$workdir` queda en ese path. Es la única asignación:
+
+```bash
+workdir="$(mktemp -d "${TMPDIR:-/tmp}/neutro-corrida.XXXXXX")"
+git clone --local --no-hardlinks "$origen" "$workdir"
+```
+
+Ese clone no trae `node_modules`, `dist`, `evidencia/` ni un `.env*` o `.dev.vars*` ignorado. No enlaces el `node_modules` de `$origen`.
+
+| Bloque                                                                 | Directorio                       |
+| ---------------------------------------------------------------------- | -------------------------------- |
+| `find` de entorno, identidad                                           | `$origen`                        |
+| Puerta 2, lint, reglas de lint, check, test, build, Playwright, trazas | `$workdir`                       |
+| Puerta 13                                                              | `$copia`, y al terminar se borra |
+
+Cada salida se escribe en `"$evidencia_abs"`, con esa ruta absoluta. `NEUTRO_EVIDENCIA` es `"$evidencia_abs"`. No uses una `evidencia/` relativa: dentro de un clone se iría con el `rm`.
+
+Las trazas se leen de `"$workdir/apps/web/test-results"` y se copian a `"$evidencia_abs/trazas"` antes de borrar nada.
+
+`$copia` es sólo la puerta 13. No hagas `workdir="$copia"`. Después de `rm -rf "$copia"`, `cd "$workdir"` sigue siendo el directorio de Playwright y de las trazas.
+
+Si `$workdir` no es `$origen`, borralo recién después de esa copia de trazas. No borres `"$evidencia_abs"` ni archivos de entorno de `$origen` ni los `.example`.
+
+## Copia de la puerta 13
+
+Hace falta sólo para provocar el fallo de una puerta nueva. Desde cualquier directorio:
 
 ```bash
 copia="$(mktemp -d "${TMPDIR:-/tmp}/neutro-copia.XXXXXX")"
-git clone --local --no-hardlinks "$origen" "$copia"
-workdir="$copia"
+git clone --local --no-hardlinks "$workdir" "$copia"
+cd "$copia"
+pnpm install --frozen-lockfile
 ```
 
-`$workdir` es el directorio de trabajo de todas las puertas: `cd "$workdir"` antes de install, lint, test, build y Playwright. El clone no trae `node_modules`, `dist`, `evidencia/` ni un `.env*` o `.dev.vars*` ignorado. El `pnpm install --frozen-lockfile` y el build corren ahí. Esa instalación es la única. No instales otra vez en `$origen`. No enlaces ni copies su `node_modules`.
-
-Cada salida se escribe en `"$evidencia_abs"`, con esa ruta absoluta, nunca en una `evidencia/` relativa. Dentro de `$copia` la relativa se iría con `rm -rf "$copia"`. `NEUTRO_EVIDENCIA` es `"$evidencia_abs"`.
-
-Las trazas se leen de `"$workdir/apps/web/test-results"` y se copian a `"$evidencia_abs/trazas"` antes de borrar la copia.
-
-Después de esa copia, `rm -rf "$copia"`. No borres `"$evidencia_abs"` ni archivos de entorno de `$origen` ni los `.example`.
+Ese install es el de `$copia`, no el de la puerta 2. El clone no trae `node_modules`. No reasignes `$workdir`. La salida va a `"$evidencia_abs/13-falla-<puerta>.txt"`. Después, `rm -rf "$copia"`. El `.txt` queda en `"$evidencia_abs"`.
 
 Nombres de salida:
 
@@ -149,11 +175,14 @@ Nombres de salida:
 Guardá el exit code del comando, no el de un pipe. Patrón:
 
 ```bash
-out="$evidencia_abs/03-lint.txt"
-pnpm lint > "$out" 2>&1
+cd "$workdir"
+out="$evidencia_abs/NN-puerta.txt"
+comando > "$out" 2>&1
 code=$?
 printf 'exit:%s\n' "$code" >> "$out"
 ```
+
+`out` es de esa puerta. Lint usa `03-lint.txt`, las reglas `04-lint-rules.txt`, check `05-check.txt` y test `06-test.txt`. No reutilices el `out` de otra puerta.
 
 En el informe, las últimas líneas del `.txt` y el exit. El log completo queda en el archivo.
 
@@ -163,9 +192,10 @@ Si la preparación falló, no corras estas puertas. Anotalas como NO VERIFICADO.
 
 ### 1. Identidad
 
-Comando de sólo lectura:
+Directorio: `$origen`. Comando de sólo lectura:
 
 ```bash
+cd "$origen"
 gh pr view "$PR" --json number,url,title,headRefName,baseRefName,headRefOid,baseRefOid,body
 ```
 
@@ -186,23 +216,55 @@ git status --porcelain -- pnpm-lock.yaml package-lock.json yarn.lock bun.lock bu
 git diff --exit-code -- pnpm-lock.yaml
 ```
 
-El directorio es `$workdir`: `$origen` si no hay copia, `$copia` si la hay. La salida va a `"$evidencia_abs/02-install.txt"`. Exit de `pnpm install`: `0`. Las otras dos salidas tienen que venir vacías (el `git diff` también en `0`). Si el install reescribe el lockfile, la puerta falla aunque pnpm haya salido en `0`. Esta es la única instalación de la corrida.
+El directorio es `$workdir`. La salida va a `"$evidencia_abs/02-install.txt"`. Exit de `pnpm install`: `0`. Las otras dos salidas tienen que venir vacías (el `git diff` también en `0`). Si el install reescribe el lockfile, la puerta falla aunque pnpm haya salido en `0`. Este install es el de `$workdir`. La puerta 13 instala aparte, en `$copia`.
 
 ### 3. `pnpm lint`
 
-`oxlint -A all -D neutro/no-comments .`. En este repo, lint es la política de comentarios. Exit esperado: `0`.
+Directorio: `$workdir`. `oxlint -A all -D neutro/no-comments .`. En este repo, lint es la política de comentarios. Exit esperado: `0`.
+
+```bash
+cd "$workdir"
+out="$evidencia_abs/03-lint.txt"
+pnpm lint > "$out" 2>&1
+code=$?
+printf 'exit:%s\n' "$code" >> "$out"
+```
 
 ### 4. `pnpm test:lint-rules`
 
-Corre `tools/oxlint/no-comments.test.js`. Exit esperado: `0`.
+Directorio: `$workdir`. Corre `tools/oxlint/no-comments.test.js`. Exit esperado: `0`.
+
+```bash
+cd "$workdir"
+out="$evidencia_abs/04-lint-rules.txt"
+pnpm test:lint-rules > "$out" 2>&1
+code=$?
+printf 'exit:%s\n' "$code" >> "$out"
+```
 
 ### 5. `pnpm check`
 
-Typecheck (turbo: Astro, el Worker y `packages/core`). Exit esperado: `0`.
+Directorio: `$workdir`. Typecheck (turbo: Astro, el Worker y `packages/core`). Exit esperado: `0`.
+
+```bash
+cd "$workdir"
+out="$evidencia_abs/05-check.txt"
+pnpm check > "$out" 2>&1
+code=$?
+printf 'exit:%s\n' "$code" >> "$out"
+```
 
 ### 6. `pnpm test`
 
-`turbo run test`. Corre los tests de `@neutro/web` y los de `@neutro/core`. Exit esperado: `0`.
+Directorio: `$workdir`. `turbo run test`. Corre los tests de `@neutro/web` y los de `@neutro/core`. Exit esperado: `0`.
+
+```bash
+cd "$workdir"
+out="$evidencia_abs/06-test.txt"
+pnpm test > "$out" 2>&1
+code=$?
+printf 'exit:%s\n' "$code" >> "$out"
+```
 
 El job Check de CI, en la base de Playwright, corre `pnpm --filter @neutro/web test`. Un CI verde no reemplaza esta puerta: la skill pide el `pnpm test` de la raíz. Si CI no corrió core, anotalo en la tabla de CI y no lo marques como verificado por el remoto.
 
@@ -225,7 +287,7 @@ rg -o -i -F posthog apps/web/dist | wc -l
 Si `rg` no está, el mismo criterio con `grep -R -i -F -o posthog apps/web/dist`.
 
 - Exit del build: `0`.
-- Esta puerta cuenta si la preparación no encontró un `.env*` ni un `.dev.vars*` real, o si la corrida es la copia sin esos archivos. Si no, queda NO VERIFICADO.
+- Esta puerta cuenta si la preparación no encontró un `.env*` ni un `.dev.vars*` real, o si `$workdir` es el clone sin esos archivos. Si no, queda NO VERIFICADO.
 - El conteo se anota siempre. Un número mayor que cero no falla solo esta puerta.
 - La búsqueda lleva `-i` porque el texto legal escribe `PostHog`. Si hay un chunk, la cadena puede ir en minúsculas.
 - Las cifras de esa medición están en «Mediciones en la VM del agente». Cada corrida anota sus propios archivos. Esos números no son un piso del PR que se verifica.
@@ -308,13 +370,13 @@ Checks de esta base: `Lint`, `Check`, `Max 10 files`, y el job `Chromium` del wo
 
 Sólo para una puerta que este PR agrega o cambia (un workflow, una regla de lint, un script de `tools/ci`, un spec que pasa a ser contrato). Si el PR no toca ninguna puerta, la fila es `no aplica` y el motivo es ese. No fabriques un fallo para lint o para el tope de 10 en un PR que no los cambia.
 
-Procedimiento:
+Procedimiento. El directorio es `$copia`. No asignes ese path a `$workdir`.
 
-1. Copia descartable, con el comando de la sección «Copia descartable». No es un remote. Queda fuera de `evidencia/`.
-2. Provocá el fallo mínimo de esa puerta. No pushees. No uses producción.
-3. Corré sólo esa puerta. El exit tiene que ser distinto de `0`.
-4. Guardá la salida en `13-falla-<puerta>.txt`, con el exit.
-5. Borrá la copia. Dejá el `.txt`.
+1. Creá `$copia` con el comando de «Copia de la puerta 13». El `pnpm install --frozen-lockfile` de ese bloque corre en `$copia`.
+2. Provocá el fallo mínimo de esa puerta, adentro de `$copia`. No pushees. No uses producción.
+3. Corré sólo esa puerta, con `cd "$copia"`. El exit tiene que ser distinto de `0`.
+4. Guardá la salida en `"$evidencia_abs/13-falla-<puerta>.txt"`, con el exit.
+5. `rm -rf "$copia"`. El `.txt` queda en `"$evidencia_abs"`. Playwright y las trazas siguen con `cd "$workdir"`.
 
 Provocación mínima, cuando la puerta es una de estas:
 
@@ -345,35 +407,46 @@ pnpm --filter @neutro/web exec playwright test --trace on
 
 - Un solo browser: Chromium. No instales el resto.
 - Exit esperado: `0`. Salida en `"$evidencia_abs/14-e2e.txt"`.
-- Playwright vacía `apps/web/test-results/` al arrancar una corrida nueva. Antes de la pasada de capturas, copiá cada traza del e2e a `"$evidencia_abs/trazas"`. El nombre es `<nombre>-<pasada>-trace.zip`. `<nombre>` es el directorio de `test-results` que contiene ese zip. La pasada del e2e es `1`. Si ese archivo ya existe, la puerta sale `1` y no se pisa.
+- El directorio es `$workdir`. Playwright vacía `apps/web/test-results/` al arrancar una corrida nueva. Antes de la pasada de capturas, copiá cada traza del e2e a `"$evidencia_abs/trazas"`. El nombre es `<nombre>-<pasada>-trace.zip`. `<nombre>` es el directorio de `test-results` que contiene ese zip. `$pasada` entra al bloque desde afuera: `1` para el e2e, `2` para las capturas, y el número siguiente para otra pasada. El bloque no le asigna `1`. Si no hay ninguna traza, o si el destino ya existe, la puerta sale `1` y no pisa el archivo.
 
 ```bash
 cd "$workdir"
-pasada=1
 traza_exit=0
-while IFS= read -r zip; do
-  nombre="$(basename "$(dirname "$zip")")"
-  dest="$evidencia_abs/trazas/${nombre}-${pasada}-trace.zip"
-  if [ -e "$dest" ]; then
-    printf 'traza ya existe: %s\n' "$dest" >> "$evidencia_abs/14-e2e.txt"
+traza_n=0
+if [ -z "${pasada:-}" ]; then
+  printf 'pasada vacía\n' >> "$evidencia_abs/14-e2e.txt"
+  traza_exit=1
+else
+  while IFS= read -r zip; do
+    traza_n=$((traza_n + 1))
+    nombre="$(basename "$(dirname "$zip")")"
+    dest="$evidencia_abs/trazas/${nombre}-${pasada}-trace.zip"
+    if [ -e "$dest" ]; then
+      printf 'traza ya existe: %s\n' "$dest" >> "$evidencia_abs/14-e2e.txt"
+      traza_exit=1
+    else
+      cp "$zip" "$dest"
+    fi
+  done < <(find "$workdir/apps/web/test-results" -name trace.zip -print)
+  if [ "$traza_n" -eq 0 ]; then
+    printf 'no hay traza para la pasada %s\n' "$pasada" >> "$evidencia_abs/14-e2e.txt"
     traza_exit=1
-  else
-    cp "$zip" "$dest"
   fi
-done < <(find "$workdir/apps/web/test-results" -name trace.zip -print)
+fi
 printf 'exit:%s\n' "$traza_exit" >> "$evidencia_abs/14-e2e.txt"
 test "$traza_exit" -eq 0
 ```
 
 - Descomprimí cada traza ya copiada y buscá `posthog` y `/ingest` en los archivos de red. El conteo va a `"$evidencia_abs/08-posthog-red.txt"`. Cero es lo esperado. Antes de guardar esa salida, aplicá la regla de ocultar URLs.
 - Rutas del humo, sin barra final. Una 404 en `/nosotros/` contra este servidor no es hallazgo.
-- Si el diff toca el Worker o el mapeo QR: cerrá el preview de Playwright. No vuelvas a buildear. El build ya está en la puerta 7. Hace falta la previa de la preparación: ningún `.env*` ni `.dev.vars*` real, o la copia descartable. El comando es el mismo de las restricciones:
+- Si el diff toca el Worker o el mapeo QR: cerrá el preview de Playwright. No vuelvas a buildear. El build ya está en la puerta 7. Hace falta la previa de la preparación: ningún `.env*` ni `.dev.vars*` real, o `$workdir` es el clone sin esos archivos. El comando es el mismo de las restricciones:
 
 ```bash
+cd "$workdir"
 env -u POSTHOG_KEY -u PUBLIC_POSTHOG_KEY -u PUBLIC_ANALYTICS_ENABLED pnpm --filter @neutro/web exec wrangler dev --var ANALYTICS_ENABLED:false
 ```
 
-El comando corre en `$workdir`. `--var` está en el CLI de `wrangler dev`: un par `clave:valor` que se inyecta al script. Hace falta porque `wrangler.jsonc` trae `ANALYTICS_ENABLED` en `"true"`. En la medición, `--var` pisó el flag y la key de un `.dev.vars` de prueba siguió cargada. Por eso esta pasada no admite un `.dev.vars` real. La receta y los bodies están en «Mediciones en la VM del agente». Eso no está medido en el Worker del repo.
+El comando corre en `$workdir`, con `cd "$workdir"`. `--var` está en el CLI de `wrangler dev`: un par `clave:valor` que se inyecta al script. Hace falta porque `wrangler.jsonc` trae `ANALYTICS_ENABLED` en `"true"`. Una medición anterior vio que un `.dev.vars` de prueba dejaba la key cargada aunque `--var` pusiera el flag en `false`. Por eso esta pasada no admite un `.dev.vars` real y no lo crea. La receta está en «Mediciones en la VM del agente». Eso no está medido en el Worker del repo.
 
 Leé la URL que imprime Wrangler. El puerto no está fijado en `wrangler.jsonc`. Si esta corrida garantiza que `POSTHOG_KEY` no está en el proceso ni en un archivo cargado, probá en local el status y los headers de `/f/N` y de una ruta con barra. Si no lo podés garantizar, no pidas `/f/N`. No sigas un `Location` hacia producción. No pidas `/ingest`. Marcalo como simulado.
 
@@ -431,23 +504,29 @@ for (const route of routes) {
 
 - Si el diff toca motion o el video de la home, sumá una captura con `prefers-reduced-motion: reduce`. Nombre: `{slug}-reduce-{viewport}.png`. Si el diff no lo toca, la fila es `no aplica` con ese motivo. El contrato de las `<source>` del video ya está en `video-section.test.ts`, que corre con `pnpm test`.
 - Axe, teclado, foco y la pasada sin JavaScript los cubren los specs de Hamilton cuando existan. Si el archivo no está, esa fila queda NO VERIFICADO con motivo «spec de Hamilton ausente». No armes un segundo checklist paralelo.
-- Las trazas de las capturas se copian después, con el mismo bucle y `pasada=2`, a `"$evidencia_abs/trazas"`. Playwright ya vació `test-results/` al arrancar esa pasada: las del e2e tienen que estar copiadas desde antes. Una pasada posterior usa el número siguiente. Si `<nombre>-<pasada>-trace.zip` ya existe, esa copia sale `1` y no pisa el archivo.
+- Las trazas de las capturas se copian después, desde `$workdir`, con el mismo bucle. Antes del bucle, `pasada=2`. Playwright ya vació `test-results/` al arrancar esa pasada: las del e2e tienen que estar en `"$evidencia_abs/trazas"` desde antes. Una pasada posterior asigna el número siguiente y usa el mismo bucle. Si no hay trazas, o si `<nombre>-<pasada>-trace.zip` ya existe, esa copia sale `1` y no pisa el archivo.
 
 ### Video de un flujo completo
 
 Sólo si el PR cambia un flujo completo (más de un paso con interacción). Un cambio visual estático no lleva video.
 
 - Config efímero, sin comentarios, que toma `apps/web/playwright.config.ts` y pone `use.video` en `"on"` y `use.trace` en `"on"`. Conservá el `webServer` del config de la base.
-- Corré el flujo, copiá el `.webm` a `flujo.webm` en la evidencia, borrá el config y el spec.
+- Corré el flujo desde `$workdir`, copiá el `.webm` a `"$evidencia_abs/flujo.webm"`, borrá el config y el spec.
 - Si no cambia un flujo, la fila es `no aplica`.
 
 ## Cambio crítico
 
 Cambio crítico: todo lo que no sea visual ni CI/CD y pueda tocar base de datos, infraestructura crítica o seguridad.
 
+«Toque» quiere decir que el diff modifica el contenido de ese archivo o de esa configuración. Mencionarlo en prosa no cuenta.
+
 En este repo entran, entre otros: el Worker, `wrangler.jsonc`, headers, secretos, variables `PUBLIC_*` o `POSTHOG_KEY`, auth, permisos, datos, migraciones y dependencias que cambian la superficie. Un PR mezclado entra por la parte que no es visual.
 
-Docs de reglas y lint no suman el verificador con Codex, salvo que el diff toque secretos, tokens, permisos de workflows, protección de rama, env vars, CI o deploy. En ese caso sí lo suman. El resto de la sección de cambio crítico se corre igual en esos PR.
+Docs de reglas y lint no suman el verificador con Codex, salvo que el diff modifique el contenido de secretos, tokens, permisos de workflows, protección de rama o env vars. En ese caso sí lo suman. CI y deploy son CI/CD: esta regla no los usa para sumar el verificador. El resto de la sección de cambio crítico se corre igual en esos PR.
+
+Punto abierto para Juan: si un PR que sólo cambia CI suma el verificador con Codex.
+
+Esta regla de exclusión está propuesta y espera el OK de Juan Gallegos.
 
 Si el cambio crítico no aplica, en el informe: «Cambio crítico: no aplica», con una frase de motivo. El resto de esta sección no se corre. Un PR de docs de reglas o de lint no usa esa salida: la sección se corre, y el verificador con Codex entra sólo con la excepción de arriba.
 
@@ -521,9 +600,10 @@ Severidad, para no dispersar:
 
 No es una puerta. No la corras sobre el PR que estás verificando. Es la receta de lo medido el 2026-10-26 en la VM del agente. Wrangler 4.151.2. Astro 7.4.1. Node 24.18.0. pnpm 12.14.0. Turbo 2.11.9. Esas cifras no son un piso de otro PR.
 
-Build limpio, desde la raíz, con sólo `apps/web/.env.example` y `apps/web/.dev.vars.example`:
+Los conteos 4, 6 y 10 salieron del commit `10c8231a53d42d29edf28978dee0fea3bc837f3a`. Antes del build, en esa VM ya estaba el `pnpm install --frozen-lockfile`. Para repetirlo, desde un clone de ese commit y con sólo `apps/web/.env.example` y `apps/web/.dev.vars.example`:
 
 ```bash
+pnpm install --frozen-lockfile
 env -u PUBLIC_POSTHOG_KEY -u PUBLIC_ANALYTICS_ENABLED pnpm exec turbo run build --filter=@neutro/web --force
 rg -l -i -F posthog apps/web/dist
 rg -o -i -F posthog apps/web/dist/cookies.html | wc -l
@@ -545,22 +625,23 @@ rm -f apps/web/.env.production
 
 Las cuatro: exit 0 del build y `rg -l` exit 0, un `.js` en `apps/web/dist/_astro`. No está medido si una variable que ya está en el proceso le gana al archivo.
 
-Wrangler, en un directorio temporal, no en `neutro-web`. No pidas `/f/N` ni `/ingest`. No pegues la key.
+Wrangler, en un directorio temporal, no en `neutro-web`. No crees `.dev.vars`. No pidas `/f/N` ni `/ingest`. No pegues la key. El puerto sale libre en el momento. El binario es el `wrangler` 4.151.2 del repo, después del install de arriba.
 
 ```bash
 probe="$(mktemp -d "${TMPDIR:-/tmp}/neutro-var-probe.XXXXXX")"
+wrangler="$origen/apps/web/node_modules/.bin/wrangler"
+puerto="$(python3 -c 'import socket; s=socket.socket(); s.bind(("127.0.0.1", 0)); print(s.getsockname()[1]); s.close()')"
 printf '%s\n' 'export default { async fetch(_request, env) { return Response.json({ analyticsEnabled: env.ANALYTICS_ENABLED ?? null, posthogKeyPresent: Boolean(env.POSTHOG_KEY) }); } };' > "$probe/index.js"
 printf '%s\n' '{ "name": "var-probe", "main": "index.js", "compatibility_date": "2026-10-01", "vars": { "ANALYTICS_ENABLED": "true" } }' > "$probe/wrangler.jsonc"
-printf '%s\n' 'ANALYTICS_ENABLED=from-file' 'POSTHOG_KEY=phc_probe_not_a_real_key' > "$probe/.dev.vars"
+cd "$probe"
+env -u POSTHOG_KEY "$wrangler" dev --port "$puerto" --ip 127.0.0.1 --var ANALYTICS_ENABLED:false --var POSTHOG_KEY:phc_probe_not_a_real_key
 ```
 
-Desde `$probe`, con el `wrangler` 4.151.2 del repo (`apps/web/node_modules/.bin/wrangler`):
+Esa forma, el 2026-10-26, eligió el puerto 53809. El log no dijo que usara `.dev.vars`. `curl -sS "http://127.0.0.1:${puerto}/"` devolvió `{"analyticsEnabled":"false","posthogKeyPresent":true}`. `--var` metió la key de prueba. El flag quedó en `false`.
 
-- `--port 8791 --var ANALYTICS_ENABLED:false`. El log dijo `Using secrets defined in .dev.vars`. `curl -sS http://127.0.0.1:8791/` devolvió `{"analyticsEnabled":"false","posthogKeyPresent":true}`.
-- El mismo puerto, sin `--var`. El body fue `{"analyticsEnabled":"from-file","posthogKeyPresent":true}`.
-- Sin `.dev.vars`, `--port 8792 --var ANALYTICS_ENABLED:false`. El body fue `{"analyticsEnabled":"false","posthogKeyPresent":false}`.
+La segunda pasada es el mismo `wrangler dev`, otro puerto libre, sólo `--var ANALYTICS_ENABLED:false` y con `env -u POSTHOG_KEY`. Eligió el puerto 45061. El body fue `{"analyticsEnabled":"false","posthogKeyPresent":false}`. El log listó sólo el binding `ANALYTICS_ENABLED`.
 
-`--var` pisó el flag del archivo y del jsonc. La key del archivo siguió cargada. No está medido en el Worker del repo. Borrá `$probe` al terminar.
+Una corrida anterior del mismo día usó un `.dev.vars` temporal y vio la key cargada aunque `--var` pusiera el flag en `false`. Esa receta no se repite: esta skill no crea `.dev.vars` con `POSTHOG_KEY`. No está medido en el Worker del repo. Borrá `$probe` al terminar.
 
 ## Arreglos
 
