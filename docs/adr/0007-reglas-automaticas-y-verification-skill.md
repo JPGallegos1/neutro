@@ -12,12 +12,12 @@ Lo que ya está en el repo, y esta decisión no vuelve a implementar:
 
 - Tope de 10 archivos: job `Max 10 files`, `tools/ci/check-pr-file-count.mjs` ([ADR 0004](0004-max-pr-files.md)).
 - Sin comentarios en JS, TS y en el frontmatter y los `<script>` de Astro: `pnpm lint` y `pnpm test:lint-rules` ([ADR 0003](0003-no-source-comments.md)). Ese ADR limita el alcance a eso. El HTML de plantilla y el CSS quedan afuera de oxlint, y no afirma que los haga cumplir. No habla de YAML ni de un campo `razon`.
-- CI de `Lint`, `Check` y `Build` en `.github/workflows/ci.yml`, en `main` (`e71f94bc58b0bd93757b3ee0f146cce81b02ab1a`). `Lint` corre `pnpm lint` y `pnpm test:lint-rules`. `Check` corre `pnpm check` y `pnpm test`. En la raíz, `pnpm test` es `turbo run test` (el `test` de `@neutro/web` y el de `@neutro/core`). `Build` corre `pnpm build` (`turbo run build --filter=@neutro/web`; en `apps/web/package.json` el script es `astro build`) y no hace `unset` ni `env -u`. El workflow `e2e` hace `unset PUBLIC_POSTHOG_KEY` y `unset PUBLIC_ANALYTICS_ENABLED`, corre `pnpm build` y después Chromium.
+- CI de `Lint`, `Check` y `Build`, como está escrito en [`.github/workflows/ci.yml`](../../.github/workflows/ci.yml). `Lint` corre `pnpm lint` y `pnpm test:lint-rules`. `Check` corre `pnpm check` y `pnpm test`. En la raíz, `pnpm test` es `turbo run test` (el `test` de `@neutro/web` y el de `@neutro/core`). `Build` corre `pnpm build` (`turbo run build --filter=@neutro/web`; en `apps/web/package.json` el script es `astro build`) y no hace `unset` ni `env -u`. El workflow `e2e` hace `unset PUBLIC_POSTHOG_KEY` y `unset PUBLIC_ANALYTICS_ENABLED`, corre `pnpm build` y después Chromium.
 - Analytics apagado salvo las dos variables de build ([ADR 0001](0001-analytics-off-by-default.md)). El Worker hace `/f/N`, `/t`, `/ingest` y el redirect de barra final ([ADR 0002](0002-qr-redirect-routes.md)). `astro preview` no ejecuta ese Worker.
 
 `main` no tiene protección de rama. Juan decidió el 26/10 que no se active: GitHub no aplica reglas de protección en repos privados con plan gratuito. Los checks siguen corriendo como aviso. Nadie mergea con CI rojo, y nadie mergea a `main` sin el OK explícito de Juan. El bloqueo es de proceso, no de la plataforma.
 
-Playwright es la prueba del sitio construido. Juan aceptó la dependencia y la descarga del browser en CI. La base (config, Chromium, humo, workflow con un job, caché y filtro de paths) entra en el PR de esa base. Los specs de producto y axe son de Hamilton y entran después.
+Playwright es la prueba del sitio construido. Juan aceptó la dependencia y la descarga del browser en CI. Esa base (config, Chromium, humo, workflow con un job, caché y filtro de paths) entró en main con #46. Los specs de producto y axe son de Hamilton y entran después.
 
 La verification skill se adelanta porque Lucy la necesita para revisar. El número 0007 es el siguiente libre respecto de [0006](0006-workers-builds-delivery.md). Otra rama paralela puede haber usado el mismo número: si pasa, se renumera antes de integrar.
 
@@ -56,7 +56,7 @@ Esta regla de exclusión está vigente.
 
 Es la base para probar el sitio construido. El comando de la skill es `pnpm --filter @neutro/web exec playwright test --trace on`. El script `test:e2e` es `playwright test`. `--trace on` hace que un verde también deje un `trace.zip` por test. Playwright vacía `test-results/` al arrancar otra corrida. La skill copia cada traza a `evidencia/<pr>-<sha>/trazas/<nombre>-<pasada>-trace.zip` antes de la pasada de capturas, para que no se pierdan ni se pisen. `$pasada` es `1` en el e2e y `2` en las capturas. Si no hay traza, si el archivo ya existe, o si `cp` falla, esa copia sale `1`.
 
-El workflow de la base ya acota el costo: un job, un browser (Chromium), caché del browser, y corre cuando cambia `apps/web`, `packages`, el lockfile o el propio workflow. Esta decisión no le cambia el YAML.
+El workflow de main ya acota el costo: un job, un browser (Chromium), caché del browser, y corre cuando cambia `apps/web`, `packages`, el lockfile o el propio workflow. Esta decisión no le cambia el YAML.
 
 En un PR visual la skill agrega capturas por ruta afectada (claro y oscuro, móvil y escritorio) y el `trace.zip`. Si cambia un flujo completo, también el video `.webm`. Esas capturas no reemplazan los specs de Hamilton.
 
@@ -90,7 +90,7 @@ No sirve con el plan actual: la regla no se aplica en un repo privado gratuito. 
 
 Los checks que ya existen avisan solos y no dependen de que alguien siga una skill.
 
-No le alcanza a Lucy. El CI de esta base no arma el informe, no guarda capturas ni traza para el PR visual, no recorre los comentarios que oxlint no ve, no lee el cuerpo del PR y no tiene modo de cambio crítico ni segundo verificador. La skill cubre eso sin mover workflows en este cambio.
+No le alcanza a Lucy. El CI de main no arma el informe, no guarda capturas ni traza para el PR visual, no recorre los comentarios que oxlint no ve, no lee el cuerpo del PR y no tiene modo de cambio crítico ni segundo verificador. La skill cubre eso sin mover workflows en este cambio.
 
 ### C. La skill escribe los specs de axe, sin JavaScript y de contrato
 
@@ -107,7 +107,7 @@ El CLI cambia de modelo. Un id escrito en la skill queda viejo y parece una puer
 ## Consecuencias y trade-offs
 
 - La protección de rama sigue apagada. Un check rojo no impide el merge en GitHub. El proceso es el único bloqueo, y depende de que quien mergea lo respete. El OK de Juan tampoco lo pone la plataforma.
-- Playwright en un repo privado consume minutos de GitHub Actions. El plan de Actions no está verificado en este ADR. Cada corrida de `e2e` descarga o reusa Chromium y ocupa un runner cuando el diff entra en el filtro de paths. La mitigación ya está en el workflow de la base: un job, un browser, caché y paths. Baja el consumo y no lo elimina. Este ADR no lo mide.
+- Playwright en un repo privado consume minutos de GitHub Actions. El plan de Actions no está verificado en este ADR. Cada corrida de `e2e` descarga o reusa Chromium y ocupa un runner cuando el diff entra en el filtro de paths. La mitigación ya está en el workflow de main: un job, un browser, caché y paths. Baja el consumo y no lo elimina. Este ADR no lo mide.
 - La skill pide `pnpm test`, el mismo comando del job `Check`, y `pnpm exec turbo run build --filter=@neutro/web --force` con `env -u` de las dos variables públicas. El job `Build` corre `pnpm build`, sin `--force` y sin ese `env -u`. Un CI verde y una puerta local en rojo pueden convivir. Eso es un hallazgo del informe, no un cambio de YAML en este PR.
 - El conteo de la cadena `posthog` en `dist` puede ser mayor que cero con el SDK apagado. La búsqueda es `rg -i` porque el texto legal escribe `PostHog`. El informe lista cada archivo de esa corrida y lo clasifica: texto legal, chunk JS u otro. Un archivo JS con la key, o una request de analytics, es hallazgo alto. El conteo solo no falla la puerta. Las cifras, la receta y las versiones están en la skill, como medición de la VM del agente el 2026-10-26. No son un piso de cada PR.
 - Esa medición también vio que un `.env*` real en `apps/web` vuelve a meter una key de prueba en el cliente aunque el proceso la saque con `env -u`, y que `--var` en un Worker de prueba pisa el flag y deja cargada la key de `.dev.vars`. La skill no admite esos archivos en la pasada. No está medido en `neutro-web`, ni si una variable que ya está en el proceso le gana al archivo.

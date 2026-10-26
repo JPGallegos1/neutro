@@ -129,7 +129,7 @@ Archivo: `superficie-riesgo.md`. Declarada antes de verificar: sí / no.
 
 Un PR que sólo cambia CI no suma Codex. En ese caso esta subsección queda en `no aplica` y no se escribe `informe-codex.md`.
 
-Codex CLI, esfuerzo high, sesión aparte, sin este informe, cuando el PR no es sólo CI.
+Codex CLI, esfuerzo high, sesión aparte, sin este informe, cuando el cambio es crítico según la regla de arriba.
 
 Archivo: `informe-codex.md`.
 

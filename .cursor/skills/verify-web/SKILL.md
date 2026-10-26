@@ -35,7 +35,7 @@ Si una salida trae un secreto, reemplazalo por `‹redactado›` antes de guarda
 
 ## Preparación
 
-La versión la mandan los archivos del repo, no la máquina. Lo primero, definí las tres variables del PR. `$PR` es sólo dígitos. `$BASE` y `$HEAD` son SHA hexadecimales de 7 a 40 caracteres, de la base y del head, y tienen que existir en el checkout (`git rev-parse --verify`). Si `$PR` está vacío o no es numérico, frená: si no, la carpeta queda `evidencia/-<sha>` o `evidencia/../x-<sha>`.
+La versión la mandan los archivos del repo, no la máquina. Lo primero, definí las tres variables del PR. `$PR` coincide con `^[1-9][0-9]*$`. `$BASE` y `$HEAD` son SHA hexadecimales de 7 a 40 caracteres, de la base y del head, y tienen que ser un commit del checkout: `git rev-parse --verify --quiet "$X^{commit}"`. Si `$PR` no cumple ese patrón, frená: si no, la carpeta queda `evidencia/-<sha>`, `evidencia/0-<sha>` o `evidencia/../x-<sha>`.
 
 Este bloque corre en la shell de la corrida (un script, o la shell donde se pega el bloque). `[ -n "${PR:-}" ] || exit 1` corta esa shell siempre, también si es interactiva. `${PR:?...}` no se usa: en una shell interactiva imprime el aviso y sigue. Si la shell es la tuya de trabajo, `exit 1` la cierra.
 
@@ -50,16 +50,17 @@ case "$HEAD" in
   *[!0-9a-fA-F]*) printf '%s\n' 'HEAD no es un SHA hexadecimal.'; exit 1 ;;
 esac
 case "$PR" in
-  ''|*[!0-9]*) printf '%s\n' 'PR tiene que ser sólo dígitos.'; exit 1 ;;
+  [1-9]|[1-9][0-9]*) ;;
+  *) printf '%s\n' 'PR tiene que coincidir con ^[1-9][0-9]*$.'; exit 1 ;;
 esac
 if [ "${#BASE}" -lt 7 ] || [ "${#BASE}" -gt 40 ] || [ "${#HEAD}" -lt 7 ] || [ "${#HEAD}" -gt 40 ]; then
   printf '%s\n' 'BASE y HEAD tienen que ser SHA hexadecimales de 7 a 40 caracteres.'
   exit 1
 fi
 origen="$(pwd)"
-git -C "$origen" rev-parse --verify "$BASE" >/dev/null || { printf '%s\n' 'BASE no existe.'; exit 1; }
-git -C "$origen" rev-parse --verify "$HEAD" >/dev/null || { printf '%s\n' 'HEAD no existe.'; exit 1; }
-sha7="$(git -C "$origen" rev-parse --verify "$HEAD" | cut -c1-7)"
+git -C "$origen" rev-parse --verify --quiet "${BASE}^{commit}" >/dev/null || { printf '%s\n' 'BASE no existe.'; exit 1; }
+full_head="$(git -C "$origen" rev-parse --verify --quiet "${HEAD}^{commit}")" || { printf '%s\n' 'HEAD no existe.'; exit 1; }
+sha7="$(printf '%s\n' "$full_head" | cut -c1-7)"
 evidencia_abs="$origen/evidencia/${PR}-${sha7}"
 mkdir -p "$evidencia_abs/trazas"
 cd "$origen"
@@ -539,7 +540,7 @@ for (const route of routes) {
 
 Sólo si el PR cambia un flujo completo (más de un paso con interacción). Un cambio visual estático no lleva video.
 
-- Config efímero, sin comentarios, que toma `apps/web/playwright.config.ts` y pone `use.video` en `"on"` y `use.trace` en `"on"`. Conservá el `webServer` del config de la base.
+- Config efímero, sin comentarios, que toma `apps/web/playwright.config.ts` y pone `use.video` en `"on"` y `use.trace` en `"on"`. Conservá el `webServer` del config de main.
 - Corré el flujo desde `$workdir`, copiá el `.webm` a `"$evidencia_abs/flujo.webm"`, borrá el config y el spec.
 - Si no cambia un flujo, la fila es `no aplica`.
 
@@ -565,9 +566,9 @@ Escribí `superficie-riesgo.md` antes de correr las puertas de esta sección. Qu
 
 ### Segundo verificador
 
-Un PR que sólo cambia CI no suma este verificador. La fila queda en `no aplica` con ese motivo. No abras la sesión de Codex y no uses la salida de CLI ausente.
+El segundo verificador sigue la regla de arriba. Un PR que sólo cambia CI no lo suma: la fila queda en `no aplica` y no se abre la sesión.
 
-Otra sesión de Codex CLI, con esfuerzo high, cuando el PR no es sólo CI. El modelo es el que ese CLI tenga configurado.
+Cuando el cambio es crítico según esa regla, otra sesión de Codex CLI, con esfuerzo high. El modelo es el que ese CLI tenga configurado.
 
 Recibe el diff `"$BASE"..."$HEAD"`, esta skill y la plantilla. No recibe `informe.md`, los hallazgos ni la superficie del primero. Una sola sesión de chat no sirve para los dos.
 
@@ -696,14 +697,14 @@ if [ "$listo" -ne 1 ]; then
   wait "$wrangler_pid"
   exit 1
 fi
-curl -sS "http://127.0.0.1:${puerto}/"
+printf '%s\n' "$(curl -sS "http://127.0.0.1:${puerto}/")"
 kill "$wrangler_pid"
 wait_exit=0
 wait "$wrangler_pid" || wait_exit=$?
 printf 'wait:%s\n' "$wait_exit"
 ```
 
-Esa forma, el 2026-10-26, con Node 24.18.0 y Wrangler 4.151.2, eligió el puerto 57329. El log no dijo que usara `.dev.vars`. `--var` metió la key de prueba. El flag quedó en `false`.
+Esa forma, el 2026-10-26, con Node 24.18.0 y Wrangler 4.151.2, eligió el puerto 57329. El log no dijo que usara `.dev.vars`. `--var` metió la key de prueba. El flag quedó en `false`. La salida real va en dos bloques: el body, y después `wait`.
 
 Body:
 
@@ -738,7 +739,7 @@ if [ "$listo" -ne 1 ]; then
   wait "$wrangler_pid"
   exit 1
 fi
-curl -sS "http://127.0.0.1:${puerto}/"
+printf '%s\n' "$(curl -sS "http://127.0.0.1:${puerto}/")"
 kill "$wrangler_pid"
 wait_exit=0
 wait "$wrangler_pid" || wait_exit=$?
