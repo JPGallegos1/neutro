@@ -44,7 +44,9 @@ Cada regla tiene un mecanismo y un dueño. La skill no reemplaza al mecanismo: l
 
 Cambio crítico: todo lo que no sea visual ni CI/CD y pueda tocar base de datos, infraestructura crítica o seguridad.
 
-Docs de reglas y lint no cuentan como cambio crítico para sumar el verificador con Codex. Esos PR igual no se mergean hasta el OK explícito de Juan Gallegos.
+Docs de reglas y lint no suman el verificador con Codex, salvo que el diff toque secretos, tokens, permisos de workflows, protección de rama, env vars, CI o deploy. En ese caso sí lo suman. El resto de la sección de cambio crítico se corre igual en esos PR.
+
+Esta regla de exclusión está propuesta y espera el OK de Juan Gallegos.
 
 ### Playwright
 
@@ -103,11 +105,10 @@ El CLI cambia de modelo. Un id escrito en la skill queda viejo y parece una puer
 - La protección de rama sigue apagada. Un check rojo no impide el merge en GitHub. El proceso es el único bloqueo, y depende de que quien mergea lo respete. El OK de Juan tampoco lo pone la plataforma.
 - Playwright en un repo privado consume minutos de GitHub Actions. El plan de Actions no está verificado en este ADR. Cada corrida de `e2e` descarga o reusa Chromium y ocupa un runner cuando el diff entra en el filtro de paths. La mitigación ya está en el workflow de la base: un job, un browser, caché y paths. Baja el consumo y no lo elimina. Este ADR no lo mide.
 - La skill pide `pnpm test` y `pnpm build` aunque el job `Check` de esta base no haga las dos cosas. Un CI verde y una puerta local en rojo pueden convivir. Eso es un hallazgo del informe, no un cambio de YAML en este PR.
-- El conteo de la cadena `posthog` en `dist` puede ser mayor que cero con el SDK apagado. La búsqueda es `rg -i` porque el texto legal escribe `PostHog`. Medido en esta base, sin archivos de entorno reales, `env -u PUBLIC_POSTHOG_KEY -u PUBLIC_ANALYTICS_ENABLED pnpm exec turbo run build --filter=@neutro/web --force` salió 0. `rg -l -i -F posthog apps/web/dist` listó sólo `privacidad.html` y `cookies.html`: 4 y 6 ocurrencias, 10 en total. No hubo `.js` con la cadena. El informe de cada PR lista los archivos de esa corrida y los clasifica: texto legal, chunk JS u otro. Un archivo JS con la key, o una request de analytics, es hallazgo alto. El conteo solo no falla la puerta. Si más adelante el spec de Hamilton exige cero requests, la skill lo corre tal cual.
-- Medido aparte, con el mismo `env -u` y `--force`: un `apps/web/.env`, `.env.local`, `.env.production` o `.env.production.local` volvió a poner una key de prueba en un `.js` de `dist/_astro`. `rg -l` encontró un archivo en cada corrida (exit 0). No está medido si una variable que ya está en el proceso le gana al archivo.
-- `--var ANALYTICS_ENABLED:false` se midió con Wrangler 4.151.2 en un Worker de prueba, no en `neutro-web` y sin pedir `/f/N`. Con `.dev.vars` (`ANALYTICS_ENABLED=from-file` y una key) el body fue `{"analyticsEnabled":"false","posthogKeyPresent":true}`: `--var` pisó el flag y la key siguió cargada. Sin `--var`, `{"analyticsEnabled":"from-file","posthogKeyPresent":true}`. Sin `.dev.vars` y con `--var`, `{"analyticsEnabled":"false","posthogKeyPresent":false}`. La skill igual exige que no haya un `.dev.vars` real.
+- El conteo de la cadena `posthog` en `dist` puede ser mayor que cero con el SDK apagado. La búsqueda es `rg -i` porque el texto legal escribe `PostHog`. El informe lista cada archivo de esa corrida y lo clasifica: texto legal, chunk JS u otro. Un archivo JS con la key, o una request de analytics, es hallazgo alto. El conteo solo no falla la puerta. Las cifras, la receta y las versiones están en la skill, como medición de la VM del agente el 2026-10-26. No son un piso de cada PR.
+- Esa medición también vio que un `.env*` real en `apps/web` vuelve a meter una key de prueba en el cliente aunque el proceso la saque con `env -u`, y que `--var` en un Worker de prueba pisa el flag y deja cargada la key de `.dev.vars`. La skill no admite esos archivos en la pasada. No está medido en `neutro-web`, ni si una variable que ya está en el proceso le gana al archivo.
 - `evidencia/` está en `.gitignore`. Igual se agregan archivos por nombre.
-- El segundo verificador corre sólo en cambio crítico. Pide otra sesión de Codex CLI. Sin el CLI, el informe deja esa parte en NO VERIFICADO y no simula el pase.
+- El segundo verificador sigue la regla de exclusión de arriba. Pide otra sesión de Codex CLI. Sin el CLI, el informe deja esa parte en NO VERIFICADO y no simula el pase. El resto de la sección de cambio crítico se corre igual en un PR de docs de reglas o de lint.
 - El informe no autoriza el merge. Puede quedar todo en verde y el PR sigue esperando el OK de Juan.
 - Los contratos de SEO, links, cards, axe y el check de CI del cuerpo siguen afuera. Cuando Hamilton los sume, la skill los corre sin cambiar de forma: el comando ya está en la plantilla.
 - [ADR 0006](0006-workers-builds-delivery.md) sigue Propuesto. `staging` no existe. La base de un PR, para el conteo, es la que el PR declara.
