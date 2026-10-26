@@ -32,8 +32,8 @@ type NodoContraste = {
   failureSummary?: string;
 };
 
-function esImagen(nodo: NodoContraste): boolean {
-  const texto = [
+function textoDelNodo(nodo: NodoContraste): string {
+  return [
     nodo.html,
     nodo.failureSummary ?? "",
     ...nodo.any.map((check) => check.message),
@@ -42,10 +42,25 @@ function esImagen(nodo: NodoContraste): boolean {
   ]
     .join("\n")
     .toLowerCase();
+}
+
+function esImagen(nodo: NodoContraste): boolean {
+  const texto = textoDelNodo(nodo);
   return (
     /<img\b/.test(texto) ||
     texto.includes("background image") ||
-    texto.includes("background-image")
+    texto.includes("background-image") ||
+    texto.includes("image node")
+  );
+}
+
+function esSuperposicion(nodo: NodoContraste): boolean {
+  const texto = textoDelNodo(nodo);
+  return (
+    texto.includes("overlapped") ||
+    texto.includes("obscured") ||
+    texto.includes("overlaps") ||
+    texto.includes("pseudo element")
   );
 }
 
@@ -63,10 +78,14 @@ function entraEnElReporte(
   excepciones: readonly ExcepcionAxe[] = excepcionesAxe,
 ): boolean {
   if (excepcionVigente(id, excepciones)) return false;
-  if (origen === "incompleto" && id === "color-contrast" && esImagen(nodo)) {
+  if (
+    origen === "incompleto" &&
+    id === "color-contrast" &&
+    (esImagen(nodo) || esSuperposicion(nodo))
+  ) {
     return false;
   }
-  return origen === "violacion";
+  return true;
 }
 
 function selectorDe(target: unknown): string {
@@ -98,7 +117,7 @@ test("las rutas públicas salen de las páginas y de los casos", () => {
   expect(new Set(rutasPublicas).size).toBe(rutasPublicas.length);
 });
 
-test("contraste incompleto sobre una imagen no entra al reporte", () => {
+test("sólo el contraste incompleto de imagen o superposición queda fuera del reporte", () => {
   const imagen: NodoContraste = {
     html: '<img alt="" src="/images/work/ejemplo.webp">',
     target: ["img"],
@@ -123,6 +142,32 @@ test("contraste incompleto sobre una imagen no entra al reporte", () => {
     all: [],
     none: [],
   };
+  const pseudo: NodoContraste = {
+    html: "<span>En producción</span>",
+    target: ["span"],
+    any: [
+      {
+        message:
+          "Element's background color could not be determined due to a pseudo element",
+      },
+    ],
+    all: [],
+    none: [],
+  };
+  const botonSinNombre: NodoContraste = {
+    html: "<button></button>",
+    target: ["button"],
+    any: [{ message: "Element does not have an accessible name" }],
+    all: [],
+    none: [],
+  };
+  const contrasteSinMotivo: NodoContraste = {
+    html: "<span>Texto</span>",
+    target: ["span"],
+    any: [{ message: "Unable to determine contrast ratio" }],
+    all: [],
+    none: [],
+  };
   const excepcion: ExcepcionAxe = {
     id: "image-alt",
     razon: "ejemplo de una excepción con motivo",
@@ -130,6 +175,13 @@ test("contraste incompleto sobre una imagen no entra al reporte", () => {
 
   expect(entraEnElReporte("incompleto", "color-contrast", imagen)).toBe(false);
   expect(entraEnElReporte("incompleto", "color-contrast", overlay)).toBe(false);
+  expect(entraEnElReporte("incompleto", "color-contrast", pseudo)).toBe(false);
+  expect(entraEnElReporte("incompleto", "button-name", botonSinNombre)).toBe(
+    true,
+  );
+  expect(
+    entraEnElReporte("incompleto", "color-contrast", contrasteSinMotivo),
+  ).toBe(true);
   expect(entraEnElReporte("violacion", "color-contrast", imagen)).toBe(true);
   expect(entraEnElReporte("violacion", "image-alt", imagen, [excepcion])).toBe(
     false,
