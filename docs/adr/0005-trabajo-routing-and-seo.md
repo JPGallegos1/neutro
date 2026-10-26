@@ -4,11 +4,13 @@
 
 Accepted — Juan (26/10/2026). Design reference: Iris **v34**. Reviewers: Jake (SEO), Melody / Iris (design). Do not merge follow-up doc edits without Juan’s OK.
 
+Pagination follow-up (opción A): Juan (26/10/2026) — `/trabajo` is the only indexable index URL; no `?page=N`; all cases ship in the HTML and **Cargar más** only reveals with JS.
+
 ## Context
 
 The public site ships five published Trabajo projects. The landing shows a card grid from `apps/web/src/data/work.ts` capped by `LANDING_WORK_LIMIT` (**always 4**). The full index lives at `/trabajo` with progressive-enhancement **Cargar más**; each project has a case page at `/trabajo/<slug>`.
 
-Jake (SEO) defined hard criteria for the Trabajo surface: index + case URLs, slug rules, absolute self-canonicals (including paginated index URLs), JSON-LD shapes, and a “Cargar más” pattern that must not hide links from the initial HTML. Design v34 (Iris) supplies the visual system for case pages and the index; this ADR locks routing, SEO, and the progressive-enhancement contract so implementation does not invent conflicting crawl behavior.
+Jake (SEO) defined hard criteria for the Trabajo surface: index + case URLs, slug rules, absolute self-canonicals, JSON-LD shapes, and a “Cargar más” pattern that must not hide links from the initial HTML. Design v34 (Iris) supplies the visual system for case pages and the index; this ADR locks routing, SEO, and the progressive-enhancement contract so implementation does not invent conflicting crawl behavior.
 
 ## Decision
 
@@ -23,6 +25,8 @@ Astro must use exactly `trailingSlash: 'never'`. Emit and link **without** a tra
 
 Landing vs index: the home Trabajo section always shows the first **`LANDING_WORK_LIMIT` (4)** cards. **Cargar más** exists only on `/trabajo`, never on the landing.
 
+There are **no** paginated index routes and **no** `?page=N` URLs for Trabajo.
+
 ### Slugs
 
 - Lowercase ASCII only; words joined with hyphens.
@@ -35,13 +39,13 @@ Slug source of truth is the project data module (or successor), not free text in
 
 **Published slugs (5)**
 
-| Path                               | Notes                                      |
-| ---------------------------------- | ------------------------------------------ |
-| `/trabajo/conexion-laboral`        | Conexión Laboral                           |
-| `/trabajo/afectiva`                | Afectiva Comunicaciones                    |
-| `/trabajo/capa-automotores`        | Capa Automotores                           |
-| `/trabajo/suplementacion-ciencia`  | Suplementación con Ciencia (no stopword)   |
-| `/trabajo/luxurycars`              | Luxury Cars                                |
+| Path                              | Notes                                    |
+| --------------------------------- | ---------------------------------------- |
+| `/trabajo/conexion-laboral`       | Conexión Laboral                         |
+| `/trabajo/afectiva`               | Afectiva Comunicaciones                  |
+| `/trabajo/capa-automotores`       | Capa Automotores                         |
+| `/trabajo/suplementacion-ciencia` | Suplementación con Ciencia (no stopword) |
+| `/trabajo/luxurycars`             | Luxury Cars                              |
 
 There is no Lina case in the published set.
 
@@ -49,8 +53,7 @@ There is no Lina case in the published set.
 
 Absolute, self-referencing:
 
-- `https://neutro.solutions/trabajo`
-- `https://neutro.solutions/trabajo?page=<N>` for each paginated index view (`?page=N`)
+- `https://neutro.solutions/trabajo` — **the only** index canonical (no query string)
 - `https://neutro.solutions/trabajo/<slug>`
 
 No alternate locale URLs in this ADR (site is Spanish-only).
@@ -60,7 +63,7 @@ No alternate locale URLs in this ADR (site is Spanish-only).
 **Index (`/trabajo`)**
 
 - `<title>`: `Casos y proyectos | Neutro Solutions`
-- JSON-LD: `CollectionPage` **and** `ItemList` listing case URLs in display order.
+- JSON-LD: `CollectionPage` **and** `ItemList` listing case URLs in display order (no paginated item URLs).
 
 **Case (`/trabajo/<slug>`)**
 
@@ -76,18 +79,19 @@ Meta descriptions and Open Graph fields likewise come from real (or explicitly p
 
 Index behavior:
 
-1. Show **4** cases initially.
-2. Render the **Cargar más** control **only if** there are more than four cases (label ES: `Cargar más`).
+1. With JS: show **4** cases initially.
+2. Render the **Cargar más** control **only if** there are more than four cases (label ES: `Cargar más`), and only after JS enhances the page (without JS the control stays unavailable and all cases remain visible).
 3. Each click reveals **4 more** nodes already present in the server HTML. **No fetch** — the button never requests the network.
-4. Render **every** case `<a href="/trabajo/<slug>">` in the **server HTML** (including items beyond the first four). Items 5+ may be visually hidden with CSS / client state until revealed.
-5. Every published case URL is included in the sitemap.
+4. Render **every** case `<a href="/trabajo/<slug>">` in the **server HTML** (including items beyond the first four). Items 5+ may be visually hidden **only after** JS applies client state (for example a class). Do **not** omit those links from the served HTML and do **not** rely on paginated URLs.
+5. Every published case URL is included in the sitemap. The sitemap lists `/trabajo` once (no paginated index URLs).
 
-**Scale fallback (progressive enhancement):** also emit a real server-rendered `<a href="/trabajo?page=2">` (and further `?page=N` as needed). If JS intercepts that link, it **only reveals nodes already in the page** and **never requests the server**. Without JS, the link navigates to a server-rendered page for that page of results. Each `?page=N` response has its own self-referencing canonical (see Canonicals).
+**Scale trigger:** when the published list grows enough that keeping every case in one HTML document becomes a problem, revisit this decision. The numeric threshold is **umbral a fijar por Juan** (not invented here). Until then, do not introduce `?page=N` or other paginated index URLs.
 
 Verification gates (`curl` or equivalent, no JS):
 
 - `/trabajo` lists all case hrefs.
 - No Trabajo href in the response ends with a trailing slash.
+- No `?page=` Trabajo links appear in the response.
 
 ### Design (v34)
 
@@ -96,7 +100,8 @@ Reuse the landing **Card / Work** components and the landing Trabajo grid for ca
 ## Consequences
 
 - Landing and `/trabajo` share the same project list and Card / Work presentation; case links are real `/trabajo/<slug>` routes.
-- SEO tooling and sitemap generation assume slashless absolute URLs under `https://neutro.solutions/trabajo…`, including self-canonical `?page=N` index URLs.
+- SEO tooling and sitemap generation assume slashless absolute URLs under `https://neutro.solutions/trabajo…`, with a single index canonical and no `?page=N` index URLs.
 - Changing a published slug is an ops/content event (301), not a silent rename.
 - Implementation PRs must satisfy the curl href and no-trailing-slash checks before claiming SEO readiness.
 - Design follows v34 (Iris / Juan): **En producción** ships; card/case chrome avoids 1px borders.
+- Revisit pagination only after Juan sets the scale threshold.
