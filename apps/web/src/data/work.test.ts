@@ -6,23 +6,28 @@ import { LANDING_WORK_LIMIT, workProjects } from "./work.ts";
 const PUBLISHED = [
   {
     id: "conexlaboral",
-    href: "https://conexlaboral.com",
+    slug: "conexion-laboral",
+    href: "/trabajo/conexion-laboral",
   },
   {
     id: "afectiva",
-    href: "https://afectiva.vercel.app",
+    slug: "afectiva",
+    href: "/trabajo/afectiva",
   },
   {
     id: "capaautomotores",
-    href: "https://capaautomotores.com",
+    slug: "capa-automotores",
+    href: "/trabajo/capa-automotores",
   },
   {
     id: "suplementacionconciencia",
-    href: "https://suplementacionconciencia.com.ar",
+    slug: "suplementacion-ciencia",
+    href: "/trabajo/suplementacion-ciencia",
   },
   {
     id: "luxurycars",
-    href: "https://luxurycars.ch",
+    slug: "luxurycars",
+    href: "/trabajo/luxurycars",
   },
 ];
 
@@ -34,21 +39,22 @@ const LANDING_IDS = [
 ];
 
 describe("workProjects", () => {
-  it("publica cinco sitios externos con ids únicos", () => {
+  it("publica cinco casos con slugs slashless e ids únicos", () => {
     assert.equal(workProjects.length, 5);
     assert.deepEqual(
       workProjects.map((project) => project.id),
       PUBLISHED.map((project) => project.id),
     );
     assert.equal(new Set(workProjects.map((project) => project.id)).size, 5);
+    assert.equal(new Set(workProjects.map((project) => project.slug)).size, 5);
 
     for (const [index, project] of workProjects.entries()) {
       const published = PUBLISHED[index];
       assert.ok(published);
-      const href = project.href;
-      assert.equal(href, published.href);
-      assert.ok(href);
-      assert.match(href, /^https:\/\//);
+      assert.equal(project.slug, published.slug);
+      assert.equal(project.href, published.href);
+      assert.match(project.href, /^\/trabajo\/[a-z0-9-]+$/);
+      assert.ok(!project.href.endsWith("/"));
       assert.equal(project.tag, "En producción");
     }
   });

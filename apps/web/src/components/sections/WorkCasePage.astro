@@ -1,0 +1,387 @@
+---
+import { ArrowUpRight } from "@lucide/astro";
+import WorkCard from "@/components/sections/WorkCard.astro";
+import type { WorkCase } from "@/data/work-cases";
+import { relatedWorkProjects } from "@/data/work-cases";
+
+interface Props {
+  workCase: WorkCase;
+}
+
+const { workCase } = Astro.props;
+const related = relatedWorkProjects(workCase.slug, 3);
+---
+
+<article class="work-case" aria-labelledby="work-case-title">
+  <div class="landing-shell landing-gutter work-case__inner">
+    <header class="work-case__aside">
+      <h1 id="work-case-title" class="work-case__title">
+        {workCase.titleLines.map((line) => (
+          <span class="work-case__title-line">{line}</span>
+        ))}
+      </h1>
+      <p class="work-case__tag">{workCase.tag}</p>
+      <a
+        class="rounded-md bg-primary px-4 py-2 text-sm text-primary-foreground hover:bg-primary/90 work-case__visit"
+        href={workCase.externalUrl}
+        target="_blank"
+        rel="noopener noreferrer"
+      >
+        <span>Visitar sitio</span>
+        <span class="work-case__visit-icon" aria-hidden="true">
+          <ArrowUpRight size={14} />
+        </span>
+      </a>
+    </header>
+
+    <div class="work-case__main">
+      <div class="work-case__media">
+        <img
+          class="work-case__image"
+          src={workCase.imageSrc}
+          alt={workCase.imageAlt}
+          width="720"
+          height="405"
+          loading="eager"
+          decoding="async"
+          fetchpriority="high"
+        />
+      </div>
+
+      <section class="work-case__section" aria-labelledby="cliente-rubro">
+        <h2 id="cliente-rubro" class="work-case__heading">
+          Cliente y rubro
+        </h2>
+        <p class="work-case__p">{workCase.clientIntro}</p>
+        <ul class="work-case__list">
+          {workCase.facts.map((fact) => (
+            <li>
+              <span class="work-case__fact-label">{fact.label}:</span>{" "}
+              {fact.value}
+            </li>
+          ))}
+        </ul>
+      </section>
+
+      <section class="work-case__section" aria-labelledby="contexto">
+        <h2 id="contexto" class="work-case__heading">
+          Contexto
+        </h2>
+        <p class="work-case__p">{workCase.context}</p>
+      </section>
+
+      <section class="work-case__section" aria-labelledby="problema">
+        <h2 id="problema" class="work-case__heading">
+          El problema
+        </h2>
+        <p class="work-case__p">{workCase.problem}</p>
+      </section>
+
+      <section class="work-case__section" aria-labelledby="que-hicimos">
+        <h2 id="que-hicimos" class="work-case__heading">
+          Qué hicimos
+        </h2>
+        <ul class="work-case__list">
+          {workCase.whatWeDid.map((item) => (
+            <li>{item}</li>
+          ))}
+        </ul>
+      </section>
+
+      <section class="work-case__section" aria-labelledby="como-resolvimos">
+        <h2 id="como-resolvimos" class="work-case__heading">
+          Cómo lo resolvimos
+        </h2>
+        <p class="work-case__p">{workCase.howWeSolved}</p>
+      </section>
+
+      <blockquote class="work-case__quote" lang={workCase.quote.lang}>
+        <p class="work-case__quote-text">“{workCase.quote.text}”</p>
+      </blockquote>
+
+      {workCase.quoteFollowup && (
+        <p class="work-case__p">{workCase.quoteFollowup}</p>
+      )}
+
+      <section class="work-case__section" aria-labelledby="aprendizajes">
+        <h2 id="aprendizajes" class="work-case__heading">
+          Aprendizajes
+        </h2>
+        <ul class="work-case__list">
+          {workCase.learnings.map((item) => (
+            <li>{item}</li>
+          ))}
+        </ul>
+      </section>
+    </div>
+  </div>
+
+  {related.length > 0 && (
+    <aside class="work-case__related" aria-labelledby="casos-relacionados">
+      <div class="landing-shell">
+        <div class="landing-gutter">
+          <h2 id="casos-relacionados" class="work-case__related-title">
+            Más trabajo
+          </h2>
+        </div>
+        <ul class="work-case__related-grid">
+          {related.map((project) => (
+            <WorkCard project={project} />
+          ))}
+        </ul>
+      </div>
+    </aside>
+  )}
+</article>
+
+<style>
+  .work-case {
+    background: var(--neutro-bg);
+    color: var(--neutro-text);
+  }
+
+  .work-case__inner {
+    display: grid;
+    gap: 32px;
+    padding-block: 48px 72px;
+  }
+
+  @media (min-width: 1024px) {
+    .work-case__inner {
+      grid-template-columns: minmax(0, 0.85fr) minmax(0, 1.4fr);
+      gap: 64px;
+      padding-block: 80px 120px;
+      align-items: start;
+    }
+  }
+
+  .work-case__aside {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 16px;
+  }
+
+  @media (min-width: 1024px) {
+    .work-case__aside {
+      position: sticky;
+      top: 96px;
+    }
+  }
+
+  .work-case__title {
+    margin: 0;
+    display: flex;
+    flex-direction: column;
+    font-size: 40px;
+    font-weight: 700;
+    line-height: 0.93;
+    letter-spacing: -0.04em;
+    text-transform: uppercase;
+  }
+
+  @media (min-width: 1024px) {
+    .work-case__title {
+      font-size: 72px;
+    }
+  }
+
+  .work-case__title-line {
+    display: block;
+  }
+
+  .work-case__tag {
+    margin: 0;
+    display: inline-block;
+    padding: 4px 8px;
+    border-radius: 4px;
+    background: var(--neutro-accent-orange-strong);
+    color: var(--neutro-on-orange);
+    font-family: var(--font-mono);
+    font-size: 12px;
+    letter-spacing: 0.12px;
+    line-height: 1.2;
+  }
+
+  .work-case__visit {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    text-decoration: none;
+    transition:
+      transform 160ms cubic-bezier(0.23, 1, 0.32, 1),
+      opacity 160ms cubic-bezier(0.23, 1, 0.32, 1);
+  }
+
+  .work-case__visit:active {
+    transform: scale(0.97);
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .work-case__visit {
+      transition: none;
+    }
+
+    .work-case__visit:active {
+      transform: none;
+    }
+  }
+
+  .work-case__visit-icon {
+    display: inline-flex;
+  }
+
+  .work-case__main {
+    display: flex;
+    flex-direction: column;
+    gap: 40px;
+    min-width: 0;
+  }
+
+  @media (min-width: 1024px) {
+    .work-case__main {
+      gap: 48px;
+    }
+  }
+
+  .work-case__media {
+    aspect-ratio: 16 / 9;
+    overflow: hidden;
+    background: var(--neutro-surface);
+  }
+
+  .work-case__image {
+    display: block;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    object-position: center;
+  }
+
+  .work-case__section {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  .work-case__heading {
+    margin: 0;
+    font-size: 20px;
+    font-weight: 500;
+    line-height: 1.25;
+    color: var(--neutro-text);
+  }
+
+  @media (min-width: 1024px) {
+    .work-case__heading {
+      font-size: 24px;
+    }
+  }
+
+  .work-case__p {
+    margin: 0;
+    font-size: 16px;
+    line-height: 1.45;
+    color: var(--neutro-text-muted);
+  }
+
+  @media (min-width: 1024px) {
+    .work-case__p {
+      font-size: 17px;
+    }
+  }
+
+  .work-case__list {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    font-size: 16px;
+    line-height: 1.45;
+    color: var(--neutro-text-muted);
+  }
+
+  @media (min-width: 1024px) {
+    .work-case__list {
+      font-size: 17px;
+    }
+  }
+
+  .work-case__list li {
+    position: relative;
+    padding-left: 1.15em;
+  }
+
+  .work-case__list li::before {
+    content: "•";
+    position: absolute;
+    left: 0;
+    color: var(--neutro-text-muted);
+  }
+
+  .work-case__fact-label {
+    font-weight: 500;
+    color: var(--neutro-text);
+  }
+
+  .work-case__quote {
+    margin: 0;
+    padding: 0;
+  }
+
+  .work-case__quote-text {
+    margin: 0;
+    font-size: 28px;
+    font-weight: 700;
+    line-height: 1.15;
+    letter-spacing: -0.02em;
+    color: var(--neutro-text);
+  }
+
+  @media (min-width: 1024px) {
+    .work-case__quote-text {
+      font-size: 40px;
+    }
+  }
+
+  .work-case__related {
+    padding-block: 0 72px;
+  }
+
+  @media (min-width: 1024px) {
+    .work-case__related {
+      padding-block: 0 120px;
+    }
+  }
+
+  .work-case__related-title {
+    margin: 0 0 32px;
+    font-size: 28px;
+    font-weight: 500;
+    letter-spacing: -0.02em;
+  }
+
+  @media (min-width: 1024px) {
+    .work-case__related-title {
+      margin-bottom: 48px;
+      font-size: 40px;
+    }
+  }
+
+  .work-case__related-grid {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: 0;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  @media (min-width: 1024px) {
+    .work-case__related-grid {
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+  }
+</style>

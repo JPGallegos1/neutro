@@ -6,60 +6,32 @@ interface Props {
 }
 
 const { project } = Astro.props;
-const isExternal = project.href?.startsWith("http") ?? false;
-const linkLabel = isExternal
-  ? `Visitar el sitio de ${project.title} (se abre en una pestaña nueva)`
-  : `Caso de estudio: ${project.title}`;
 ---
 
 <li class="work-card">
-  {project.href ? (
-    <a
-      class="work-card__inner"
-      href={project.href}
-      aria-label={linkLabel}
-      target={isExternal ? "_blank" : undefined}
-      rel={isExternal ? "noopener noreferrer" : undefined}
-    >
-      <div class="work-card__preview" style={`--work-tint: ${project.tint}`}>
-        <img
-          class="work-card__image"
-          src={project.imageSrc}
-          alt={project.imageAlt}
-          width="720"
-          height="405"
-          loading="eager"
-          decoding="async"
-          fetchpriority="high"
-        />
-        <span class="work-card__tag">{project.tag}</span>
-      </div>
-      <div class="work-card__details">
-        <h3 class="work-card__title">{project.title}</h3>
-        <p class="work-card__desc">{project.description}</p>
-      </div>
-    </a>
-  ) : (
-    <article class="work-card__inner">
-      <div class="work-card__preview" style={`--work-tint: ${project.tint}`}>
-        <img
-          class="work-card__image"
-          src={project.imageSrc}
-          alt={project.imageAlt}
-          width="720"
-          height="405"
-          loading="eager"
-          decoding="async"
-          fetchpriority="high"
-        />
-        <span class="work-card__tag">{project.tag}</span>
-      </div>
-      <div class="work-card__details">
-        <h3 class="work-card__title">{project.title}</h3>
-        <p class="work-card__desc">{project.description}</p>
-      </div>
-    </article>
-  )}
+  <a
+    class="work-card__inner"
+    href={project.href}
+    aria-label={`Caso de estudio: ${project.title}`}
+  >
+    <div class="work-card__preview" style={`--work-tint: ${project.tint}`}>
+      <img
+        class="work-card__image"
+        src={project.imageSrc}
+        alt={project.imageAlt}
+        width="720"
+        height="405"
+        loading="eager"
+        decoding="async"
+        fetchpriority="high"
+      />
+      <span class="work-card__tag">{project.tag}</span>
+    </div>
+    <div class="work-card__details">
+      <h3 class="work-card__title">{project.title}</h3>
+      <p class="work-card__desc">{project.description}</p>
+    </div>
+  </a>
 </li>
 
 <style>
