@@ -45,6 +45,155 @@ describe("isAllowedCommentValue — other tool directives", () => {
   });
 });
 
+describe("isAllowedCommentValue — lint suppressions", () => {
+  it("allows disable, enable, and ignore when the keyword is complete", () => {
+    assert.equal(isAllowedCommentValue("eslint-disable"), true);
+    assert.equal(isAllowedCommentValue("eslint-disable no-console"), true);
+    assert.equal(isAllowedCommentValue("eslint-disable-line no-console"), true);
+    assert.equal(
+      isAllowedCommentValue("eslint-disable-next-line no-console"),
+      true,
+    );
+    assert.equal(isAllowedCommentValue("eslint-enable no-console"), true);
+    assert.equal(isAllowedCommentValue("eslint-ignore"), true);
+    assert.equal(isAllowedCommentValue("oxlint-disable"), true);
+    assert.equal(isAllowedCommentValue("oxlint-disable-line foo"), true);
+    assert.equal(isAllowedCommentValue("oxlint-disable-next-line foo"), true);
+    assert.equal(
+      isAllowedCommentValue("oxlint-disable-next-line no-console -- motivo"),
+      true,
+    );
+    assert.equal(isAllowedCommentValue("oxlint-disable\n  no-console"), true);
+    assert.equal(isAllowedCommentValue("oxlint-enable"), true);
+    assert.equal(isAllowedCommentValue("  oxlint-ignore something"), true);
+    assert.equal(isAllowedCommentValue(" eslint-disable no-console "), true);
+  });
+
+  it("rejects prefixes and typos that are not a suppression keyword", () => {
+    assert.equal(
+      isAllowedCommentValue("eslint-plugin-react"),
+      false,
+      "eslint-plugin is not a suppression",
+    );
+    assert.equal(
+      isAllowedCommentValue(" eslint-env node"),
+      false,
+      "eslint-env is not disable, enable, or ignore",
+    );
+    assert.equal(
+      isAllowedCommentValue("eslint-disablefoo"),
+      false,
+      "keyword must end or be followed by whitespace",
+    );
+    assert.equal(isAllowedCommentValue("eslint-disable-next"), false);
+    assert.equal(isAllowedCommentValue("oxlint-is great"), false);
+    assert.equal(isAllowedCommentValue("oxlint-disable-everything"), false);
+    assert.equal(isAllowedCommentValue("oxlint-enable-next-line foo"), false);
+    assert.equal(
+      isAllowedCommentValue("oxlint-ignore-this-prose"),
+      false,
+      "ignore is a closed keyword, not an open prefix",
+    );
+    assert.equal(isAllowedCommentValue("oxlint-ignore-next-line foo"), false);
+  });
+});
+
+describe("isAllowedCommentValue — global and exported", () => {
+  it("rejects legacy global, globals, and exported comments", () => {
+    assert.equal(
+      isAllowedCommentValue(" global state de la sesión"),
+      false,
+      "prose that starts with global is not a directive",
+    );
+    assert.equal(isAllowedCommentValue(" global foo "), false);
+    assert.equal(isAllowedCommentValue(" globals foo:true "), false);
+    assert.equal(isAllowedCommentValue("globals for the file"), false);
+    assert.equal(isAllowedCommentValue(" exported helpers "), false);
+    assert.equal(isAllowedCommentValue("exported Foo"), false);
+  });
+});
+
+describe("isAllowedCommentValue — license banners", () => {
+  it("allows @license, @preserve, and a /*! block that contains them", () => {
+    assert.equal(isAllowedCommentValue(" @license MIT "), true);
+    assert.equal(isAllowedCommentValue("@license"), true);
+    assert.equal(isAllowedCommentValue(" @preserve "), true);
+    assert.equal(isAllowedCommentValue("@preserve"), true);
+    assert.equal(
+      isAllowedCommentValue("! @license MIT ", "Block"),
+      true,
+      "/*! @license */ is the preserve banner",
+    );
+    assert.equal(isAllowedCommentValue("!@preserve", "Block"), true);
+    assert.equal(
+      isAllowedCommentValue("!\n * @license MIT\n ", "Block"),
+      true,
+      "multiline /*! banner that contains @license",
+    );
+    assert.equal(isAllowedCommentValue("!\n *@preserve\n", "Block"), true);
+  });
+
+  it("rejects bang prose, line bangs, and markers that are not at the start", () => {
+    assert.equal(
+      isAllowedCommentValue(" !importante", "Line"),
+      false,
+      "// !importante is prose",
+    );
+    assert.equal(
+      isAllowedCommentValue("!importante", "Line"),
+      false,
+      "//!importante is prose",
+    );
+    assert.equal(isAllowedCommentValue(" ! importante", "Line"), false);
+    assert.equal(
+      isAllowedCommentValue("! nota ", "Block"),
+      false,
+      "/*! nota */ has no @license or @preserve",
+    );
+    assert.equal(
+      isAllowedCommentValue("!\n * Copyright (c) 2026\n ", "Block"),
+      false,
+      "copyright-only /*! header is not @license or @preserve",
+    );
+    assert.equal(
+      isAllowedCommentValue("! @license MIT", "Line"),
+      false,
+      "//! @license is not a /*! banner",
+    );
+    assert.equal(
+      isAllowedCommentValue(" ! @license MIT ", "Block"),
+      false,
+      "/* ! @license */ does not start the raw body with !",
+    );
+    assert.equal(
+      isAllowedCommentValue("* @license MIT ", "Block"),
+      false,
+      "/** @license */ still starts with a star",
+    );
+    assert.equal(isAllowedCommentValue("@licenseFoo"), false);
+    assert.equal(isAllowedCommentValue("@preserveFoo"), false);
+    assert.equal(isAllowedCommentValue("!@licenseFoo", "Block"), false);
+  });
+});
+
+describe("isAllowedCommentValue — remaining tool directives", () => {
+  it("keeps formatter, bundler, coverage, purity, and source map markers", () => {
+    assert.equal(isAllowedCommentValue("prettier-ignore"), true);
+    assert.equal(isAllowedCommentValue("oxfmt-ignore"), true);
+    assert.equal(isAllowedCommentValue("@vite-ignore"), true);
+    assert.equal(isAllowedCommentValue("webpackChunkName: 'app'"), true);
+    assert.equal(isAllowedCommentValue("v8 ignore next"), true);
+    assert.equal(isAllowedCommentValue("c8 ignore next"), true);
+    assert.equal(isAllowedCommentValue("istanbul ignore next"), true);
+    assert.equal(isAllowedCommentValue("@__PURE__"), true);
+    assert.equal(isAllowedCommentValue("#__PURE__"), true);
+    assert.equal(isAllowedCommentValue("@__NO_SIDE_EFFECTS__"), true);
+    assert.equal(isAllowedCommentValue("#__NO_SIDE_EFFECTS__"), true);
+    assert.equal(isAllowedCommentValue("sourceMappingURL=app.js.map"), true);
+    assert.equal(isAllowedCommentValue("# sourceMappingURL=app.js.map"), true);
+  });
+});
+
 describe("removalTextForComment — token boundaries", () => {
   it("inserts a space when neighbors would merge into one token", () => {
     const source = "typeof/* explanation */value";

@@ -1,16 +1,31 @@
 import { definePlugin, defineRule } from "@oxlint/plugins";
 
+const LINT_SUPPRESSION_RE =
+  /^(?:eslint|oxlint)-(?:disable-next-line|disable-line|disable|enable|ignore)(?=$|\s)/;
+
+const LICENSE_BANG_RE =
+  /^!(?:[ \t]*@(?:license|preserve)\b|[\s\S]*[\s*]@(?:license|preserve)\b)/;
+
 const DIRECTIVE_BODY_RE =
-  /^(?:!|@ts-|@__PURE__|#__PURE__|@__NO_SIDE_EFFECTS__|#__NO_SIDE_EFFECTS__|eslint-|oxlint-|global\b|globals\b|exported\b|prettier-ignore|oxfmt-ignore|@vite-ignore|webpack[A-Z]|v8 ignore|c8 ignore|istanbul ignore|@license|@preserve|sourceMappingURL|#\s*sourceMappingURL)/;
+  /^(?:@ts-|@__PURE__|#__PURE__|@__NO_SIDE_EFFECTS__|#__NO_SIDE_EFFECTS__|prettier-ignore|oxfmt-ignore|@vite-ignore|webpack[A-Z]|v8 ignore|c8 ignore|istanbul ignore|@license\b|@preserve\b|sourceMappingURL|#\s*sourceMappingURL)/;
 
 const TRIPLE_SLASH_DIRECTIVE_RE =
   /^\/\s*<(?:reference|amd-module|amd-dependency)\b/;
 
 const TOKEN_CHAR_RE = /[\w$]/;
 
-export function isAllowedCommentValue(rawValue) {
+export function isAllowedCommentValue(rawValue, commentType) {
+  if (
+    (commentType === "Block" || commentType == null) &&
+    LICENSE_BANG_RE.test(rawValue)
+  ) {
+    return true;
+  }
   const value = rawValue.trim();
   if (TRIPLE_SLASH_DIRECTIVE_RE.test(value)) {
+    return true;
+  }
+  if (LINT_SUPPRESSION_RE.test(value)) {
     return true;
   }
   return DIRECTIVE_BODY_RE.test(value);
@@ -59,7 +74,7 @@ const noComments = defineRule({
       Program() {
         const { sourceCode } = context;
         for (const comment of sourceCode.getAllComments()) {
-          if (isAllowedCommentValue(comment.value)) {
+          if (isAllowedCommentValue(comment.value, comment.type)) {
             continue;
           }
           context.report({

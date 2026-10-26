@@ -19,22 +19,22 @@ Numbering: this ADR is **0003** so it does not collide with **0001** (analytics,
 
 ### Allowed exceptions (minimal)
 
-Only tool/runtime directives required for correct tooling. Matched on the trimmed comment body:
+Only tool/runtime directives required for correct tooling. Matched on the trimmed comment body, except the `/*!` banner, which requires the raw block body to start with `!`:
 
-| Pattern                                                                                           | Why                                                                              |
-| ------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------- |
-| Triple-slash directives only: `/// <reference …>`, `/// <amd-module …>`, `/// <amd-dependency …>` | Real TypeScript/AMD directives. Prose like `/// Explain this` is **not** exempt. |
-| `@ts-*`                                                                                           | `@ts-expect-error`, `@ts-ignore`, `@ts-nocheck`, `@ts-check`                     |
-| `eslint-*` / `oxlint-*`                                                                           | Inline suppressions                                                              |
-| `prettier-ignore` / `oxfmt-ignore`                                                                | Formatter directives                                                             |
-| `@vite-ignore` / `webpack*` magic comments                                                        | Bundler directives                                                               |
-| `v8 ignore` / `c8 ignore` / `istanbul ignore`                                                     | Coverage directives                                                              |
-| `@__PURE__` / `#__PURE__` / `@__NO_SIDE_EFFECTS__` / `#__NO_SIDE_EFFECTS__`                       | Bundler purity annotations                                                       |
-| `@license` / `@preserve` / leading `!` (`/*! … */`)                                               | Legally required or preserve markers                                             |
-| `sourceMappingURL`                                                                                | Source map footers                                                               |
-| `global` / `globals` / `exported`                                                                 | Legacy ESLint/JSHint globals (if ever needed)                                    |
+| Pattern                                                                                           | Why                                                                                                                                    |
+| ------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------- |
+| Triple-slash directives only: `/// <reference …>`, `/// <amd-module …>`, `/// <amd-dependency …>` | Real TypeScript/AMD directives. Prose like `/// Explain this` is **not** exempt.                                                       |
+| `@ts-*`                                                                                           | `@ts-expect-error`, `@ts-ignore`, `@ts-nocheck`, `@ts-check`                                                                           |
+| `eslint-` / `oxlint-` plus `disable`, `disable-line`, `disable-next-line`, `enable`, or `ignore`  | Inline suppressions. The keyword must end the body or be followed by whitespace. `eslint-plugin` and `oxlint-is …` are **not** exempt. |
+| `prettier-ignore` / `oxfmt-ignore`                                                                | Formatter directives                                                                                                                   |
+| `@vite-ignore` / `webpack*` magic comments                                                        | Bundler directives                                                                                                                     |
+| `v8 ignore` / `c8 ignore` / `istanbul ignore`                                                     | Coverage directives                                                                                                                    |
+| `@__PURE__` / `#__PURE__` / `@__NO_SIDE_EFFECTS__` / `#__NO_SIDE_EFFECTS__`                       | Bundler purity annotations                                                                                                             |
+| `@license` / `@preserve` at the start of the trimmed body                                         | Legally required or preserve markers. `@licenseFoo` is **not** exempt.                                                                 |
+| `/*!` block banner whose raw body starts with `!` and contains `@license` or `@preserve`          | Minifier preserve banner. `// !importante`, `/*! nota */`, a copyright-only `/*!` header, and `//!` are **not** exempt.                |
+| `sourceMappingURL`                                                                                | Source map footers                                                                                                                     |
 
-No license header is required in this repo today; `@license`/`@preserve` stay allowed if one appears later.
+No license header is required in this repo today. `@license` and `@preserve` stay allowed when they start the trimmed body. A `/*!` banner stays allowed only when that raw block body also contains one of those markers.
 
 Meaning that would have lived in a comment must go into names, types, tests, or an ADR/docs file.
 
