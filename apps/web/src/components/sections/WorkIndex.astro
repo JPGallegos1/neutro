@@ -25,7 +25,7 @@ const showLoadMore = workProjects.length > LANDING_WORK_LIMIT;
     {showLoadMore && (
       <>
         <a
-          class="work-index__page-fallback"
+          class="sr-only work-index__page-fallback"
           href="/trabajo?page=2"
           data-work-page-link
         >
@@ -38,7 +38,7 @@ const showLoadMore = workProjects.length > LANDING_WORK_LIMIT;
         </div>
       </>
     )}
-    <p class="work-index__live" aria-live="polite" data-work-live></p>
+    <p class="sr-only" aria-live="polite" data-work-live></p>
   </div>
 </section>
 
@@ -126,7 +126,6 @@ const showLoadMore = workProjects.length > LANDING_WORK_LIMIT;
   }
 
   initWorkIndex();
-  document.addEventListener("astro:page-load", () => initWorkIndex());
 </script>
 
 <style>
@@ -259,18 +258,6 @@ const showLoadMore = workProjects.length > LANDING_WORK_LIMIT;
     }
   }
 
-  .work-index__page-fallback {
-    position: absolute;
-    width: 1px;
-    height: 1px;
-    padding: 0;
-    margin: -1px;
-    overflow: hidden;
-    clip: rect(0, 0, 0, 0);
-    white-space: nowrap;
-    border: 0;
-  }
-
   .work-index__page-fallback:focus-visible {
     position: static;
     display: inline-flex;
@@ -282,6 +269,7 @@ const showLoadMore = workProjects.length > LANDING_WORK_LIMIT;
     padding: 12px 20px;
     overflow: visible;
     clip: auto;
+    clip-path: none;
     white-space: normal;
     border-radius: 4px;
     background: var(--neutro-accent-blue);
@@ -300,17 +288,5 @@ const showLoadMore = workProjects.length > LANDING_WORK_LIMIT;
     .work-index__page-fallback:focus-visible {
       margin-top: 48px;
     }
-  }
-
-  .work-index__live {
-    position: absolute;
-    width: 1px;
-    height: 1px;
-    padding: 0;
-    margin: -1px;
-    overflow: hidden;
-    clip: rect(0, 0, 0, 0);
-    white-space: nowrap;
-    border: 0;
   }
 </style>
