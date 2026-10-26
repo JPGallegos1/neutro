@@ -24,7 +24,12 @@ const showLoadMore = workProjects.length > LANDING_WORK_LIMIT;
     </ul>
     {showLoadMore && (
       <div class="work-index__more landing-gutter" data-work-more hidden>
-        <button type="button" class="work-index__load" data-work-load-more>
+        <button
+          type="button"
+          class="work-index__load"
+          data-work-load-more
+          hidden
+        >
           Cargar más
         </button>
       </div>
@@ -74,7 +79,9 @@ const showLoadMore = workProjects.length > LANDING_WORK_LIMIT;
         );
         focusLink?.focus();
       }
-      more.hidden = visible >= cards.length;
+      const showMore = visible < cards.length;
+      button.hidden = !showMore;
+      more.hidden = !showMore;
     }
 
     function revealNext() {
