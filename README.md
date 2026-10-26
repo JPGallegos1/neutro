@@ -36,7 +36,7 @@ apps/
       components/       # Logo, ThemeToggle y secciones de la landing
       data/             # Nav, trabajo, servicios, sociales y page-meta
       layouts/          # Documento HTML (base) y layout legal
-      lib/              # Sitio y analytics (PostHog off por defecto)
+      lib/              # Sitio y analytics del navegador (vars de build)
       pages/            # Home, nosotros, legales y 404
       scripts/          # Controles de tema
       styles/           # Estilos de la landing
@@ -83,7 +83,7 @@ Ejecutar desde la raíz con `pnpm` o `corepack pnpm`:
 
 Tailwind CSS 4 se integra como plugin de Vite en `apps/web/astro.config.mjs`. El tema y los tokens de shadcn/ui se encuentran en `packages/ui/src/styles/globals.css` (mapeados a la paleta Neutro, con clase `.dark` en `<html>`). El layout de Astro importa ese CSS global y autoaloja Geist Sans (400/500/700) y Geist Mono. Las fuentes de Tailwind incluyen tanto la aplicación como los componentes compartidos.
 
-PostHog está preparado en `apps/web/src/lib/analytics.ts` y **no carga nada** salvo que existan `PUBLIC_POSTHOG_KEY` y `PUBLIC_ANALYTICS_ENABLED=true`. Ver [`docs/adr/0001-analytics-off-by-default.md`](docs/adr/0001-analytics-off-by-default.md).
+En producción el analytics del navegador está activo desde el deploy del 24/10/2026. Se prende en el build de Astro con `PUBLIC_POSTHOG_KEY` y `PUBLIC_ANALYTICS_ENABLED=true`: sin las dos, `apps/web/src/lib/analytics.ts` no descarga `posthog-js` (import dinámico) y el SDK no corre. La otra puerta es el Worker: manda `qr_scanned` server-side con `POSTHOG_KEY` y `ANALYTICS_ENABLED="true"` en `wrangler.jsonc`. Previews y `staging` quedan con analytics apagado ([ADR 0006](docs/adr/0006-workers-builds-delivery.md), estado Propuesto). Ver [`docs/adr/0001-analytics-off-by-default.md`](docs/adr/0001-analytics-off-by-default.md).
 
 shadcn/ui está configurado con estilo `new-york`, base `neutral`, React y `lucide-react` para íconos. `Button` queda incluido como componente inicial. Los componentes son código del proyecto, no un runtime de shadcn.
 
