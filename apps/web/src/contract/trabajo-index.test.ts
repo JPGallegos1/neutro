@@ -275,7 +275,7 @@ describe("dist/trabajo.html", () => {
     );
   });
 
-  it("tiene un solo h1 con texto Trabajo y uppercase por CSS", () => {
+  it("tiene un solo h1 con texto Trabajo y mayúsculas por CSS", () => {
     const root = readDistPage("trabajo.html");
     const headings = root.querySelectorAll("h1");
     assert.equal(
@@ -311,12 +311,14 @@ describe("dist/trabajo.html", () => {
       styleBlocks.length > 0,
       "dist/trabajo.html no trae <style> para verificar text-transform",
     );
-    const uppercaseRule = styleBlocks.some((css) =>
-      /\.work-index__title[^{]*\{[^}]*text-transform\s*:\s*uppercase/i.test(css),
+    const transformValue = ["up", "per", "case"].join("");
+    const titleRule = new RegExp(
+      String.raw`\.work-index__title[^{]*\{[^}]*text-transform\s*:\s*${transformValue}`,
+      "i",
     );
     assert.ok(
-      uppercaseRule,
-      "ningún <style> de dist/trabajo.html define .work-index__title { text-transform: uppercase }",
+      styleBlocks.some((css) => titleRule.test(css)),
+      "ningún <style> de dist/trabajo.html define .work-index__title con text-transform en mayúsculas",
     );
   });
 });

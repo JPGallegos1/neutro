@@ -8,6 +8,16 @@ import { readDistPage } from "./dist.ts";
 
 const SITE = "https://neutro.solutions";
 const distDir = fileURLToPath(new URL("../../dist/", import.meta.url));
+const STAR_AGENT = "*";
+const ALLOWED_STAR_DISALLOWS = new Set(["/ingest", "/ingest/"]);
+const SITEMAP_LINE = "Sitemap: https://neutro.solutions/sitemap-index.xml";
+
+type RobotsDirective = { kind: string; value: string; raw: string };
+
+type RobotsGroup = {
+  agents: string[];
+  directives: RobotsDirective[];
+};
 
 function isEnoent(error: unknown): boolean {
   return (
@@ -32,6 +42,124 @@ function readDistRobots(): string {
   }
 }
 
+function parseRobotsGroups(body: string): RobotsGroup[] {
+  const groups: RobotsGroup[] = [];
+  let current: RobotsGroup | null = null;
+
+  for (const rawLine of body.split(/\r?\n/)) {
+    const line = rawLine.trim();
+    if (line.length === 0 || line.startsWith("#")) continue;
+    const colon = line.indexOf(":");
+    assert.ok(
+      colon > 0,
+      `línea de robots.txt sin directiva: ${JSON.stringify(rawLine)}`,
+    );
+    const kind = line.slice(0, colon).trim().toLowerCase();
+    const value = line.slice(colon + 1).trim();
+    const directive: RobotsDirective = { kind, value, raw: line };
+
+    if (kind === "user-agent") {
+      if (current === null || current.directives.length > 0) {
+        current = { agents: [value], directives: [] };
+        groups.push(current);
+      } else {
+        current.agents.push(value);
+      }
+      continue;
+    }
+
+    if (kind === "sitemap") {
+      groups.push({ agents: [], directives: [directive] });
+      current = null;
+      continue;
+    }
+
+    assert.ok(
+      current !== null,
+      `directiva ${JSON.stringify(line)} sin User-agent previo`,
+    );
+    current.directives.push(directive);
+  }
+
+  return groups;
+}
+
+function assertStarRobotsPolicy(body: string): void {
+  const groups = parseRobotsGroups(body);
+  const starGroups = groups.filter((group) =>
+    group.agents.includes(STAR_AGENT),
+  );
+  assert.equal(
+    starGroups.length,
+    1,
+    `robots.txt debe tener exactamente un grupo User-agent: *; hay ${starGroups.length}`,
+  );
+  const star = starGroups[0];
+  assert.ok(star, "falta el grupo User-agent: *");
+  assert.deepEqual(
+    star.agents,
+    [STAR_AGENT],
+    `el grupo * no puede mezclar otros user-agents: ${star.agents.join(", ")}`,
+  );
+
+  for (const group of groups) {
+    if (group.agents.includes(STAR_AGENT)) continue;
+    const foreignDisallows = group.directives.filter(
+      (d) => d.kind === "disallow",
+    );
+    assert.deepEqual(
+      foreignDisallows,
+      [],
+      `Disallow fuera de User-agent: *: ${foreignDisallows.map((d) => d.raw).join("; ")}`,
+    );
+  }
+
+  const allows = star.directives
+    .filter((d) => d.kind === "allow")
+    .map((d) => d.value);
+  assert.ok(allows.includes("/"), "User-agent: * debe declarar Allow: /");
+
+  const disallows = star.directives
+    .filter((d) => d.kind === "disallow")
+    .map((d) => d.value);
+  assert.deepEqual(
+    [...disallows].sort(),
+    [...ALLOWED_STAR_DISALLOWS].sort(),
+    `User-agent: * solo admite Disallow /ingest y /ingest/; recibió: ${disallows.join(", ") || "(ninguno)"}`,
+  );
+
+  const sitemapLines = groups.flatMap((group) =>
+    group.directives
+      .filter((d) => d.kind === "sitemap")
+      .map((d) => `Sitemap: ${d.value}`),
+  );
+  assert.ok(
+    sitemapLines.includes(SITEMAP_LINE),
+    `robots.txt debe declarar ${SITEMAP_LINE}`,
+  );
+}
+
+function withExtraStarDisallow(body: string, path: string): string {
+  const needle = "User-agent: *";
+  const index = body.indexOf(needle);
+  assert.ok(index !== -1, "no se encontró User-agent: * para mutar");
+  const insertAt = index + needle.length;
+  return `${body.slice(0, insertAt)}\nDisallow: ${path}${body.slice(insertAt)}`;
+}
+
+function withDisallowsMovedToGooglebot(body: string): string {
+  const withoutIngest = body
+    .split(/\r?\n/)
+    .filter((line) => {
+      const trimmed = line.trim();
+      return (
+        trimmed !== "Disallow: /ingest" && trimmed !== "Disallow: /ingest/"
+      );
+    })
+    .join("\n");
+  return `${withoutIngest.replace(/\s*$/, "")}\n\nUser-agent: Googlebot\nDisallow: /ingest\nDisallow: /ingest/\n`;
+}
+
 function isIngestOrFlyerHref(href: string): boolean {
   let pathname: string;
   try {
@@ -48,28 +176,23 @@ function isIngestOrFlyerHref(href: string): boolean {
 }
 
 describe("dist/robots.txt", () => {
-  it("permite el sitio, bloquea /ingest y declara el sitemap", () => {
-    const lines = readDistRobots()
-      .split(/\r?\n/)
-      .map((line) => line.trim())
-      .filter((line) => line.length > 0);
+  it("permite el sitio, bloquea solo /ingest bajo User-agent: * y declara el sitemap", () => {
+    assertStarRobotsPolicy(readDistRobots());
+  });
 
-    assert.ok(
-      lines.includes("User-agent: *"),
-      "robots.txt debe declarar User-agent: *",
+  it("rechaza Disallow extra o fuera de User-agent: *", () => {
+    const body = readDistRobots();
+    assert.throws(
+      () => assertStarRobotsPolicy(withExtraStarDisallow(body, "/")),
+      /solo admite Disallow/,
     );
-    assert.ok(lines.includes("Allow: /"), "robots.txt debe declarar Allow: /");
-    assert.ok(
-      lines.includes("Disallow: /ingest"),
-      "robots.txt debe declarar Disallow: /ingest",
+    assert.throws(
+      () => assertStarRobotsPolicy(withExtraStarDisallow(body, "/trabajo")),
+      /solo admite Disallow/,
     );
-    assert.ok(
-      lines.includes("Disallow: /ingest/"),
-      "robots.txt debe declarar Disallow: /ingest/",
-    );
-    assert.ok(
-      lines.includes("Sitemap: https://neutro.solutions/sitemap-index.xml"),
-      "robots.txt debe declarar Sitemap: https://neutro.solutions/sitemap-index.xml",
+    assert.throws(
+      () => assertStarRobotsPolicy(withDisallowsMovedToGooglebot(body)),
+      /Disallow fuera de User-agent/,
     );
   });
 });
