@@ -11,43 +11,62 @@ export type WorkProject = {
 
 export const workProjects: WorkProject[] = [
   {
-    id: "lina",
-    title: "Lina",
-    description: "{Descripción Lina}",
+    id: "conexlaboral",
+    title: "Conexión Laboral",
+    description:
+      "Reclutamiento para PyMEs en Argentina: busca, filtra y presenta los 3 mejores candidatos con informe.",
     tag: "En producción",
-    imageSrc: "/images/work/lina.jpg",
-    imageAlt: "Vista previa del proyecto Lina",
-    tint: "#073E26",
-    href: "/trabajo/lina",
+    imageSrc: "/images/work/conexlaboral.webp",
+    imageAlt:
+      "Página de inicio de Conexión Laboral con el título 'Cubrí la vacante que necesitás' y dos personas dándose la mano",
+    tint: "#2F3F55",
+    href: "https://conexlaboral.com",
   },
   {
-    id: "clara",
-    title: "Clara",
-    description: "{Descripción Clara}",
+    id: "afectiva",
+    title: "Afectiva Comunicaciones",
+    description:
+      "Agencia de comunicación: estrategia, diseño, contenido y producción para marcas con historia.",
     tag: "En producción",
-    imageSrc: "/images/work/clara.jpg",
-    imageAlt: "Vista previa del proyecto Clara",
-    tint: "#0A355C",
-    href: null,
+    imageSrc: "/images/work/afectiva.webp",
+    imageAlt:
+      "Página de inicio de Afectiva Comunicaciones con el título 'Impulsamos tu marca en el mundo digital' y un sello circular violeta",
+    tint: "#342850",
+    href: "https://afectiva.vercel.app",
+  },
+  {
+    id: "capaautomotores",
+    title: "Capa Automotores",
+    description:
+      "Concesionaria de usados y 0km en Rosario, con financiación hasta 60% y toma de tu usado en parte de pago.",
+    tag: "En producción",
+    imageSrc: "/images/work/capaautomotores.webp",
+    imageAlt:
+      "Página de inicio de Capa Automotores con el título 'Tu próximo auto, sin vueltas' y una pickup gris en el hero",
+    tint: "#15161B",
+    href: "https://capaautomotores.com",
+  },
+  {
+    id: "suplementacionconciencia",
+    title: "Suplementación con Ciencia",
+    description:
+      "Tienda online de suplementos deportivos con información respaldada por ciencia y envíos a todo el país.",
+    tag: "En producción",
+    imageSrc: "/images/work/suplementacionconciencia.webp",
+    imageAlt:
+      "Página de inicio de Suplementación con Ciencia con encabezado teal, buscador y categorías de suplementos",
+    tint: "#0E4B5F",
+    href: "https://suplementacionconciencia.com.ar",
   },
   {
     id: "luxurycars",
     title: "LuxuryCars",
-    description: "{Descripción LuxuryCars}",
+    description: "Plataforma suiza para comprar y vender autos de lujo.",
     tag: "En producción",
-    imageSrc: "/images/work/luxurycars.jpg",
-    imageAlt: "Vista previa del proyecto LuxuryCars",
-    tint: "#5A1F22",
-    href: null,
-  },
-  {
-    id: "h2hi",
-    title: "H2HI",
-    description: "{Descripción H2HI}",
-    tag: "En producción",
-    imageSrc: "/images/work/h2hi.jpg",
-    imageAlt: "Vista previa del proyecto H2HI",
-    tint: "#5A3A05",
-    href: null,
+    imageSrc: "/images/work/luxurycars.webp",
+    imageAlt:
+      "Página de inicio de LuxuryCars con un Bentley claro al atardecer y el título 'La plateforme suisse de référence pour les voitures de luxe'",
+    tint: "#5E3D33",
+    href: "https://luxurycars.ch",
   },
 ];

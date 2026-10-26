@@ -6,6 +6,10 @@ interface Props {
 }
 
 const { project } = Astro.props;
+const isExternal = project.href?.startsWith("http") ?? false;
+const linkLabel = isExternal
+  ? `Visitar el sitio de ${project.title} (se abre en una pestaña nueva)`
+  : `Caso de estudio: ${project.title}`;
 ---
 
 <li class="work-card">
@@ -13,7 +17,9 @@ const { project } = Astro.props;
     <a
       class="work-card__inner"
       href={project.href}
-      aria-label={`Caso de estudio: ${project.title}`}
+      aria-label={linkLabel}
+      target={isExternal ? "_blank" : undefined}
+      rel={isExternal ? "noopener noreferrer" : undefined}
     >
       <div class="work-card__preview" style={`--work-tint: ${project.tint}`}>
         <img
