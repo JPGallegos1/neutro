@@ -52,6 +52,7 @@ const showLoadMore = workProjects.length > LANDING_WORK_LIMIT;
     if (!grid || !moreEl || !button || !liveEl) return;
 
     const more = moreEl;
+    const loadButton = button;
     const live = liveEl;
     const pageSize = Number(grid.dataset.pageSize ?? "4");
     if (!Number.isFinite(pageSize) || pageSize < 1) return;
@@ -71,7 +72,7 @@ const showLoadMore = workProjects.length > LANDING_WORK_LIMIT;
       if (
         typeof focusFrom === "number" &&
         focusFrom < visible &&
-        document.activeElement === button
+        document.activeElement === loadButton
       ) {
         const focusCard = cards[focusFrom];
         const focusLink = focusCard?.querySelector<HTMLAnchorElement>(
@@ -80,7 +81,7 @@ const showLoadMore = workProjects.length > LANDING_WORK_LIMIT;
         focusLink?.focus();
       }
       const showMore = visible < cards.length;
-      button.hidden = !showMore;
+      loadButton.hidden = !showMore;
       more.hidden = !showMore;
     }
 
@@ -100,7 +101,7 @@ const showLoadMore = workProjects.length > LANDING_WORK_LIMIT;
     index.dataset.enhanced = "true";
     sync();
 
-    button.addEventListener("click", () => {
+    loadButton.addEventListener("click", () => {
       revealNext();
     });
   }
