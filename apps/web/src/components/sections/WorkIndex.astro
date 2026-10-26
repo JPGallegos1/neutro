@@ -22,24 +22,22 @@ const showLoadMore = workProjects.length > LANDING_WORK_LIMIT;
         <WorkCard project={project} />
       ))}
     </ul>
-    {
-      showLoadMore && (
-        <>
-          <a
-            class="work-index__page-fallback"
-            href="/trabajo?page=2"
-            data-work-page-link
-          >
+    {showLoadMore && (
+      <>
+        <a
+          class="work-index__page-fallback"
+          href="/trabajo?page=2"
+          data-work-page-link
+        >
+          Cargar más
+        </a>
+        <div class="work-index__more landing-gutter" data-work-more hidden>
+          <button type="button" class="work-index__load" data-work-load-more>
             Cargar más
-          </a>
-          <div class="work-index__more landing-gutter" data-work-more hidden>
-            <button type="button" class="work-index__load" data-work-load-more>
-              Cargar más
-            </button>
-          </div>
-        </>
-      )
-    }
+          </button>
+        </div>
+      </>
+    )}
     <p class="work-index__live" aria-live="polite" data-work-live></p>
   </div>
 </section>
@@ -244,6 +242,7 @@ const showLoadMore = workProjects.length > LANDING_WORK_LIMIT;
     }
   }
 
+  .work-index__page-fallback,
   .work-index__live {
     position: absolute;
     width: 1px;
