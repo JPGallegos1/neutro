@@ -57,6 +57,8 @@ jobs:
         run: pnpm check
       - name: Test
         run: pnpm test
+      - name: Contract
+        run: pnpm --filter @neutro/web test:contract
 
   build:
     name: Build
