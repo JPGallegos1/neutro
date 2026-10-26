@@ -34,6 +34,12 @@ No copies el contenido de un ADR al PR: linkealo.
 - PR visuales: incluir slides o video (sin alargar el proceso en la descripción).
 - Si un cambio pasa de 10 archivos, se divide en PRs apilados o secuenciales ([ADR 0004](docs/adr/0004-max-pr-files.md)).
 
+## Verificación
+
+- La verification skill del sitio está en [`.cursor/skills/verify-web/SKILL.md`](.cursor/skills/verify-web/SKILL.md). Plantilla del informe: [`.cursor/skills/verify-web/plantilla-informe.md`](.cursor/skills/verify-web/plantilla-informe.md).
+- Qué regla va a qué mecanismo, Playwright como base, y por qué la protección de rama no se activa: [ADR 0007](docs/adr/0007-reglas-automaticas-y-verification-skill.md) (Propuesto).
+- El verificador deja el informe a Lucy. No comenta en el PR, no publica y no mergea.
+
 ## Flujo de ramas
 
 - Sin OK explícito de Juan: no se mergea a `main`.
