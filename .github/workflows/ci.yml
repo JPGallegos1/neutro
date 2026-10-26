@@ -34,6 +34,8 @@ jobs:
         run: pnpm lint
       - name: Lint rule unit tests
         run: pnpm test:lint-rules
+      - name: Tests de las herramientas de CI
+        run: pnpm test:ci-tools
 
   check:
     name: Check
