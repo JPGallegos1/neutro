@@ -26,7 +26,7 @@ const related = relatedWorkProjects(workCase.slug, 3);
       </h1>
       <p class="work-case__tag">{workCase.tag}</p>
       <a
-        class="rounded-md bg-primary px-4 py-2 text-sm hover:bg-primary/90 work-case__visit"
+        class="rounded-md bg-primary px-4 py-2 text-sm work-case__visit"
         href={workCase.externalUrl}
         target="_blank"
         rel="noopener noreferrer"
@@ -235,6 +235,12 @@ const related = relatedWorkProjects(workCase.slug, 3);
 
     .work-case__visit:active {
       transform: none;
+    }
+  }
+
+  @media (hover: hover) and (prefers-reduced-motion: no-preference) {
+    .work-case__visit:hover {
+      opacity: 0.92;
     }
   }
 
