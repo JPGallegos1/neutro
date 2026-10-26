@@ -35,7 +35,7 @@ Si una salida trae un secreto, reemplazalo por `‹redactado›` antes de guarda
 
 ## Preparación
 
-La versión la mandan los archivos del repo, no la máquina. Lo primero, definí las tres variables del PR. `$PR` coincide con `^[1-9][0-9]*$`. `$BASE` y `$HEAD` son SHA hexadecimales de 7 a 40 caracteres, de la base y del head, y tienen que ser un commit del checkout: `git rev-parse --verify --quiet "$X^{commit}"`. Si `$PR` no cumple ese patrón, frená: si no, la carpeta queda `evidencia/-<sha>`, `evidencia/0-<sha>` o `evidencia/../x-<sha>`.
+La versión la mandan los archivos del repo, no la máquina. Lo primero, definí las tres variables del PR. `$PR` se rechaza con `case "$PR" in ''|0*|*[!0-9]*)`. El `*` de `case` no es una regex: `*[!0-9]*` agarra cualquier carácter que no sea dígito, también un salto de línea, y `0*` agarra el cero adelante. `$BASE` y `$HEAD` son SHA hexadecimales de 7 a 40 caracteres, de la base y del head, y tienen que ser un commit del checkout: `git rev-parse --verify --quiet "$X^{commit}"`. Si `$PR` cae en ese `case`, frená: si no, la carpeta queda `evidencia/-<sha>`, `evidencia/0-<sha>` o `evidencia/../x-<sha>`.
 
 Este bloque corre en la shell de la corrida (un script, o la shell donde se pega el bloque). `[ -n "${PR:-}" ] || exit 1` corta esa shell siempre, también si es interactiva. `${PR:?...}` no se usa: en una shell interactiva imprime el aviso y sigue. Si la shell es la tuya de trabajo, `exit 1` la cierra.
 
@@ -50,8 +50,7 @@ case "$HEAD" in
   *[!0-9a-fA-F]*) printf '%s\n' 'HEAD no es un SHA hexadecimal.'; exit 1 ;;
 esac
 case "$PR" in
-  [1-9]|[1-9][0-9]*) ;;
-  *) printf '%s\n' 'PR tiene que coincidir con ^[1-9][0-9]*$.'; exit 1 ;;
+  ''|0*|*[!0-9]*) printf '%s\n' 'PR vacío, con cero adelante o con un carácter que no es dígito.'; exit 1 ;;
 esac
 if [ "${#BASE}" -lt 7 ] || [ "${#BASE}" -gt 40 ] || [ "${#HEAD}" -lt 7 ] || [ "${#HEAD}" -gt 40 ]; then
   printf '%s\n' 'BASE y HEAD tienen que ser SHA hexadecimales de 7 a 40 caracteres.'
@@ -422,7 +421,7 @@ Si la puerta nueva no tiene comando (es un recorrido de esta skill), el `.txt` m
 
 ## Playwright
 
-Base de la prueba del sitio construido. Los specs viven en `apps/web/e2e/`. Hoy la base trae `humo.spec.ts`. Hamilton suma después, sin que esta skill se reescriba: `trabajo-sin-js.spec.ts`, `trabajo-cargar-mas.spec.ts`, `a11y.spec.ts`, `a11y-rutas.ts`, `analytics-apagado.spec.ts`. `pnpm --filter @neutro/web test:e2e` corre lo que haya en ese directorio.
+Base de la prueba del sitio construido. Los specs viven en `apps/web/e2e/`. En main está `apps/web/e2e/humo.spec.ts`. Hamilton suma después, sin que esta skill se reescriba: `trabajo-sin-js.spec.ts`, `trabajo-cargar-mas.spec.ts`, `a11y.spec.ts`, `a11y-rutas.ts`, `analytics-apagado.spec.ts`. `pnpm --filter @neutro/web test:e2e` corre lo que haya en ese directorio.
 
 El servidor del config es `astro preview` en `http://127.0.0.1:4173`. No es el Worker. No reutilices un preview de otra rama: si el puerto está tomado, liberá el puerto y volvé a lanzar el test contra el `dist` de la puerta 7.
 
