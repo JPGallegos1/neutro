@@ -1,0 +1,43 @@
+---
+import WorkIndex from "@/components/sections/WorkIndex.astro";
+import Footer from "@/components/sections/Footer.astro";
+import Header from "@/components/sections/Header.astro";
+import { pageMeta } from "@/data/page-meta";
+import { workProjects } from "@/data/work";
+import Base from "@/layouts/base.astro";
+
+const origin = "https://neutro.solutions";
+const jsonLd = {
+  "@context": "https://schema.org",
+  "@graph": [
+    {
+      "@type": "CollectionPage",
+      "@id": `${origin}/trabajo#page`,
+      url: `${origin}/trabajo`,
+      name: pageMeta.trabajo.title,
+      description: pageMeta.trabajo.description,
+      isPartOf: { "@id": `${origin}/#website` },
+      about: { "@id": `${origin}/#organization` },
+    },
+    {
+      "@type": "ItemList",
+      "@id": `${origin}/trabajo#list`,
+      itemListElement: workProjects.map((project, index) => ({
+        "@type": "ListItem",
+        position: index + 1,
+        name: project.title,
+        url: `${origin}${project.href}`,
+      })),
+    },
+  ],
+};
+---
+
+<Base title={pageMeta.trabajo.title} description={pageMeta.trabajo.description}>
+  <Header />
+  <main id="contenido">
+    <WorkIndex />
+  </main>
+  <Footer />
+  <script type="application/ld+json" set:html={JSON.stringify(jsonLd)} />
+</Base>

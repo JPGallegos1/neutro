@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 
+import { pageMeta } from "./page-meta.ts";
 import { LANDING_WORK_LIMIT, workProjects } from "./work.ts";
 
 const PUBLISHED = [
@@ -65,5 +66,33 @@ describe("workProjects", () => {
       workProjects.slice(0, LANDING_WORK_LIMIT).map((project) => project.id),
       LANDING_IDS,
     );
+  });
+
+  it("pagina /trabajo de a cuatro y deja LuxuryCars para Cargar más", () => {
+    assert.ok(workProjects.length > LANDING_WORK_LIMIT);
+    assert.deepEqual(
+      workProjects.slice(0, LANDING_WORK_LIMIT).map((project) => project.id),
+      LANDING_IDS,
+    );
+    assert.deepEqual(
+      workProjects.slice(LANDING_WORK_LIMIT).map((project) => project.id),
+      ["luxurycars"],
+    );
+  });
+});
+
+describe("pageMeta.trabajo", () => {
+  it("define title, description y canonical slashless", () => {
+    assert.equal(pageMeta.trabajo.path, "/trabajo");
+    assert.equal(
+      pageMeta.trabajo.title,
+      "Casos y proyectos | Neutro Solutions",
+    );
+    assert.equal(
+      pageMeta.trabajo.canonical,
+      "https://neutro.solutions/trabajo",
+    );
+    assert.ok(pageMeta.trabajo.description.length > 80);
+    assert.equal(pageMeta.trabajo.heading, "TRABAJO");
   });
 });

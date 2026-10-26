@@ -31,6 +31,12 @@ export const pageMeta = {
     "Somos Neutro Solutions: diseñamos webs, tiendas y sistemas para tu negocio. Definimos con vos qué necesitás antes de construir y medimos para decidir mejor.",
     "Quiénes somos y cómo trabajamos",
   ),
+  trabajo: page(
+    "/trabajo",
+    "Casos y proyectos | Neutro Solutions",
+    "Explorá nuestro trabajo seleccionado: sitios y sistemas en producción para PyMEs y marcas. Conexión Laboral, Afectiva, Capa Automotores y más.",
+    "TRABAJO",
+  ),
   cookies: page(
     "/cookies",
     "Política de cookies | Neutro Solutions",
