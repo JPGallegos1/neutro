@@ -544,13 +544,13 @@ Cambio crítico: todo lo que no sea visual ni CI/CD y pueda tocar base de datos,
 
 En este repo entran, entre otros: el Worker, `wrangler.jsonc`, headers, secretos, variables `PUBLIC_*` o `POSTHOG_KEY`, auth, permisos, datos, migraciones y dependencias que cambian la superficie. Un PR mezclado entra por la parte que no es visual.
 
-Docs de reglas y lint no suman el verificador con Codex, salvo que el diff modifique el contenido de secretos, tokens, permisos de workflows, protección de rama o env vars. En ese caso sí lo suman. CI y deploy son CI/CD: esta regla no los usa para sumar el verificador. El resto de la sección de cambio crítico se corre igual en esos PR.
+Docs de reglas y lint no suman el verificador con Codex, salvo que el diff modifique el contenido de secretos, tokens, protección de rama o env vars. En ese caso sí lo suman. CI y deploy son CI/CD: esta regla no los usa para sumar el verificador. El resto de la sección de cambio crítico se corre igual en esos PR.
 
-Punto abierto para Juan: si un PR que sólo cambia CI suma el verificador con Codex.
+Un PR que sólo cambia CI no necesita verificación con codex. No suma el verificador de Codex. Sigue con el verificador normal de Lucy. Codex queda para un cambio crítico que no es CI.
 
-Esta regla de exclusión está propuesta y espera el OK de Juan Gallegos.
+Esta regla de exclusión está vigente.
 
-Si el cambio crítico no aplica, en el informe: «Cambio crítico: no aplica», con una frase de motivo. El resto de esta sección no se corre. Un PR de docs de reglas o de lint no usa esa salida: la sección se corre, y el verificador con Codex entra sólo con la excepción de arriba.
+Si el cambio crítico no aplica, en el informe: «Cambio crítico: no aplica», con una frase de motivo. El resto de esta sección no se corre. Un PR de docs de reglas, de lint, o que sólo cambia CI, no usa esa salida: la sección se corre. El verificador con Codex entra sólo con la excepción de arriba. Un PR que sólo cambia CI no lo suma y sigue con el verificador normal de Lucy.
 
 ### Superficie, antes de verificar
 

@@ -2,7 +2,7 @@
 
 ## Status
 
-Propuesto
+Aceptado el 2026-10-26. Juan Gallegos lo aprobó con este cambio: un PR que sólo cambia CI no necesita verificación con codex.
 
 ## Contexto
 
@@ -46,13 +46,11 @@ Cambio crítico: todo lo que no sea visual ni CI/CD y pueda tocar base de datos,
 
 «Toque» quiere decir que el diff modifica el contenido de ese archivo o de esa configuración. Mencionarlo en prosa no cuenta.
 
-Docs de reglas y lint no suman el verificador con Codex, salvo que el diff modifique el contenido de secretos, tokens, permisos de workflows, protección de rama o env vars. En ese caso sí lo suman. CI y deploy son CI/CD: esta regla no los usa para sumar el verificador. El resto de la sección de cambio crítico se corre igual en esos PR.
+Docs de reglas y lint no suman el verificador con Codex, salvo que el diff modifique el contenido de secretos, tokens, protección de rama o env vars. En ese caso sí lo suman. CI y deploy son CI/CD: esta regla no los usa para sumar el verificador. El resto de la sección de cambio crítico se corre igual en esos PR.
 
-Punto abierto para Juan: si un PR que sólo cambia CI suma el verificador con Codex.
+Un PR que sólo cambia CI no necesita verificación con codex. No suma el verificador de Codex. Sigue con el verificador normal de Lucy. Codex queda para un cambio crítico que no es CI.
 
-Punto abierto para Juan: «permisos de workflows» está en la excepción de Codex pero vive en archivos de CI y la misma frase dice que CI no suma; «secretos» y «protección de rama» difícilmente aparecen como contenido de un diff.
-
-Esta regla de exclusión está propuesta y espera el OK de Juan Gallegos.
+Esta regla de exclusión está vigente.
 
 ### Playwright
 

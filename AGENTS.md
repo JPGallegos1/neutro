@@ -37,7 +37,7 @@ No copies el contenido de un ADR al PR: linkealo.
 ## Verificación
 
 - La verification skill del sitio está en [`.cursor/skills/verify-web/SKILL.md`](.cursor/skills/verify-web/SKILL.md). Plantilla del informe: [`.cursor/skills/verify-web/plantilla-informe.md`](.cursor/skills/verify-web/plantilla-informe.md).
-- Qué regla va a qué mecanismo, Playwright como base, y por qué la protección de rama no se activa: [ADR 0007](docs/adr/0007-reglas-automaticas-y-verification-skill.md) (Propuesto).
+- Qué regla va a qué mecanismo, Playwright como base, y por qué la protección de rama no se activa: [ADR 0007](docs/adr/0007-reglas-automaticas-y-verification-skill.md) (Aceptado).
 - El verificador deja el informe a Lucy. No comenta en el PR, no publica y no mergea.
 
 ## Flujo de ramas
