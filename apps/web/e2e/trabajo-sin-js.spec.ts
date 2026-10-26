@@ -32,4 +32,5 @@ test("sin JavaScript, /trabajo muestra las 5 cards y no muestra Cargar más", as
   });
   await expect(cargarMas).toHaveCount(1);
   await expect(cargarMas).toBeHidden();
+  await expect(cargarMas).toHaveAttribute("hidden", "");
 });
