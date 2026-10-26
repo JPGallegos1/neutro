@@ -1,60 +1,7 @@
-import { readdirSync } from "node:fs";
-import { dirname, join } from "node:path";
-import { fileURLToPath } from "node:url";
 import { expect, test } from "@playwright/test";
-import { workProjects } from "../src/data/work.ts";
+import { rutasEsperadas, rutasPublicas } from "./rutas-publicas.ts";
 
 const ESPERA_MS = 2000;
-
-const pagesDir = join(dirname(fileURLToPath(import.meta.url)), "../src/pages");
-
-function rutasDePaginas(dir: string, prefix: string): string[] {
-  const rutas: string[] = [];
-  for (const entry of readdirSync(dir, { withFileTypes: true })) {
-    if (entry.isDirectory()) {
-      rutas.push(
-        ...rutasDePaginas(join(dir, entry.name), `${prefix}/${entry.name}`),
-      );
-      continue;
-    }
-    if (!entry.name.endsWith(".astro")) continue;
-    if (entry.name === "404.astro") continue;
-    const stem = entry.name.slice(0, -".astro".length);
-    if (stem.startsWith("[")) continue;
-    if (stem === "index") {
-      rutas.push(prefix === "" ? "/" : prefix);
-      continue;
-    }
-    rutas.push(`${prefix}/${stem}`);
-  }
-  return rutas;
-}
-
-function compararRutas(a: string, b: string): number {
-  if (a === "/") return -1;
-  if (b === "/") return 1;
-  if (a < b) return -1;
-  if (a > b) return 1;
-  return 0;
-}
-
-const rutasPublicas = [
-  ...new Set([
-    ...rutasDePaginas(pagesDir, ""),
-    ...workProjects.map((project) => project.href),
-  ]),
-].sort(compararRutas);
-
-const RUTAS_ESPERADAS = [
-  "/",
-  "/nosotros",
-  "/cookies",
-  "/privacidad",
-  "/terminos",
-  "/alerta-estafa",
-  "/trabajo",
-  ...workProjects.map((project) => project.href),
-] as const;
 
 function esRequestDeAnalytics(url: string): boolean {
   let parsed: URL;
@@ -84,7 +31,7 @@ function esCookieDeAnalytics(name: string): boolean {
 }
 
 test("el recorrido cubre las páginas públicas", () => {
-  for (const ruta of RUTAS_ESPERADAS) {
+  for (const ruta of rutasEsperadas) {
     expect(rutasPublicas, ruta).toContain(ruta);
   }
   expect(rutasPublicas.includes("/404")).toBe(false);
