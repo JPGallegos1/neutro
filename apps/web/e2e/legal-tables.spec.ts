@@ -260,16 +260,38 @@ test.describe("tablas legales sin desborde en móvil", () => {
     }
   }
 
-  test("/cookies tablas sin clase: anywhere solo ≤329px", async ({ page }) => {
-    const at329 = await tableMetrics(page, "/cookies", 329);
-    const at330 = await tableMetrics(page, "/cookies", 330);
-    expect(at329[0]?.overflowWrap).toBe("anywhere");
-    expect(at330[0]?.overflowWrap).toBe("normal");
-    expect(at329[0]?.pageScroll).toBe(0);
-    expect(at330[0]?.pageScroll).toBe(0);
-    expect(at329[0]?.wrapOverflow ?? 99).toBeLessThanOrEqual(1);
-    expect(at330[0]?.wrapOverflow ?? 99).toBeLessThanOrEqual(1);
-  });
+  for (const path of ["/cookies", "/privacidad"] as const) {
+    test(`${path} tablas sin clase: anywhere solo ≤329px`, async ({ page }) => {
+      const at329 = await tableMetrics(page, path, 329);
+      const at330 = await tableMetrics(page, path, 330);
+      const plain329 = at329.filter(
+        (m) =>
+          !m.cls.includes("legal-table--denunciar") &&
+          !m.cls.includes("legal-table--proveedores"),
+      );
+      const plain330 = at330.filter(
+        (m) =>
+          !m.cls.includes("legal-table--denunciar") &&
+          !m.cls.includes("legal-table--proveedores"),
+      );
+      expect(plain329.length, `${path} a 329: falta tabla sin clase`).toBeGreaterThan(
+        0,
+      );
+      expect(plain330.length, `${path} a 330: falta tabla sin clase`).toBeGreaterThan(
+        0,
+      );
+      for (const row of plain329) {
+        expect(row.overflowWrap, `${path} a 329`).toBe("anywhere");
+        expect(row.pageScroll).toBe(0);
+        expect(row.wrapOverflow).toBeLessThanOrEqual(1);
+      }
+      for (const row of plain330) {
+        expect(row.overflowWrap, `${path} a 330`).toBe("normal");
+        expect(row.pageScroll).toBe(0);
+        expect(row.wrapOverflow).toBeLessThanOrEqual(1);
+      }
+    });
+  }
 
   test("/privacidad proveedores a 360: Para qué usable y mail sin 3 líneas", async ({
     page,
