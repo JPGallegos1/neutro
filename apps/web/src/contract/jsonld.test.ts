@@ -18,6 +18,19 @@ const INDEX_CRUMBS = [
   { position: 2, name: "Trabajo", item: `${SITE}/trabajo` },
 ] as const;
 
+const CASE_TITLES: Record<string, string> = {
+  "/trabajo/conexion-laboral":
+    "Conexión Laboral: landing de asesoría | Neutro Solutions",
+  "/trabajo/afectiva":
+    "Afectiva Comunicaciones: sitio web | Neutro Solutions",
+  "/trabajo/capa-automotores":
+    "Capa Automotores: catálogo con stock | Neutro Solutions",
+  "/trabajo/suplementacion-ciencia":
+    "Suplementación con Ciencia: tienda online | Neutro Solutions",
+  "/trabajo/luxurycars":
+    "Luxury Cars: plataforma de autos de lujo | Neutro Solutions",
+};
+
 type JsonRecord = Record<string, unknown>;
 
 type ParsedBlock = {
@@ -479,6 +492,20 @@ describe("contrato JSON-LD (SEO-15)", () => {
       const label = where(entry.page);
       const titles = titleText(entry.page.document);
       const title = singleValue(titles, `${label} <title>`, problems);
+      const expected = CASE_TITLES[entry.page.route];
+      if (expected === undefined) {
+        problems.push(
+          `${label} no tiene título SEO fijado; las fichas de work.ts tienen que estar en el contrato`,
+        );
+      } else if ([...expected].length > TITLE_MAX) {
+        problems.push(
+          `${label} el título SEO fijado tiene ${[...expected].length} caracteres; máximo ${TITLE_MAX} con la marca`,
+        );
+      } else if (title !== undefined && title !== expected) {
+        problems.push(
+          `${label} <title>=${JSON.stringify(title)}; se exige ${JSON.stringify(expected)}`,
+        );
+      }
       if (title !== undefined && [...title].length > TITLE_MAX) {
         problems.push(
           `${label} <title> tiene ${[...title].length} caracteres (${JSON.stringify(title)}); máximo ${TITLE_MAX} con la marca`,

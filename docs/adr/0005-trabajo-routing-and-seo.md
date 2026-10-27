@@ -115,7 +115,7 @@ On the case `CreativeWork` inside the page `@graph` (the layout still emits `htt
 
 - `creator` is `{ "@id": "https://neutro.solutions/#organization" }`. `publisher` keeps pointing at that same Organization.
 - `about` stays the client `Organization` and adds `url`: the client site, the same `href` as **Visitar sitio**. The `url` is an absolute `https` URL.
-- `headline` is the document title without the suffix ` | Neutro Solutions`. It does not contain `Neutro Solutions` and it is not longer than `<title>`.
+- `headline` is the case SEO title without the suffix ` | Neutro Solutions`. It is not `outcomeTitle`. It does not contain `Neutro Solutions` and it is not longer than `<title>`.
 - `name` is the client’s official name. That same string is the case `<h1>` text, the matching card name on `/trabajo`, the `name` of that case in the `/trabajo` `ItemList`, and position 3 of the case `BreadcrumbList`.
 - Do not emit `datePublished` or `dateModified` on any JSON-LD node. There are no real dates; do not invent them.
 
@@ -131,9 +131,17 @@ Official names, confirmed by Juan, including Capa Automotores (slugs stay immuta
 
 **Case document title**
 
-- `<title>`: `<Cliente>: <qué se hizo, corto> | Neutro Solutions`.
-- Maximum **60 characters**, counting the brand suffix.
-- The same string is `<title>`, `og:title`, and `twitter:title`.
+Proposed. The decision above still says `<Cliente>: <qué se resolvió> | Neutro Solutions`, which is `outcomeTitle`. That pattern is not the document title.
+
+- Each case `<title>` is the SEO title Jake fixed for that case. It is not built from `outcomeTitle`.
+- The string includes ` | Neutro Solutions`, is at most **60 characters** counting that suffix, and is the same in `<title>`, `og:title`, and `twitter:title`.
+- `outcomeTitle` stays for the visible H1 / headline, not for `<title>`.
+
+- `/trabajo/conexion-laboral`: `Conexión Laboral: landing de asesoría | Neutro Solutions` (56)
+- `/trabajo/afectiva`: `Afectiva Comunicaciones: sitio web | Neutro Solutions` (53)
+- `/trabajo/capa-automotores`: `Capa Automotores: catálogo con stock | Neutro Solutions` (55)
+- `/trabajo/suplementacion-ciencia`: `Suplementación con Ciencia: tienda online | Neutro Solutions` (60)
+- `/trabajo/luxurycars`: `Luxury Cars: plataforma de autos de lujo | Neutro Solutions` (59)
 
 **Session decisions** (Juan)
 
