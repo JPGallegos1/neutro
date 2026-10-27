@@ -277,7 +277,6 @@ const { title, description, canonical, heading } = Astro.props;
     .legal-table th,
     .legal-table td {
       padding: 10px 10px 10px 0;
-      overflow-wrap: anywhere;
       word-break: normal;
     }
 
@@ -304,6 +303,15 @@ const { title, description, canonical, heading } = Astro.props;
     }
   }
 
+  @media (max-width: 340px) {
+    .legal-table:not(.legal-table--denunciar):not(.legal-table--proveedores)
+      th,
+    .legal-table:not(.legal-table--denunciar):not(.legal-table--proveedores)
+      td {
+      overflow-wrap: anywhere;
+    }
+  }
+
   .legal-table th {
     font-family: var(--font-mono);
     font-size: 12px;
@@ -322,5 +330,15 @@ const { title, description, canonical, heading } = Astro.props;
   .legal-table th:last-child,
   .legal-table td:last-child {
     padding-right: 0;
+  }
+
+  @media (min-width: 768px) {
+    .legal-table wbr {
+      display: none;
+    }
+
+    .legal-table a[href^="mailto:"] {
+      white-space: nowrap;
+    }
   }
 </style>
