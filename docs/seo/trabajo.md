@@ -48,7 +48,7 @@ No query string. No trailing-slash variants. No `?page=N` canonicals.
 - JSON-LD: `Article` **or** `CreativeWork`, plus `BreadcrumbList`.
 - Breadcrumb trail: Inicio → Trabajo → current case (Spanish labels in the visible breadcrumb if shown).
 - Exactly **one** `<h1>` per case page.
-- Show **2–3 related cases** on each case page.
+- **Más trabajo**: every other published case, in the `work.ts` order, with the current case removed, in 2 columns.
 
 ### Canonical
 
