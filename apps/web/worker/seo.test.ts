@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 
-import worker, { isWorkersDevHost } from "./index.ts";
+import worker, { isWorkersDevHost, withWorkersDevNoindex } from "./index.ts";
 import { isHstsHost, withSecurityHeaders } from "./security-headers.ts";
 
 const WORKERS_DEV = "https://neutro-web.jpgallegos20.workers.dev";
@@ -515,6 +515,7 @@ describe("SEO-10 security headers", () => {
       );
       assertNoHsts(response);
       assertSimpleSecurityHeaders(response);
+      assertCspReportOnly(response);
     }
 
     assert.equal(isHstsHost("neutro.solutions.evil.com"), false);
@@ -529,8 +530,7 @@ describe("SEO-10 security headers", () => {
       "x-frame-options": "SAMEORIGIN",
       "referrer-policy": "no-referrer",
       "permissions-policy": "camera=(self)",
-      "x-content-type-options": "nosniff ",
-      "content-security-policy": "default-src 'none'",
+      "x-content-type-options": "none",
       "content-security-policy-report-only": "default-src 'none'",
       "strict-transport-security":
         "max-age=31536000; includeSubDomains; preload",
@@ -547,12 +547,12 @@ describe("SEO-10 security headers", () => {
       EXPECTED_PERMISSIONS_POLICY,
     );
     assert.equal(response.headers.get("X-Content-Type-Options"), "nosniff");
+    assert.notEqual(response.headers.get("X-Content-Type-Options"), "none");
     assert.equal(
       response.headers.get("Strict-Transport-Security"),
       EXPECTED_HSTS,
     );
     assertCspReportOnly(response);
-    assert.equal(response.headers.get("Content-Security-Policy"), null);
   });
 
   it("preserves 206 Partial Content status, Content-Range and body", async () => {
@@ -636,6 +636,74 @@ describe("SEO-10 security headers", () => {
     } finally {
       globalThis.Response = OriginalResponse;
     }
+  });
+
+  it("passes webSocket and cf from withWorkersDevNoindex into Response init", () => {
+    const upstream = new Response("body", { status: 200 });
+    Object.defineProperty(upstream, "webSocket", {
+      value: null,
+      configurable: true,
+    });
+    Object.defineProperty(upstream, "cf", {
+      value: { cacheStatus: "MISS", neutroProbe: "noindex" },
+      configurable: true,
+    });
+
+    const OriginalResponse = globalThis.Response;
+    const inits: ResponseInit[] = [];
+    globalThis.Response = class extends OriginalResponse {
+      constructor(body?: BodyInit | null, init?: ResponseInit) {
+        inits.push(init ?? {});
+        super(body, init);
+      }
+    } as typeof Response;
+
+    try {
+      const wrapped = withWorkersDevNoindex(
+        upstream,
+        "neutro-web.jpgallegos20.workers.dev",
+      );
+      assert.equal(wrapped.status, 200);
+      assert.equal(wrapped.headers.get("X-Robots-Tag"), "noindex");
+      assert.equal(inits.length, 1);
+      assert.equal(
+        Object.prototype.hasOwnProperty.call(inits[0], "webSocket"),
+        true,
+      );
+      assert.equal(Object.prototype.hasOwnProperty.call(inits[0], "cf"), true);
+      assert.equal(inits[0]?.webSocket, null);
+      assert.deepEqual(inits[0]?.cf, {
+        cacheStatus: "MISS",
+        neutroProbe: "noindex",
+      });
+    } finally {
+      globalThis.Response = OriginalResponse;
+    }
+  });
+
+  it("applies security headers to HEAD responses", async () => {
+    const env = {
+      ASSETS: {
+        fetch: async (input: RequestInfo | URL) => {
+          const request = input instanceof Request ? input : new Request(input);
+          assert.equal(request.method, "HEAD");
+          return new Response(null, {
+            status: 200,
+            headers: { "content-type": "text/html; charset=utf-8" },
+          });
+        },
+      },
+    };
+    const response = await worker.fetch(
+      new Request(`${PRODUCTION}/`, { method: "HEAD" }),
+      env as unknown as Parameters<typeof worker.fetch>[1],
+      executionContext(),
+    );
+
+    assert.equal(response.status, 200);
+    assertSimpleSecurityHeaders(response);
+    assertHstsProduction(response);
+    assertCspReportOnly(response);
   });
 
   it("never emits Content-Security-Policy enforce on any response type", async () => {

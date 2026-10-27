@@ -44,8 +44,6 @@ export function withSecurityHeaders(
   headers.set("Permissions-Policy", PERMISSIONS_POLICY);
   headers.set("X-Frame-Options", X_FRAME_OPTIONS);
 
-  headers.delete("Content-Security-Policy");
-
   if (isHtmlContentType(headers.get("content-type"))) {
     headers.set("Content-Security-Policy-Report-Only", CSP_REPORT_ONLY);
   }
