@@ -272,6 +272,17 @@ test.describe("tablas legales sin desborde en móvil", () => {
       paraQue.width,
       `Para qué quedó en ${paraQue.width}px; hace falta ≥120`,
     ).toBeGreaterThanOrEqual(120);
+    const tableWidth = proveedores.cols.reduce((sum, col) => sum + col.width, 0);
+    expect(tableWidth, "ancho total de columnas").toBeGreaterThan(0);
+    const paraRatio = paraQue.width / tableWidth;
+    expect(
+      paraRatio,
+      `Para qué es ${(paraRatio * 100).toFixed(1)}% del ancho; esperado ~56% (50–62)`,
+    ).toBeGreaterThanOrEqual(0.5);
+    expect(
+      paraRatio,
+      `Para qué es ${(paraRatio * 100).toFixed(1)}% del ancho; esperado ~56% (50–62)`,
+    ).toBeLessThanOrEqual(0.62);
     const hola = proveedores.emailLines.find((e) =>
       e.text.includes("hola@neutro.solutions"),
     );
