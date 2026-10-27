@@ -22,7 +22,6 @@ const services = [
     <div class="landing-shell landing-gutter nosotros__inner">
       <header class="nosotros__title-col">
         <h1 class="nosotros__title">{pageMeta.nosotros.heading}</h1>
-        <p class="nosotros__tag">Borrador de contenido</p>
       </header>
 
       <div class="nosotros__body">
@@ -113,7 +112,7 @@ const services = [
   }
 
   .nosotros__title {
-    margin: 0 0 16px;
+    margin: 0;
     max-width: 100%;
     font-size: min(56px, 14.5cqi);
     font-weight: 700;
@@ -126,19 +125,6 @@ const services = [
     .nosotros__title {
       font-size: min(104px, 14.5cqi);
     }
-  }
-
-  .nosotros__tag {
-    display: inline-block;
-    margin: 0;
-    padding: 6px 10px;
-    border: 1px solid var(--neutro-text-muted);
-    border-radius: 4px;
-    font-family: var(--font-mono);
-    font-size: 12px;
-    letter-spacing: 0.12px;
-    text-transform: uppercase;
-    color: var(--neutro-text);
   }
 
   .nosotros__body {
