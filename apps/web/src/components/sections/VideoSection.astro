@@ -1,8 +1,8 @@
 ---
 const posterSrc = "/video/neutro-poster.jpg";
 const sources = [
-  { src: "/video/neutro.webm", type: "video/webm" },
   { src: "/video/neutro.mp4", type: "video/mp4" },
+  { src: "/video/neutro.webm", type: "video/webm" },
 ] as const;
 ---
 
@@ -33,6 +33,21 @@ const sources = [
 <script>
   function prefersReducedMotion(): boolean {
     return window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  }
+
+  function saveDataEnabled(): boolean {
+    const connection = (
+      navigator as Navigator & { connection?: { saveData?: boolean } }
+    ).connection;
+    return connection?.saveData === true;
+  }
+
+  function afterWindowLoad(run: () => void) {
+    if (document.readyState === "complete") {
+      run();
+      return;
+    }
+    window.addEventListener("load", run, { once: true });
   }
 
   function attachSources(video: HTMLVideoElement) {
@@ -98,15 +113,21 @@ const sources = [
     video.defaultMuted = true;
 
     const startWhenVisible = () => {
-      if (prefersReducedMotion()) {
+      if (prefersReducedMotion() || saveDataEnabled()) {
         showPoster(video);
         return;
       }
-      attachSources(video);
-      playOrPoster(video);
+      afterWindowLoad(() => {
+        if (prefersReducedMotion() || saveDataEnabled()) {
+          showPoster(video);
+          return;
+        }
+        attachSources(video);
+        playOrPoster(video);
+      });
     };
 
-    if (prefersReducedMotion()) showPoster(video);
+    if (prefersReducedMotion() || saveDataEnabled()) showPoster(video);
 
     const observer = new IntersectionObserver(
       (entries) => {
