@@ -10,7 +10,8 @@ const distDir = fileURLToPath(new URL("../../dist/", import.meta.url));
 
 const GLUED_BEFORE_ANCHOR = /([A-Za-zÁÉÍÓÚÜáéíóúüÑñ0-9)])<a\b/g;
 const LOOSE_AT = /@(?:\s*<a\b|\s+[a-z0-9][a-z0-9.-]*\.[a-z]{2,})/gi;
-const INLINE_CLOSE = "a|code|strong|em|span";
+const INLINE_CLOSE =
+  "a|abbr|b|cite|code|em|i|kbd|mark|small|span|strong|sub|sup|u";
 const SPACE_BEFORE_PUNCT = new RegExp(
   `</(?:${INLINE_CLOSE})>(\\s+)([.,;:)!?»”…])`,
   "gi",
@@ -19,6 +20,12 @@ const SPACE_AFTER_OPENER = new RegExp(
   `([(\\u00ab])(\\s+)<(?:${INLINE_CLOSE})\\b`,
   "gi",
 );
+const JSON_LD_SCRIPT =
+  /<script\b[^>]*\btype\s*=\s*(["'])application\/ld\+json\1[^>]*>[\s\S]*?<\/script>/gi;
+
+function withoutJsonLd(html: string): string {
+  return html.replace(JSON_LD_SCRIPT, "");
+}
 
 function readPageHtml(relativePath: string): string {
   return readFileSync(join(distDir, relativePath), "utf8");
@@ -92,23 +99,24 @@ function punctuationSpacingProblems(
   relativePath: string,
   route: string,
 ): string[] {
+  const scanned = withoutJsonLd(html);
   const problems: string[] = [];
   SPACE_BEFORE_PUNCT.lastIndex = 0;
-  for (const match of html.matchAll(SPACE_BEFORE_PUNCT)) {
+  for (const match of scanned.matchAll(SPACE_BEFORE_PUNCT)) {
     const at = match.index ?? 0;
-    const snippet = html
-      .slice(Math.max(0, at - 28), Math.min(html.length, at + 40))
+    const snippet = scanned
+      .slice(Math.max(0, at - 28), Math.min(scanned.length, at + 40))
       .replace(/\s+/g, " ");
     problems.push(
       `dist/${relativePath} ruta ${route} espacio-antes-puntuacion=${JSON.stringify(match[2])} …${snippet}…`,
     );
   }
   SPACE_AFTER_OPENER.lastIndex = 0;
-  for (const match of html.matchAll(SPACE_AFTER_OPENER)) {
+  for (const match of scanned.matchAll(SPACE_AFTER_OPENER)) {
     const at = match.index ?? 0;
     const opener = match[1] ?? "";
-    const snippet = html
-      .slice(Math.max(0, at - 20), Math.min(html.length, at + 48))
+    const snippet = scanned
+      .slice(Math.max(0, at - 20), Math.min(scanned.length, at + 48))
       .replace(/\s+/g, " ");
     problems.push(
       `dist/${relativePath} ruta ${route} espacio-despues-de-apertura=${JSON.stringify(opener)} …${snippet}…`,
@@ -262,4 +270,19 @@ describe("espacios antes de enlaces y mails en el dist", () => {
       /espacio-antes-puntuacion/,
     );
   });
+
+  it("falla si aparece espacio o salto antes de puntuación tras </b>", () => {
+    const mutated = "<p>aviso</p><b>urgente</b>\n.";
+    assert.throws(
+      () => assertNoPunctuationSpacing(mutated, "mut.html", "/mut"),
+      /espacio-antes-puntuacion/,
+    );
+  });
+
+  it("ignora </span> seguido de espacio dentro de JSON-LD", () => {
+    const html =
+      '<script type="application/ld+json">{"name":"</span> …"}</script><p>ok</p>';
+    assertNoPunctuationSpacing(html, "mut.html", "/mut");
+  });
 });
+

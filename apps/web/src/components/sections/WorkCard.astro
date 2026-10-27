@@ -167,5 +167,15 @@ const TitleTag = titleAs;
 
   a.work-card__inner:focus-visible {
     z-index: 1;
+    outline: none;
+  }
+
+  a.work-card__inner:focus-visible::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    z-index: 2;
+    pointer-events: none;
+    box-shadow: inset 0 0 0 2px var(--landing-focus);
   }
 </style>
