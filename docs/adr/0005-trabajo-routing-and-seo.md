@@ -19,11 +19,11 @@ Jake (SEO) defined hard criteria for the Trabajo surface: index + case URLs, slu
 | Surface | Path              | Notes                                                                                                                                                                                |
 | ------- | ----------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
 | Index   | `/trabajo`        | Header title (ES): `TRABAJO`. Intro (ES): `Explorá nuestro trabajo seleccionado.` Same card grid as the landing Trabajo section. **Cargar más** when there are more than four cases. |
-| Case    | `/trabajo/<slug>` | One page per published project. Each case page shows **2–3 related cases**.                                                                                                          |
+| Case    | `/trabajo/<slug>` | One page per published project. **Más trabajo** lists every other published case, in the manual order, in 2 columns.                                                                  |
 
 Astro must use exactly `trailingSlash: 'never'`. Emit and link **without** a trailing slash. Prefer redirecting accidental trailing-slash requests to the slashless URL when the host allows it.
 
-Landing vs index: the home Trabajo section always shows the first **`LANDING_WORK_LIMIT` (4)** cards. **Cargar más** exists only on `/trabajo`, never on the landing.
+Landing vs index: the home Trabajo section always shows the first **`LANDING_WORK_LIMIT` (4)** cards. It has no `Ver todos` link and no `Ver todos` button to `/trabajo`. **Cargar más** exists only on `/trabajo`, never on the landing.
 
 There are **no** paginated index routes and **no** `?page=N` URLs for Trabajo.
 
@@ -49,6 +49,8 @@ Slug source of truth is the project data module (or successor), not free text in
 
 There is no Lina case in the published set.
 
+**Manual order.** One order, in one data place (`apps/web/src/data/work.ts`), top to bottom: Conexión Laboral, Afectiva Comunicaciones, Capa Automotores, Suplementación con Ciencia, Luxury Cars. A new case is appended at the end. Luxury Cars stays outside the initial 4. The landing, `/trabajo`, the `ItemList`, and **Más trabajo** (current case removed) use this order.
+
 ### Canonicals
 
 Absolute, self-referencing:
@@ -62,7 +64,7 @@ No alternate locale URLs in this ADR (site is Spanish-only).
 
 **Index (`/trabajo`)**
 
-- `<title>`: `Casos y proyectos | Neutro Solutions`
+- `<title>`: the word `proyectos` is out. The exact string is pending Jake; this ADR does not set it.
 - JSON-LD: `CollectionPage` **and** `ItemList` listing case URLs in display order (no paginated item URLs).
 
 **Case (`/trabajo/<slug>`)**
@@ -71,7 +73,7 @@ No alternate locale URLs in this ADR (site is Spanish-only).
 - Meta description: **140–155 characters**, from real approved data only.
 - JSON-LD: `Article` **or** `CreativeWork`, plus `BreadcrumbList` (`Inicio` → `Trabajo` → case).
 - Exactly one `<h1>` on the page.
-- Show **2–3 related cases** (links to other published cases).
+- **Más trabajo**: every other published case, in the manual order, with the current case removed, in 2 columns.
 
 Meta descriptions and Open Graph fields likewise come from real (or explicitly placeholder) case fields — not hardcoded marketing fluff.
 
@@ -80,10 +82,12 @@ Meta descriptions and Open Graph fields likewise come from real (or explicitly p
 Index behavior:
 
 1. With JS: show **4** cases initially.
-2. Render the **Cargar más** control **only if** there are more than four cases (label ES: `Cargar más`), and only after JS enhances the page (without JS the control stays unavailable and all cases remain visible).
-3. Each click reveals **4 more** nodes already present in the server HTML. **No fetch** — the button never requests the network.
+2. Render the **Cargar más** control **only if** there are more than four cases (label ES: `Cargar más`), and only after JS enhances the page (without JS the button does not appear and all cases remain visible).
+3. Each click reveals the next batch already present in the server HTML: **4** cases, or fewer when fewer remain. **No fetch** — the button never requests the network. The accessible notice says `caso` for one revealed case and `casos` for more than one.
 4. Render **every** case `<a href="/trabajo/<slug>">` in the **server HTML** (including items beyond the first four). Items 5+ may be visually hidden **only after** JS applies client state (for example a class). Do **not** omit those links from the served HTML and do **not** rely on paginated URLs.
 5. Every published case URL is included in the sitemap. The sitemap lists `/trabajo` once (no paginated index URLs).
+
+In a listing of 5 cases, the grid is 2 columns and the fifth card sits alone on a third row.
 
 **Scale trigger:** when the published list reaches **12** cases, reopen the decision on `/trabajo` pagination and also evaluate a CMS, according to the tactical order of the code and call performance. Until then, do not introduce `?page=N` or other paginated index URLs.
 
@@ -99,7 +103,7 @@ Reuse the landing **Card / Work** components and the landing Trabajo grid for ca
 
 ### Enmienda SEO-15 (propuesta, pendiente de OK de Juan)
 
-Jake (SEO) proposes the following. It does not change this ADR’s status (Accepted) and is **not** in force until Juan’s OK. Until that OK, the decision above stays the one in force; this section is the proposed contract.
+Jake (SEO) proposes the index `BreadcrumbList`, the case `CreativeWork`, the official names, and the case document title in this section. That proposal does not change this ADR’s status (Accepted) and is **not** in force until Juan’s OK. The session decisions below are Juan’s; the same rules are in the decision above. Opción A and the single index canonical `https://neutro.solutions/trabajo` stay.
 
 **Index (`/trabajo`)**
 
@@ -115,7 +119,7 @@ On the case `CreativeWork` inside the page `@graph` (the layout still emits `htt
 - `name` is the client’s official name. That same string is the case `<h1>` text, the matching card name on `/trabajo`, the `name` of that case in the `/trabajo` `ItemList`, and position 3 of the case `BreadcrumbList`.
 - Do not emit `datePublished` or `dateModified` on any JSON-LD node. There are no real dates; do not invent them.
 
-Official names (slugs stay immutable):
+Official names, confirmed by Juan, including Capa Automotores (slugs stay immutable):
 
 | Path                              | Official name              |
 | --------------------------------- | -------------------------- |
@@ -131,13 +135,22 @@ Official names (slugs stay immutable):
 - Maximum **60 characters**, counting the brand suffix.
 - The same string is `<title>`, `og:title`, and `twitter:title`.
 
+**Session decisions** (Juan)
+
+- One manual order, in one data place (`apps/web/src/data/work.ts`): Conexión Laboral, Afectiva Comunicaciones, Capa Automotores, Suplementación con Ciencia, Luxury Cars. A new case goes at the end. Luxury Cars stays outside the initial 4.
+- The landing always shows 4 cards. It has no link and no button `Ver todos` to `/trabajo`.
+- `/trabajo` loads 4. **Cargar más** reveals the remaining cases in batches of 4, or fewer when fewer remain. The accessible notice says `caso` or `casos`. Without JS every case is visible and the button does not appear.
+- The threshold of 12 published cases stays: reopen `/trabajo` pagination and evaluate a CMS.
+- The word `proyectos` leaves the `/trabajo` `<title>`. The exact string is pending Jake; this ADR does not set it.
+
 **Más trabajo**
 
-Replaces the **2–3 related cases** lines in the routes table and in the case document section. Proposed until Juan’s OK; those lines stay in the decision above until then.
+- Each case page lists every other published case, and not itself. Order is the manual order in `apps/web/src/data/work.ts`, with the current case removed.
+- The grid has **2 columns**.
 
-- Each case page shows every other published case, and not itself. With the five published cases, that is **4** cards.
-- Order is fixed: the published list in `apps/web/src/data/work.ts`, with the current case removed.
-- The grid has **2 columns**. Four cards fill **2 rows**. In a listing of **5** cards, the fifth card sits alone on a third row until more projects exist.
+**Listings of 5 cases**
+
+- The fifth card sits alone on a third row.
 
 ## Consequences
 
@@ -148,4 +161,3 @@ Replaces the **2–3 related cases** lines in the routes table and in the case d
 - Design follows v34 (Iris / Juan): **En producción** ships; card/case chrome avoids 1px borders except `.work-index__more` `border-top` on `/trabajo`.
 - At **12** published cases, reopen `/trabajo` pagination and evaluate a CMS (code order + call performance).
 - Proposed (SEO-15, pending Juan’s OK): `apps/web/src/contract/jsonld.test.ts` protects the JSON-LD contract in the amendment above.
-- Proposed (SEO-15, pending Juan’s OK): `apps/web/src/contract/mas-trabajo.test.ts` protects the Más trabajo set and `work.ts` order.
