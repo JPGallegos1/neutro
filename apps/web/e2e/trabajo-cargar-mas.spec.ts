@@ -105,8 +105,7 @@ function conNueveCards(html: string): string {
     return card;
   }).join("");
 
-  const gridRe =
-    /(<ul\b[^>]*\bdata-work-grid\b[^>]*>)([\s\S]*?)(<\/ul>)/;
+  const gridRe = /(<ul\b[^>]*\bdata-work-grid\b[^>]*>)([\s\S]*?)(<\/ul>)/;
   if (!gridRe.test(html)) {
     throw new Error("no se encontró ul[data-work-grid] en /trabajo");
   }
