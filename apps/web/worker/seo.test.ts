@@ -2,9 +2,21 @@ import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 
 import worker, { isWorkersDevHost } from "./index.ts";
+import {
+  CSP_REPORT_ONLY,
+  HSTS_MAX_AGE_SECONDS,
+  HSTS_VALUE,
+  PERMISSIONS_POLICY,
+  REFERRER_POLICY,
+  X_CONTENT_TYPE_OPTIONS,
+  X_FRAME_OPTIONS,
+  isHstsHost,
+} from "./security-headers.ts";
 
 const WORKERS_DEV = "https://neutro-web.jpgallegos20.workers.dev";
 const PRODUCTION = "https://neutro.solutions";
+const PRODUCTION_WWW = "https://www.neutro.solutions";
+const LOCALHOST = "http://localhost:8787";
 
 function executionContext(): ExecutionContext {
   return {
@@ -245,5 +257,286 @@ describe("trailing slash", () => {
       /^https:\/\/neutro\.solutions\/\?/,
     );
     assert.deepEqual(qr.calls, []);
+  });
+});
+
+const SIMPLE_SECURITY_HEADERS = {
+  "X-Content-Type-Options": X_CONTENT_TYPE_OPTIONS,
+  "Referrer-Policy": REFERRER_POLICY,
+  "Permissions-Policy": PERMISSIONS_POLICY,
+  "X-Frame-Options": X_FRAME_OPTIONS,
+} as const;
+
+function assertSimpleSecurityHeaders(response: Response): void {
+  for (const [name, value] of Object.entries(SIMPLE_SECURITY_HEADERS)) {
+    assert.equal(response.headers.get(name), value, `missing or wrong ${name}`);
+  }
+}
+
+function assertNoCspEnforce(response: Response): void {
+  assert.equal(response.headers.get("Content-Security-Policy"), null);
+}
+
+function assertHstsProduction(response: Response): void {
+  const hsts = response.headers.get("Strict-Transport-Security");
+  assert.equal(hsts, HSTS_VALUE);
+  assert.equal(hsts?.includes("includeSubDomains"), false);
+  assert.equal(hsts?.includes("preload"), false);
+  assert.match(hsts ?? "", /^max-age=300$/);
+  assert.equal(HSTS_MAX_AGE_SECONDS, 300);
+  assert.equal(HSTS_MAX_AGE_SECONDS > 300, false);
+}
+
+function assertNoHsts(response: Response): void {
+  assert.equal(response.headers.get("Strict-Transport-Security"), null);
+}
+
+function typedAssetEnv(
+  status: number,
+  body: string,
+  contentType: string,
+  extraHeaders: Record<string, string> = {},
+) {
+  const calls: string[] = [];
+  const env = {
+    ASSETS: {
+      fetch: async (input: RequestInfo | URL) => {
+        const url = input instanceof Request ? input.url : String(input);
+        calls.push(url);
+        return new Response(body, {
+          status,
+          headers: { "content-type": contentType, ...extraHeaders },
+        });
+      },
+    },
+  };
+  return { calls, env };
+}
+
+describe("SEO-10 security headers", () => {
+  it("exports HSTS step-1 values without includeSubDomains or preload", () => {
+    assert.equal(HSTS_VALUE, "max-age=300");
+    assert.equal(HSTS_MAX_AGE_SECONDS, 300);
+    assert.equal(HSTS_VALUE.includes("includeSubDomains"), false);
+    assert.equal(HSTS_VALUE.includes("preload"), false);
+    assert.equal(isHstsHost("neutro.solutions"), true);
+    assert.equal(isHstsHost("www.neutro.solutions"), true);
+    assert.equal(isHstsHost("neutro-web.jpgallegos20.workers.dev"), false);
+    assert.equal(isHstsHost("localhost"), false);
+  });
+
+  it("applies simple headers and HSTS to HTML assets on production", async () => {
+    const { env } = typedAssetEnv(
+      200,
+      "<html>home</html>",
+      "text/html; charset=utf-8",
+      { "cache-control": "public, max-age=0, must-revalidate" },
+    );
+    const response = await fetchWorker(`${PRODUCTION}/`, env);
+
+    assert.equal(response.status, 200);
+    assertSimpleSecurityHeaders(response);
+    assertHstsProduction(response);
+    assertNoCspEnforce(response);
+    assert.equal(
+      response.headers.get("Content-Security-Policy-Report-Only"),
+      CSP_REPORT_ONLY,
+    );
+    assert.equal(
+      response.headers.get("cache-control"),
+      "public, max-age=0, must-revalidate",
+    );
+  });
+
+  it("applies simple headers to hashed CSS assets without CSP", async () => {
+    const { env } = typedAssetEnv(200, "body{}", "text/css", {
+      "cache-control": "public, max-age=0, must-revalidate",
+    });
+    const response = await fetchWorker(
+      `${PRODUCTION}/_astro/base.example.css`,
+      env,
+    );
+
+    assert.equal(response.status, 200);
+    assertSimpleSecurityHeaders(response);
+    assertHstsProduction(response);
+    assertNoCspEnforce(response);
+    assert.equal(
+      response.headers.get("Content-Security-Policy-Report-Only"),
+      null,
+    );
+    assert.equal(
+      response.headers.get("cache-control"),
+      "public, max-age=0, must-revalidate",
+    );
+  });
+
+  it("applies simple headers to trailing-slash 301 redirects", async () => {
+    const { calls, env } = assetEnv("ignored");
+    const response = await fetchWorker(`${PRODUCTION}/trabajo/`, env);
+
+    assert.equal(response.status, 301);
+    assert.equal(response.headers.get("Location"), `${PRODUCTION}/trabajo`);
+    assertSimpleSecurityHeaders(response);
+    assertHstsProduction(response);
+    assertNoCspEnforce(response);
+    assert.equal(
+      response.headers.get("Content-Security-Policy-Report-Only"),
+      null,
+    );
+    assert.deepEqual(calls, []);
+  });
+
+  it("applies simple headers to /f/N 302 without changing Cache-Control", async () => {
+    const { calls, env } = assetEnv("unused");
+    const response = await fetchWorker(`${PRODUCTION}/f/999`, env);
+
+    assert.equal(response.status, 302);
+    assert.equal(response.headers.get("Location"), `${PRODUCTION}/`);
+    assert.equal(response.headers.get("Cache-Control"), "no-store");
+    assert.equal(response.headers.get("CDN-Cache-Control"), "no-store");
+    assert.equal(
+      response.headers.get("Cloudflare-CDN-Cache-Control"),
+      "no-store",
+    );
+    assert.equal(response.headers.get("X-Robots-Tag"), "noindex");
+    assertSimpleSecurityHeaders(response);
+    assertHstsProduction(response);
+    assertNoCspEnforce(response);
+    assert.equal(
+      response.headers.get("Content-Security-Policy-Report-Only"),
+      null,
+    );
+    assert.deepEqual(calls, []);
+  });
+
+  it("applies simple headers to /ingest without changing Cache-Control or CORS", async () => {
+    const { calls, env } = assetEnv("unused");
+    const originalFetch = globalThis.fetch;
+    globalThis.fetch = (async () =>
+      new Response("array", {
+        status: 200,
+        headers: {
+          "content-type": "application/javascript",
+          "cache-control": "public, max-age=14400",
+          "access-control-allow-origin": "*",
+          "access-control-allow-methods": "GET, POST, OPTIONS",
+        },
+      })) as typeof fetch;
+    try {
+      const response = await fetchWorker(
+        `${PRODUCTION}/ingest/static/array.js`,
+        env,
+      );
+      assert.equal(response.status, 200);
+      assert.equal(
+        response.headers.get("cache-control"),
+        "public, max-age=14400",
+      );
+      assert.equal(response.headers.get("access-control-allow-origin"), "*");
+      assert.equal(
+        response.headers.get("access-control-allow-methods"),
+        "GET, POST, OPTIONS",
+      );
+      assertSimpleSecurityHeaders(response);
+      assertHstsProduction(response);
+      assertNoCspEnforce(response);
+      assert.equal(
+        response.headers.get("Content-Security-Policy-Report-Only"),
+        null,
+      );
+      assert.deepEqual(calls, []);
+    } finally {
+      globalThis.fetch = originalFetch;
+    }
+  });
+
+  it("applies simple headers and CSP Report-Only to HTML 404", async () => {
+    const { env } = typedAssetEnv(
+      404,
+      "<html>404</html>",
+      "text/html; charset=utf-8",
+    );
+    const response = await fetchWorker(`${PRODUCTION}/no-existe-x`, env);
+
+    assert.equal(response.status, 404);
+    assertSimpleSecurityHeaders(response);
+    assertHstsProduction(response);
+    assertNoCspEnforce(response);
+    assert.equal(
+      response.headers.get("Content-Security-Policy-Report-Only"),
+      CSP_REPORT_ONLY,
+    );
+  });
+
+  it("sets HSTS on www.neutro.solutions and omits it on workers.dev and localhost", async () => {
+    const www = await fetchWorker(
+      `${PRODUCTION_WWW}/`,
+      typedAssetEnv(200, "www", "text/html; charset=utf-8").env,
+    );
+    assertHstsProduction(www);
+    assertSimpleSecurityHeaders(www);
+
+    const workers = await fetchWorker(
+      `${WORKERS_DEV}/`,
+      typedAssetEnv(200, "dev", "text/html; charset=utf-8").env,
+    );
+    assertNoHsts(workers);
+    assertSimpleSecurityHeaders(workers);
+    assert.equal(workers.headers.get("X-Robots-Tag"), "noindex");
+    assert.equal(
+      workers.headers.get("Content-Security-Policy-Report-Only"),
+      CSP_REPORT_ONLY,
+    );
+    assertNoCspEnforce(workers);
+
+    const local = await fetchWorker(
+      `${LOCALHOST}/`,
+      typedAssetEnv(200, "local", "text/html; charset=utf-8").env,
+    );
+    assertNoHsts(local);
+    assertSimpleSecurityHeaders(local);
+    assertNoCspEnforce(local);
+  });
+
+  it("never emits Content-Security-Policy enforce on any response type", async () => {
+    const cases: Array<() => Promise<Response>> = [
+      () =>
+        fetchWorker(
+          `${PRODUCTION}/`,
+          typedAssetEnv(200, "<html/>", "text/html").env,
+        ),
+      () =>
+        fetchWorker(
+          `${PRODUCTION}/_astro/x.css`,
+          typedAssetEnv(200, "x", "text/css").env,
+        ),
+      () => fetchWorker(`${PRODUCTION}/trabajo/`, assetEnv().env),
+      () => fetchWorker(`${PRODUCTION}/f/999`, assetEnv().env),
+      async () => {
+        const originalFetch = globalThis.fetch;
+        globalThis.fetch = (async () =>
+          new Response("ok", {
+            status: 200,
+            headers: { "content-type": "application/json" },
+          })) as typeof fetch;
+        try {
+          return await fetchWorker(`${PRODUCTION}/ingest/e/`, assetEnv().env);
+        } finally {
+          globalThis.fetch = originalFetch;
+        }
+      },
+      () =>
+        fetchWorker(
+          `${PRODUCTION}/missing`,
+          typedAssetEnv(404, "<html>404</html>", "text/html").env,
+        ),
+    ];
+
+    for (const run of cases) {
+      const response = await run();
+      assertNoCspEnforce(response);
+      assertSimpleSecurityHeaders(response);
+    }
   });
 });

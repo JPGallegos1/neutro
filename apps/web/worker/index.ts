@@ -9,6 +9,7 @@ import {
   isServerAnalyticsEnabled,
   proxyPosthogIngest,
 } from "./posthog.ts";
+import { withSecurityHeaders } from "./security-headers.ts";
 
 export interface Env {
   POSTHOG_KEY?: string;
@@ -61,6 +62,13 @@ export function withWorkersDevNoindex(
   });
 }
 
+function respond(response: Response, hostname: string): Response {
+  return withSecurityHeaders(
+    withWorkersDevNoindex(response, hostname),
+    hostname,
+  );
+}
+
 export default {
   async fetch(
     request: Request,
@@ -70,7 +78,7 @@ export default {
     const url = new URL(request.url);
 
     if (isPosthogIngestPath(url.pathname)) {
-      return withWorkersDevNoindex(
+      return respond(
         await proxyPosthogIngest(request, {
           waitUntil: (promise) => {
             ctx.waitUntil(promise);
@@ -85,12 +93,9 @@ export default {
     if (!redirect) {
       const slash = trailingSlashRedirect(url);
       if (slash) {
-        return withWorkersDevNoindex(slash, url.hostname);
+        return respond(slash, url.hostname);
       }
-      return withWorkersDevNoindex(
-        await env.ASSETS.fetch(request),
-        url.hostname,
-      );
+      return respond(await env.ASSETS.fetch(request), url.hostname);
     }
 
     if (
@@ -101,9 +106,6 @@ export default {
       ctx.waitUntil(captureQrScanned(env.POSTHOG_KEY, redirect.scanEvent));
     }
 
-    return withWorkersDevNoindex(
-      createQrRedirectResponse(redirect),
-      url.hostname,
-    );
+    return respond(createQrRedirectResponse(redirect), url.hostname);
   },
 } satisfies ExportedHandler<Env>;
