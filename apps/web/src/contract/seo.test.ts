@@ -606,12 +606,19 @@ describe("contrato SEO-04 y SEO-05 de fichas", () => {
         problems.push(
           `${route} about.name=${JSON.stringify(about)}; se exige ${expectedName}`,
         );
-      } else if (Object.hasOwn(about, "url")) {
-        problems.push(`${route} about no debe tener url (SEO-15 fuera de este PR)`);
-      }
-      if (Object.hasOwn(creative, "creator")) {
+      } else if (about.url !== workCase.externalUrl) {
         problems.push(
-          `${route} CreativeWork no debe tener creator (SEO-15 fuera de este PR)`,
+          `${route} about.url=${JSON.stringify(about.url ?? null)}; se exige ${workCase.externalUrl}`,
+        );
+      }
+      const creator = creative.creator;
+      const creatorId =
+        isRecord(creator) && typeof creator["@id"] === "string"
+          ? creator["@id"]
+          : undefined;
+      if (creatorId !== `${SITE}/#organization`) {
+        problems.push(
+          `${route} creator.@id=${JSON.stringify(creatorId ?? null)}; se exige ${SITE}/#organization`,
         );
       }
     }

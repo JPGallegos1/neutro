@@ -4,6 +4,8 @@
 
 Accepted — Juan (26/10/2026). Design reference: Iris **v34**. Reviewers: Jake (SEO), Melody / Iris (design). Do not merge follow-up doc edits without Juan’s OK.
 
+Amendment SEO-15 (2026-10-27) — Juan’s OK, cited by Maya. Scope: JSON-LD for case pages and `/trabajo`, the case `<title>`s, **Más trabajo** (every other published case, 2 columns), the single manual order, and the rule of 4 plus **Cargar más**.
+
 Pagination follow-up (opción A): Juan (26/10/2026) — `/trabajo` is the only indexable index URL; no `?page=N`; all cases ship in the HTML and **Cargar más** only reveals with JS.
 
 ## Context
@@ -18,7 +20,7 @@ Jake (SEO) defined hard criteria for the Trabajo surface: index + case URLs, slu
 
 | Surface | Path              | Notes                                                                                                                                                                                |
 | ------- | ----------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| Index   | `/trabajo`        | Header title (ES): `TRABAJO`. Intro (ES): `Explorá nuestro trabajo seleccionado.` Same card grid as the landing Trabajo section. **Cargar más** when there are more than four cases. |
+| Index   | `/trabajo`        | Header title (ES): `Casos de clientes`. Intro (ES): `Explorá nuestro trabajo seleccionado.` Same card grid as the landing Trabajo section. **Cargar más** when there are more than four cases. |
 | Case    | `/trabajo/<slug>` | One page per published project. **Más trabajo** lists every other published case, in the manual order, in 2 columns.                                                                  |
 
 Astro must use exactly `trailingSlash: 'never'`. Emit and link **without** a trailing slash. Prefer redirecting accidental trailing-slash requests to the slashless URL when the host allows it.
@@ -64,12 +66,12 @@ No alternate locale URLs in this ADR (site is Spanish-only).
 
 **Index (`/trabajo`)**
 
-- `<title>`: the word `proyectos` is out. The exact string is pending Jake; this ADR does not set it.
+- `<title>`: `Casos de clientes: webs y sistemas | Neutro Solutions`
 - JSON-LD: `CollectionPage` **and** `ItemList` listing case URLs in display order (no paginated item URLs).
 
 **Case (`/trabajo/<slug>`)**
 
-- `<title>`: `<Cliente>: <qué se resolvió> | Neutro Solutions` — both segments from approved case data, never invented in templates.
+- `<title>`: the per-case SEO title Jake fixed, with the suffix ` | Neutro Solutions`, at most **60 characters**. The same string is `og:title` and `twitter:title`. It is not built from `outcomeTitle`. The strings are listed in the SEO-15 amendment.
 - Meta description: **140–155 characters**, from real approved data only.
 - JSON-LD: `Article` **or** `CreativeWork`, plus `BreadcrumbList` (`Inicio` → `Trabajo` → case).
 - Exactly one `<h1>` on the page.
@@ -101,9 +103,9 @@ Verification gates (`curl` or equivalent, no JS):
 
 Reuse the landing **Card / Work** components and the landing Trabajo grid for cards. Case pages follow Iris **v34**: sticky title column, visible **En producción** tag on cards and case pages, primary CTA for **Visitar sitio**, 16:9 cover, sectioned body + featured quote; **no 1px dividers**, with one exception already noted in `AGENTS.md`: the `border-top` on `.work-index__more` above **Cargar más** on `/trabajo`. Primary **Cargar más** button: `#2B4BFF`, centered on desktop, left-aligned on mobile. Site nav label `Trabajo` links to `/trabajo`.
 
-### Enmienda SEO-15 (propuesta, pendiente de OK de Juan)
+### Enmienda SEO-15 (2026-10-27)
 
-Jake (SEO) proposes the index `BreadcrumbList`, the case `CreativeWork`, the official names, and the case document title in this section. That proposal does not change this ADR’s status (Accepted) and is **not** in force until Juan’s OK. The session decisions below are Juan’s; the same rules are in the decision above. Opción A and the single index canonical `https://neutro.solutions/trabajo` stay.
+In force. Juan’s OK, cited by Maya, on 2026-10-27. This amendment does not change the status above (Accepted). Opción A and the single index canonical `https://neutro.solutions/trabajo` stay. Scope: JSON-LD for case pages and `/trabajo`, the case `<title>`s, **Más trabajo** (every other published case, 2 columns), the single manual order, and the rule of 4 plus **Cargar más**.
 
 **Index (`/trabajo`)**
 
@@ -131,8 +133,6 @@ Official names, confirmed by Juan, including Capa Automotores (slugs stay immuta
 
 **Case document title**
 
-Proposed. The decision above still says `<Cliente>: <qué se resolvió> | Neutro Solutions`, which is `outcomeTitle`. That pattern is not the document title.
-
 - Each case `<title>` is the SEO title Jake fixed for that case. It is not built from `outcomeTitle`.
 - The string includes ` | Neutro Solutions`, is at most **60 characters** counting that suffix, and is the same in `<title>`, `og:title`, and `twitter:title`.
 - `outcomeTitle` stays for the visible H1 / headline, not for `<title>`.
@@ -149,7 +149,7 @@ Proposed. The decision above still says `<Cliente>: <qué se resolvió> | Neutro
 - The landing always shows 4 cards. It has no link and no button `Ver todos` to `/trabajo`.
 - `/trabajo` loads 4. **Cargar más** reveals the remaining cases in batches of 4, or fewer when fewer remain. The accessible notice says `caso` or `casos`. Without JS every case is visible and the button does not appear.
 - The threshold of 12 published cases stays: reopen `/trabajo` pagination and evaluate a CMS.
-- The word `proyectos` leaves the `/trabajo` `<title>`. The exact string is pending Jake; this ADR does not set it.
+- The `/trabajo` `<title>` is `Casos de clientes: webs y sistemas | Neutro Solutions`.
 
 **Más trabajo**
 
@@ -168,5 +168,5 @@ Proposed. The decision above still says `<Cliente>: <qué se resolvió> | Neutro
 - Implementation PRs must satisfy the curl href and no-trailing-slash checks before claiming SEO readiness.
 - Design follows v34 (Iris / Juan): **En producción** ships; card/case chrome avoids 1px borders except `.work-index__more` `border-top` on `/trabajo`.
 - At **12** published cases, reopen `/trabajo` pagination and evaluate a CMS (code order + call performance).
-- Proposed (SEO-15, pending Juan’s OK): `apps/web/src/contract/jsonld.test.ts` protects the JSON-LD contract in the amendment above.
+- `apps/web/src/contract/jsonld.test.ts` protects the JSON-LD contract in the SEO-15 amendment.
 - `apps/web/src/contract/mas-trabajo.test.ts` protects **Más trabajo**: every other published case, in `work.ts` order. The count is that list minus the current case.
