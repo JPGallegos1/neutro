@@ -69,19 +69,20 @@ const description =
 
   .not-found__shell {
     position: relative;
-    flex: 1;
     display: flex;
     flex-direction: column;
     margin-block: 16px;
     margin-inline: 24px;
     width: auto;
     max-width: none;
+    height: 732px;
   }
 
   @media (min-width: 1024px) {
     .not-found__shell {
       margin-block: 24px;
       margin-inline: 56px;
+      height: 666px;
     }
   }
 
@@ -120,18 +121,6 @@ const description =
     }
   }
 
-  .not-found__icon {
-    width: 48px;
-    height: 48px;
-  }
-
-  @media (min-width: 1024px) {
-    .not-found__icon {
-      width: 56px;
-      height: 56px;
-    }
-  }
-
   .not-found__tag {
     margin: 0;
     padding: 6px 10px;
@@ -147,19 +136,20 @@ const description =
 
   .not-found__title {
     margin: 0;
-    max-width: 20ch;
     font-size: 40px;
     font-weight: 500;
     line-height: 1;
     letter-spacing: -0.035em;
     text-transform: lowercase;
     color: var(--neutro-text);
+    overflow-wrap: anywhere;
   }
 
   @media (min-width: 1024px) {
     .not-found__title {
-      max-width: none;
       font-size: 72px;
+      overflow-wrap: normal;
+      white-space: nowrap;
     }
   }
 
