@@ -488,6 +488,9 @@ function caseTitleSocialProblems(
     );
   }
   if (twitterTitles.length === 0) {
+    problems.push(
+      `${route} no tiene twitter:title; se exige igual a <title> ${documentTitle}`,
+    );
     return problems;
   }
   if (twitterTitles.length !== 1 || twitterTitles[0] !== documentTitle) {
@@ -543,6 +546,25 @@ describe("contrato SEO-04 y SEO-05 de fichas", () => {
         [mutatedTitle],
       ).length > 0,
     );
+    assert.ok(
+      caseTitleSocialProblems(
+        "/trabajo/conexion-laboral",
+        title,
+        [title],
+        [title],
+        [],
+      ).some((problem) => problem.includes("no tiene twitter:title")),
+    );
+    assert.deepEqual(
+      caseTitleSocialProblems(
+        "/trabajo/conexion-laboral",
+        title,
+        [title],
+        [title],
+        [title],
+      ),
+      [],
+    );
 
     const official = JAKE_OFFICIAL_NAMES.afectiva;
     const mutatedName = official.replace("Comunicaciones", "Comunicacion");
@@ -557,7 +579,7 @@ describe("contrato SEO-04 y SEO-05 de fichas", () => {
     );
   });
 
-  it("fija title exacto ≤ 60, og:title igual, twitter:title igual si existe, y headline sin marca", () => {
+  it("fija title exacto ≤ 60, og:title y twitter:title iguales, y headline sin marca", () => {
     const problems: string[] = [];
     for (const workCase of workCases) {
       const slug = workCase.slug as JakeCaseSlug;
@@ -606,12 +628,19 @@ describe("contrato SEO-04 y SEO-05 de fichas", () => {
         problems.push(
           `${route} about.name=${JSON.stringify(about)}; se exige ${expectedName}`,
         );
-      } else if (Object.hasOwn(about, "url")) {
-        problems.push(`${route} about no debe tener url (SEO-15 fuera de este PR)`);
-      }
-      if (Object.hasOwn(creative, "creator")) {
+      } else if (about.url !== workCase.externalUrl) {
         problems.push(
-          `${route} CreativeWork no debe tener creator (SEO-15 fuera de este PR)`,
+          `${route} about.url=${JSON.stringify(about.url ?? null)}; se exige ${workCase.externalUrl}`,
+        );
+      }
+      const creator = creative.creator;
+      const creatorId =
+        isRecord(creator) && typeof creator["@id"] === "string"
+          ? creator["@id"]
+          : undefined;
+      if (creatorId !== `${SITE}/#organization`) {
+        problems.push(
+          `${route} creator.@id=${JSON.stringify(creatorId ?? null)}; se exige ${SITE}/#organization`,
         );
       }
     }

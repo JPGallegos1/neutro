@@ -9,6 +9,7 @@ import {
   workCaseHeadline,
   workCases,
 } from "@/data/work-cases";
+import { siteJsonLd } from "@/data/page-meta";
 import Base from "@/layouts/base.astro";
 
 export function getStaticPaths() {
@@ -27,6 +28,13 @@ const title = workCaseDocumentTitle(workCase);
 const headline = workCaseHeadline(workCase);
 const caseUrl = workCaseCanonical(workCase.slug);
 const origin = new URL(caseUrl).origin;
+const organization = siteJsonLd["@graph"].find(
+  (node) => node["@type"] === "Organization",
+);
+if (organization === undefined) {
+  throw new Error("Falta la Organization del sitio");
+}
+const organizationId = organization["@id"];
 
 const jsonLd = {
   "@context": "https://schema.org",
@@ -41,11 +49,13 @@ const jsonLd = {
       image: `${origin}${workCase.imageSrc}`,
       inLanguage: "es-AR",
       isPartOf: { "@id": `${origin}/#website` },
+      creator: { "@id": organizationId },
       about: {
         "@type": "Organization",
         name: workCase.clientName,
+        url: workCase.externalUrl,
       },
-      publisher: { "@id": `${origin}/#organization` },
+      publisher: { "@id": organizationId },
     },
     {
       "@type": "BreadcrumbList",
