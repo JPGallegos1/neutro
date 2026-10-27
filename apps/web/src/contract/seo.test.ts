@@ -6,7 +6,16 @@ import { fileURLToPath } from "node:url";
 import type { HTMLElement } from "node-html-parser";
 
 import {
+  BRAND_TITLE_SUFFIX,
+  MAX_DOCUMENT_TITLE_LENGTH,
+  workCaseDocumentTitle,
+  workCaseHeadline,
+  workCases,
+} from "../data/work-cases.ts";
+import { workProjects } from "../data/work.ts";
+import {
   readDistHtmlPages,
+  readDistPage,
   readDistSitemaps,
   routeFromDistHtml,
   type DistHtmlPage,
@@ -376,6 +385,322 @@ describe("contrato SEO del dist", () => {
         );
       }
     }
+    assert.deepEqual(problems, [], problems.join("\n"));
+  });
+});
+
+const FORBIDDEN_STRUCTURED_NAMES = new Set([
+  "Afectiva",
+  "Capa",
+  "SCC",
+  "LuxuryCars",
+]);
+
+const JAKE_DOCUMENT_TITLES = {
+  "conexion-laboral":
+    "Conexión Laboral: landing de asesoría | Neutro Solutions",
+  afectiva: "Afectiva Comunicaciones: sitio web | Neutro Solutions",
+  "capa-automotores":
+    "Capa Automotores: catálogo con stock | Neutro Solutions",
+  "suplementacion-ciencia":
+    "Suplementación con Ciencia: tienda online | Neutro Solutions",
+  luxurycars: "Luxury Cars: plataforma de autos de lujo | Neutro Solutions",
+} as const;
+
+const JAKE_HEADLINES = {
+  "conexion-laboral": "Conexión Laboral: landing de asesoría",
+  afectiva: "Afectiva Comunicaciones: sitio web",
+  "capa-automotores": "Capa Automotores: catálogo con stock",
+  "suplementacion-ciencia": "Suplementación con Ciencia: tienda online",
+  luxurycars: "Luxury Cars: plataforma de autos de lujo",
+} as const;
+
+const JAKE_OFFICIAL_NAMES = {
+  "conexion-laboral": "Conexión Laboral",
+  afectiva: "Afectiva Comunicaciones",
+  "capa-automotores": "Capa Automotores",
+  "suplementacion-ciencia": "Suplementación con Ciencia",
+  luxurycars: "Luxury Cars",
+} as const;
+
+const JAKE_OFFICIAL_NAME_LIST = Object.values(JAKE_OFFICIAL_NAMES);
+
+type JakeCaseSlug = keyof typeof JAKE_DOCUMENT_TITLES;
+
+function metaPropertyContent(
+  document: HTMLElement,
+  property: string,
+): string[] {
+  return document.querySelectorAll("meta").flatMap((meta) => {
+    if ((meta.getAttribute("property") ?? "") !== property) return [];
+    return [meta.getAttribute("content")?.trim() ?? ""];
+  });
+}
+
+function metaNameContent(document: HTMLElement, name: string): string[] {
+  return document.querySelectorAll("meta").flatMap((meta) => {
+    if ((meta.getAttribute("name") ?? "") !== name) return [];
+    return [meta.getAttribute("content")?.trim() ?? ""];
+  });
+}
+
+function jsonLdGraphs(document: HTMLElement): unknown[] {
+  return document.querySelectorAll('script[type="application/ld+json"]').flatMap(
+    (script) => {
+      try {
+        const parsed: unknown = JSON.parse(script.text);
+        if (
+          typeof parsed === "object" &&
+          parsed !== null &&
+          "@graph" in parsed &&
+          Array.isArray(parsed["@graph"])
+        ) {
+          return parsed["@graph"];
+        }
+        return [parsed];
+      } catch {
+        return [];
+      }
+    },
+  );
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null;
+}
+
+function caseTitleSocialProblems(
+  route: string,
+  documentTitle: string,
+  titleValues: string[],
+  ogTitles: string[],
+  twitterTitles: string[],
+): string[] {
+  const problems: string[] = [];
+  if (titleValues.length !== 1 || titleValues[0] !== documentTitle) {
+    problems.push(
+      `${route} <title>=${JSON.stringify(titleValues)}; se exige ${documentTitle}`,
+    );
+  }
+  if (ogTitles.length !== 1 || ogTitles[0] !== documentTitle) {
+    problems.push(
+      `${route} og:title=${JSON.stringify(ogTitles)}; se exige igual a <title> ${documentTitle}`,
+    );
+  }
+  if (twitterTitles.length === 0) {
+    return problems;
+  }
+  if (twitterTitles.length !== 1 || twitterTitles[0] !== documentTitle) {
+    problems.push(
+      `${route} twitter:title=${JSON.stringify(twitterTitles)}; se exige igual a <title> ${documentTitle}`,
+    );
+  }
+  return problems;
+}
+
+function creativeWorkNameProblems(
+  route: string,
+  name: unknown,
+  expectedName: string,
+): string[] {
+  if (name !== expectedName) {
+    return [
+      `${route} CreativeWork.name=${JSON.stringify(name)}; se exige ${expectedName}`,
+    ];
+  }
+  return [];
+}
+
+describe("contrato SEO-04 y SEO-05 de fichas", () => {
+  it("falla si se muta una palabra del title literal de Jake o del nombre oficial", () => {
+    const title = JAKE_DOCUMENT_TITLES["conexion-laboral"];
+    const mutatedTitle = title.replace("asesoría", "consulta");
+    assert.notEqual(mutatedTitle, title);
+    assert.ok(
+      caseTitleSocialProblems(
+        "/trabajo/conexion-laboral",
+        title,
+        [mutatedTitle],
+        [mutatedTitle],
+        [],
+      ).length > 0,
+    );
+    assert.ok(
+      caseTitleSocialProblems(
+        "/trabajo/conexion-laboral",
+        title,
+        [title],
+        [mutatedTitle],
+        [],
+      ).length > 0,
+    );
+    assert.ok(
+      caseTitleSocialProblems(
+        "/trabajo/conexion-laboral",
+        title,
+        [title],
+        [title],
+        [mutatedTitle],
+      ).length > 0,
+    );
+
+    const official = JAKE_OFFICIAL_NAMES.afectiva;
+    const mutatedName = official.replace("Comunicaciones", "Comunicacion");
+    assert.notEqual(mutatedName, official);
+    assert.ok(
+      creativeWorkNameProblems("/trabajo/afectiva", mutatedName, official)
+        .length > 0,
+    );
+    assert.deepEqual(
+      creativeWorkNameProblems("/trabajo/afectiva", official, official),
+      [],
+    );
+  });
+
+  it("fija title exacto ≤ 60, og:title igual, twitter:title igual si existe, y headline sin marca", () => {
+    const problems: string[] = [];
+    for (const workCase of workCases) {
+      const slug = workCase.slug as JakeCaseSlug;
+      const route = `/trabajo/${workCase.slug}`;
+      const page = readDistHtmlPages().find((item) => item.route === route);
+      assert.ok(page, `falta dist para ${route}`);
+      const expectedTitle = JAKE_DOCUMENT_TITLES[slug];
+      const expectedHeadline = JAKE_HEADLINES[slug];
+      const expectedName = JAKE_OFFICIAL_NAMES[slug];
+      assert.equal(expectedTitle, `${expectedHeadline}${BRAND_TITLE_SUFFIX}`);
+      assert.ok(
+        expectedTitle.length <= MAX_DOCUMENT_TITLE_LENGTH,
+        `${route} title length ${expectedTitle.length}`,
+      );
+      assert.equal(workCaseDocumentTitle(workCase), expectedTitle);
+      assert.equal(workCaseHeadline(workCase), expectedHeadline);
+
+      problems.push(
+        ...caseTitleSocialProblems(
+          route,
+          expectedTitle,
+          titleTexts(page.document),
+          metaPropertyContent(page.document, "og:title"),
+          metaNameContent(page.document, "twitter:title"),
+        ),
+      );
+
+      const graphs = jsonLdGraphs(page.document);
+      const creative = graphs.find(
+        (node) => isRecord(node) && node["@type"] === "CreativeWork",
+      );
+      if (!isRecord(creative)) {
+        problems.push(`${route} sin CreativeWork en JSON-LD`);
+        continue;
+      }
+      if (creative.headline !== expectedHeadline) {
+        problems.push(
+          `${route} headline=${JSON.stringify(creative.headline)}; se exige ${expectedHeadline}`,
+        );
+      }
+      problems.push(
+        ...creativeWorkNameProblems(route, creative.name, expectedName),
+      );
+      const about = creative.about;
+      if (!isRecord(about) || about.name !== expectedName) {
+        problems.push(
+          `${route} about.name=${JSON.stringify(about)}; se exige ${expectedName}`,
+        );
+      } else if (Object.hasOwn(about, "url")) {
+        problems.push(`${route} about no debe tener url (SEO-15 fuera de este PR)`);
+      }
+      if (Object.hasOwn(creative, "creator")) {
+        problems.push(
+          `${route} CreativeWork no debe tener creator (SEO-15 fuera de este PR)`,
+        );
+      }
+    }
+    assert.deepEqual(problems, [], problems.join("\n"));
+  });
+
+  it("usa el nombre oficial en H1, tarjetas, ItemList y BreadcrumbList", () => {
+    const problems: string[] = [];
+    const trabajo = readDistPage("trabajo.html");
+    const itemList = jsonLdGraphs(trabajo).find(
+      (node) => isRecord(node) && node["@type"] === "ItemList",
+    );
+    assert.ok(isRecord(itemList), "falta ItemList en /trabajo");
+    assert.ok(Array.isArray(itemList.itemListElement));
+    const itemNames = itemList.itemListElement.map((item) => {
+      assert.ok(isRecord(item));
+      return String(item.name ?? "");
+    });
+    assert.deepEqual(itemNames, JAKE_OFFICIAL_NAME_LIST);
+    for (const name of itemNames) {
+      assert.ok(
+        JAKE_OFFICIAL_NAME_LIST.includes(name as (typeof JAKE_OFFICIAL_NAME_LIST)[number]),
+        `ItemList name no oficial: ${name}`,
+      );
+      assert.ok(
+        !FORBIDDEN_STRUCTURED_NAMES.has(name),
+        `ItemList conserva nombre viejo: ${name}`,
+      );
+    }
+
+    for (const workCase of workCases) {
+      const slug = workCase.slug as JakeCaseSlug;
+      const expectedName = JAKE_OFFICIAL_NAMES[slug];
+      const route = `/trabajo/${workCase.slug}`;
+      const page = readDistHtmlPages().find((item) => item.route === route);
+      assert.ok(page, `falta dist para ${route}`);
+      const h1 = page.document.querySelector("h1#work-case-title");
+      assert.ok(h1, `${route} sin h1#work-case-title`);
+      assert.equal(
+        h1.getAttribute("aria-label"),
+        undefined,
+        `${route} H1 no debe pisar el texto con aria-label`,
+      );
+      const h1Text = h1.text.replace(/\s+/g, " ").trim();
+      assert.equal(
+        h1Text,
+        expectedName,
+        `${route} H1=${JSON.stringify(h1Text)}; se exige ${expectedName}`,
+      );
+      for (const token of FORBIDDEN_STRUCTURED_NAMES) {
+        assert.notEqual(h1Text, token, `${route} H1 sigue siendo ${token}`);
+      }
+
+      const card = trabajo.querySelector(`a[href="${route}"]`);
+      assert.ok(card, `/trabajo sin tarjeta ${route}`);
+      const cardTitle = card
+        .querySelector(".work-card__title")
+        ?.text.replace(/\s+/g, " ")
+        .trim();
+      assert.equal(
+        cardTitle,
+        expectedName,
+        `tarjeta ${route}=${JSON.stringify(cardTitle)}`,
+      );
+
+      const graphs = jsonLdGraphs(page.document);
+      const breadcrumb = graphs.find(
+        (node) => isRecord(node) && node["@type"] === "BreadcrumbList",
+      );
+      assert.ok(isRecord(breadcrumb), `${route} sin BreadcrumbList`);
+      assert.ok(Array.isArray(breadcrumb.itemListElement));
+      const last = breadcrumb.itemListElement.at(-1);
+      assert.ok(isRecord(last));
+      assert.equal(
+        last.name,
+        expectedName,
+        `${route} breadcrumb name=${JSON.stringify(last.name)}`,
+      );
+    }
+
+    assert.deepEqual(
+      workProjects.map((project) => project.slug),
+      workCases.map((workCase) => workCase.slug),
+      "los slugs de workProjects y workCases deben seguir iguales",
+    );
+    assert.deepEqual(
+      workProjects.map((project) => project.title),
+      JAKE_OFFICIAL_NAME_LIST,
+    );
     assert.deepEqual(problems, [], problems.join("\n"));
   });
 });

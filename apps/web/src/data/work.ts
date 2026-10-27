@@ -68,12 +68,12 @@ export const workProjects: WorkProject[] = [
   {
     id: "luxurycars",
     slug: "luxurycars",
-    title: "LuxuryCars",
+    title: "Luxury Cars",
     description: "Plataforma suiza para comprar y vender autos de lujo.",
     tag: "En producción",
     imageSrc: "/images/work/luxurycars.webp",
     imageAlt:
-      "Página de inicio de LuxuryCars con un Bentley claro al atardecer y el título 'La plateforme suisse de référence pour les voitures de luxe'",
+      "Página de inicio de Luxury Cars con un Bentley claro al atardecer y el título 'La plateforme suisse de référence pour les voitures de luxe'",
     tint: "#5E3D33",
     href: "/trabajo/luxurycars",
   },

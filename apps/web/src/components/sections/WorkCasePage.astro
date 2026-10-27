@@ -9,19 +9,18 @@ interface Props {
 }
 
 const { workCase } = Astro.props;
-const related = relatedWorkProjects(workCase.slug, 3);
+const related = relatedWorkProjects(workCase.slug);
 ---
 
 <article class="work-case" aria-labelledby="work-case-title">
   <div class="landing-shell landing-gutter work-case__inner">
     <header class="work-case__aside">
-      <h1
-        id="work-case-title"
-        class="work-case__title"
-        aria-label={workCase.titleLines.join(" ")}
-      >
-        {workCase.titleLines.map((line) => (
-          <span class="work-case__title-line">{line}</span>
+      <h1 id="work-case-title" class="work-case__title">
+        {workCase.titleLines.map((line, index) => (
+          <>
+            {index > 0 ? " " : null}
+            <span class="work-case__title-line">{line}</span>
+          </>
         ))}
       </h1>
       <p class="work-case__tag">{workCase.tag}</p>
@@ -398,7 +397,7 @@ const related = relatedWorkProjects(workCase.slug, 3);
 
   @media (min-width: 1024px) {
     .work-case__related-grid {
-      grid-template-columns: repeat(3, minmax(0, 1fr));
+      grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
     }
   }
 </style>

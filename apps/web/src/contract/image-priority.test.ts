@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import type { HTMLElement } from "node-html-parser";
 
+import { workProjects } from "../data/work.ts";
 import { readDistPage } from "./dist.ts";
 
 const POSTER_HREF = "/video/neutro-poster.jpg";
@@ -102,7 +103,7 @@ describe("prioridad de imágenes (SEO-03 / SEO-02)", () => {
     }
   });
 
-  it("ficha: imagen principal high; las 3 de Más trabajo lazy", () => {
+  it("ficha: imagen principal high; Más trabajo lazy con todos los ajenos", () => {
     const root = readDistPage("trabajo/conexion-laboral.html");
     const main = root.querySelector("img.work-case__image");
     assert.ok(main, "falta img.work-case__image en la ficha");
@@ -112,10 +113,11 @@ describe("prioridad de imágenes (SEO-03 / SEO-02)", () => {
     assert.equal(main.getAttribute("height"), "810");
 
     const related = cardImages(root);
+    const expectedRelated = workProjects.length - 1;
     assert.equal(
       related.length,
-      3,
-      `Más trabajo tiene ${related.length} cards; se exigen 3`,
+      expectedRelated,
+      `Más trabajo tiene ${related.length} cards; se exigen ${expectedRelated} (work.ts sin la ficha)`,
     );
     for (const [index, img] of related.entries()) {
       assertLazyCard(img, `Más trabajo card #${index + 1}`);
