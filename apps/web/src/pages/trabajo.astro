@@ -14,7 +14,7 @@ const jsonLd = {
       "@type": "CollectionPage",
       "@id": `${origin}/trabajo#page`,
       url: pageMeta.trabajo.canonical,
-      name: pageMeta.trabajo.title,
+      name: pageMeta.trabajo.heading,
       description: pageMeta.trabajo.description,
       isPartOf: { "@id": `${origin}/#website` },
       about: { "@id": `${origin}/#organization` },
@@ -28,6 +28,24 @@ const jsonLd = {
         name: project.title,
         url: `${origin}${project.href}`,
       })),
+    },
+    {
+      "@type": "BreadcrumbList",
+      "@id": `${origin}/trabajo#breadcrumb`,
+      itemListElement: [
+        {
+          "@type": "ListItem",
+          position: 1,
+          name: "Inicio",
+          item: `${origin}/`,
+        },
+        {
+          "@type": "ListItem",
+          position: 2,
+          name: "Trabajo",
+          item: `${origin}/trabajo`,
+        },
+      ],
     },
   ],
 };
