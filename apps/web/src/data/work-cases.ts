@@ -16,6 +16,7 @@ export type WorkCase = {
   shortTitle: string;
   titleLines: string[];
   clientName: string;
+  seoTitle: string;
   outcomeTitle: string | null;
   metaDescription: string;
   tag: string;
@@ -33,13 +34,18 @@ export type WorkCase = {
   learnings: string[];
 };
 
+export const BRAND_TITLE_SUFFIX = " | Neutro Solutions";
+
+export const MAX_DOCUMENT_TITLE_LENGTH = 60;
+
 export const workCases: WorkCase[] = [
   {
     slug: "conexion-laboral",
     projectId: "conexlaboral",
     shortTitle: "Conexión Laboral",
-    titleLines: ["Conexión Laboral"],
+    titleLines: ["Conexión", "Laboral"],
     clientName: "Conexión Laboral",
+    seoTitle: "Conexión Laboral: landing de asesoría",
     outcomeTitle: "agendar una asesoría gratuita con una sola página",
     metaDescription:
       "Reclutamiento para PyMEs en Argentina: busca, filtra y presenta los 3 mejores candidatos con informe. Una sola página para agendar asesoría gratuita.",
@@ -79,9 +85,10 @@ export const workCases: WorkCase[] = [
   {
     slug: "afectiva",
     projectId: "afectiva",
-    shortTitle: "Afectiva",
-    titleLines: ["Afectiva"],
+    shortTitle: "Afectiva Comunicaciones",
+    titleLines: ["Afectiva", "Comunicaciones"],
     clientName: "Afectiva Comunicaciones",
+    seoTitle: "Afectiva Comunicaciones: sitio web",
     outcomeTitle: "un sitio propio para mostrar todo lo que hace la agencia",
     metaDescription:
       "Agencia de comunicación: estrategia, diseño, contenido y producción para marcas con historia. Sitio de una página con WhatsApp como acción principal.",
@@ -123,9 +130,10 @@ export const workCases: WorkCase[] = [
   {
     slug: "capa-automotores",
     projectId: "capaautomotores",
-    shortTitle: "Capa",
-    titleLines: ["Capa"],
+    shortTitle: "Capa Automotores",
+    titleLines: ["Capa", "Automotores"],
     clientName: "Capa Automotores",
+    seoTitle: "Capa Automotores: catálogo con stock",
     outcomeTitle: "un catálogo propio con panel para manejar el stock",
     metaDescription:
       "Concesionaria de usados y 0km en Rosario, con financiación hasta 60% y toma de tu usado. Catálogo propio con panel para actualizar el stock.",
@@ -164,9 +172,10 @@ export const workCases: WorkCase[] = [
   {
     slug: "suplementacion-ciencia",
     projectId: "suplementacionconciencia",
-    shortTitle: "SCC",
-    titleLines: ["SCC"],
+    shortTitle: "Suplementación con Ciencia",
+    titleLines: ["Suplementación", "con Ciencia"],
     clientName: "Suplementación con Ciencia",
+    seoTitle: "Suplementación con Ciencia: tienda online",
     outcomeTitle:
       "una tienda online que muestra la ciencia detrás",
     metaDescription:
@@ -208,6 +217,7 @@ export const workCases: WorkCase[] = [
     shortTitle: "Luxury Cars",
     titleLines: ["Luxury", "Cars"],
     clientName: "Luxury Cars",
+    seoTitle: "Luxury Cars: plataforma de autos de lujo",
     outcomeTitle:
       "una plataforma a medida para el mercado de autos de lujo en Suiza",
     metaDescription:
@@ -216,7 +226,7 @@ export const workCases: WorkCase[] = [
     externalUrl: "https://luxurycars.ch",
     imageSrc: "/images/work/luxurycars.webp",
     imageAlt:
-      "Página de inicio de LuxuryCars con un Bentley claro al atardecer y el título 'La plateforme suisse de référence pour les voitures de luxe'",
+      "Página de inicio de Luxury Cars con un Bentley claro al atardecer y el título 'La plateforme suisse de référence pour les voitures de luxe'",
     clientIntro:
       "Plataforma suiza de referencia para comprar y vender autos de lujo online.",
     facts: [
@@ -255,11 +265,12 @@ export function workCaseCanonical(slug: string): string {
   return `https://neutro.solutions${workCasePath(slug)}`;
 }
 
+export function workCaseHeadline(workCase: WorkCase): string {
+  return workCase.seoTitle;
+}
+
 export function workCaseDocumentTitle(workCase: WorkCase): string {
-  if (workCase.outcomeTitle) {
-    return `${workCase.clientName}: ${workCase.outcomeTitle} | Neutro Solutions`;
-  }
-  return `${workCase.clientName} | Neutro Solutions`;
+  return `${workCase.seoTitle}${BRAND_TITLE_SUFFIX}`;
 }
 
 export function getWorkCase(slug: string): WorkCase | undefined {

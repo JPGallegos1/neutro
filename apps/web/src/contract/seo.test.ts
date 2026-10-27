@@ -6,7 +6,16 @@ import { fileURLToPath } from "node:url";
 import type { HTMLElement } from "node-html-parser";
 
 import {
+  BRAND_TITLE_SUFFIX,
+  MAX_DOCUMENT_TITLE_LENGTH,
+  workCaseDocumentTitle,
+  workCaseHeadline,
+  workCases,
+} from "../data/work-cases.ts";
+import { workProjects } from "../data/work.ts";
+import {
   readDistHtmlPages,
+  readDistPage,
   readDistSitemaps,
   routeFromDistHtml,
   type DistHtmlPage,
@@ -376,6 +385,209 @@ describe("contrato SEO del dist", () => {
         );
       }
     }
+    assert.deepEqual(problems, [], problems.join("\n"));
+  });
+});
+
+const FORBIDDEN_STRUCTURED_NAMES = new Set([
+  "Afectiva",
+  "Capa",
+  "SCC",
+  "LuxuryCars",
+]);
+
+const OFFICIAL_NAMES = new Set(workCases.map((workCase) => workCase.clientName));
+
+function metaPropertyContent(
+  document: HTMLElement,
+  property: string,
+): string[] {
+  return document.querySelectorAll("meta").flatMap((meta) => {
+    if ((meta.getAttribute("property") ?? "") !== property) return [];
+    return [meta.getAttribute("content")?.trim() ?? ""];
+  });
+}
+
+function metaNameContent(document: HTMLElement, name: string): string[] {
+  return document.querySelectorAll("meta").flatMap((meta) => {
+    if ((meta.getAttribute("name") ?? "") !== name) return [];
+    return [meta.getAttribute("content")?.trim() ?? ""];
+  });
+}
+
+function jsonLdGraphs(document: HTMLElement): unknown[] {
+  return document.querySelectorAll('script[type="application/ld+json"]').flatMap(
+    (script) => {
+      try {
+        const parsed: unknown = JSON.parse(script.text);
+        if (
+          typeof parsed === "object" &&
+          parsed !== null &&
+          "@graph" in parsed &&
+          Array.isArray(parsed["@graph"])
+        ) {
+          return parsed["@graph"];
+        }
+        return [parsed];
+      } catch {
+        return [];
+      }
+    },
+  );
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null;
+}
+
+describe("contrato SEO-04 y SEO-05 de fichas", () => {
+  it("fija title y og:title exactos ≤ 60 y headline sin sufijo de marca", () => {
+    const problems: string[] = [];
+    for (const workCase of workCases) {
+      const route = `/trabajo/${workCase.slug}`;
+      const page = readDistHtmlPages().find((item) => item.route === route);
+      assert.ok(page, `falta dist para ${route}`);
+      const expectedTitle = workCaseDocumentTitle(workCase);
+      const expectedHeadline = workCaseHeadline(workCase);
+      assert.equal(expectedTitle, `${expectedHeadline}${BRAND_TITLE_SUFFIX}`);
+      assert.ok(
+        expectedTitle.length <= MAX_DOCUMENT_TITLE_LENGTH,
+        `${route} title length ${expectedTitle.length}`,
+      );
+
+      const titles = titleTexts(page.document);
+      const ogTitles = metaPropertyContent(page.document, "og:title");
+      const twitterTitles = metaNameContent(page.document, "twitter:title");
+      if (titles.length !== 1 || titles[0] !== expectedTitle) {
+        problems.push(
+          `${route} <title>=${JSON.stringify(titles)}; se exige ${expectedTitle}`,
+        );
+      }
+      if (ogTitles.length !== 1 || ogTitles[0] !== expectedTitle) {
+        problems.push(
+          `${route} og:title=${JSON.stringify(ogTitles)}; se exige ${expectedTitle}`,
+        );
+      }
+      if (twitterTitles.length > 0) {
+        if (twitterTitles.length !== 1 || twitterTitles[0] !== expectedTitle) {
+          problems.push(
+            `${route} twitter:title=${JSON.stringify(twitterTitles)}; si existe debe ser ${expectedTitle}`,
+          );
+        }
+      }
+
+      const graphs = jsonLdGraphs(page.document);
+      const creative = graphs.find(
+        (node) => isRecord(node) && node["@type"] === "CreativeWork",
+      );
+      if (!isRecord(creative)) {
+        problems.push(`${route} sin CreativeWork en JSON-LD`);
+        continue;
+      }
+      if (creative.headline !== expectedHeadline) {
+        problems.push(
+          `${route} headline=${JSON.stringify(creative.headline)}; se exige ${expectedHeadline}`,
+        );
+      }
+      if (creative.name !== workCase.clientName) {
+        problems.push(
+          `${route} CreativeWork.name=${JSON.stringify(creative.name)}; se exige ${workCase.clientName}`,
+        );
+      }
+      const about = creative.about;
+      if (!isRecord(about) || about.name !== workCase.clientName) {
+        problems.push(
+          `${route} about.name=${JSON.stringify(about)}; se exige ${workCase.clientName}`,
+        );
+      } else if (Object.hasOwn(about, "url")) {
+        problems.push(`${route} about no debe tener url (SEO-15 fuera de este PR)`);
+      }
+      if (Object.hasOwn(creative, "creator")) {
+        problems.push(
+          `${route} CreativeWork no debe tener creator (SEO-15 fuera de este PR)`,
+        );
+      }
+    }
+    assert.deepEqual(problems, [], problems.join("\n"));
+  });
+
+  it("usa el nombre oficial en H1, tarjetas, ItemList y BreadcrumbList", () => {
+    const problems: string[] = [];
+    const trabajo = readDistPage("trabajo.html");
+    const itemList = jsonLdGraphs(trabajo).find(
+      (node) => isRecord(node) && node["@type"] === "ItemList",
+    );
+    assert.ok(isRecord(itemList), "falta ItemList en /trabajo");
+    assert.ok(Array.isArray(itemList.itemListElement));
+    const itemNames = itemList.itemListElement.map((item) => {
+      assert.ok(isRecord(item));
+      return String(item.name ?? "");
+    });
+    assert.deepEqual(
+      itemNames,
+      workProjects.map((project) => project.title),
+    );
+    for (const name of itemNames) {
+      assert.ok(OFFICIAL_NAMES.has(name), `ItemList name no oficial: ${name}`);
+      assert.ok(
+        !FORBIDDEN_STRUCTURED_NAMES.has(name),
+        `ItemList conserva nombre viejo: ${name}`,
+      );
+    }
+
+    for (const workCase of workCases) {
+      const route = `/trabajo/${workCase.slug}`;
+      const page = readDistHtmlPages().find((item) => item.route === route);
+      assert.ok(page, `falta dist para ${route}`);
+      const h1 = page.document.querySelector("h1#work-case-title");
+      assert.ok(h1, `${route} sin h1#work-case-title`);
+      assert.equal(
+        h1.getAttribute("aria-label"),
+        undefined,
+        `${route} H1 no debe pisar el texto con aria-label`,
+      );
+      const h1Text = h1.text.replace(/\s+/g, " ").trim();
+      assert.equal(
+        h1Text,
+        workCase.clientName,
+        `${route} H1=${JSON.stringify(h1Text)}; se exige ${workCase.clientName}`,
+      );
+      for (const token of FORBIDDEN_STRUCTURED_NAMES) {
+        assert.notEqual(h1Text, token, `${route} H1 sigue siendo ${token}`);
+      }
+
+      const card = trabajo.querySelector(`a[href="${route}"]`);
+      assert.ok(card, `/trabajo sin tarjeta ${route}`);
+      const cardTitle = card
+        .querySelector(".work-card__title")
+        ?.text.replace(/\s+/g, " ")
+        .trim();
+      assert.equal(
+        cardTitle,
+        workCase.clientName,
+        `tarjeta ${route}=${JSON.stringify(cardTitle)}`,
+      );
+
+      const graphs = jsonLdGraphs(page.document);
+      const breadcrumb = graphs.find(
+        (node) => isRecord(node) && node["@type"] === "BreadcrumbList",
+      );
+      assert.ok(isRecord(breadcrumb), `${route} sin BreadcrumbList`);
+      assert.ok(Array.isArray(breadcrumb.itemListElement));
+      const last = breadcrumb.itemListElement.at(-1);
+      assert.ok(isRecord(last));
+      assert.equal(
+        last.name,
+        workCase.clientName,
+        `${route} breadcrumb name=${JSON.stringify(last.name)}`,
+      );
+    }
+
+    assert.deepEqual(
+      workProjects.map((project) => project.slug),
+      workCases.map((workCase) => workCase.slug),
+      "los slugs de workProjects y workCases deben seguir iguales",
+    );
     assert.deepEqual(problems, [], problems.join("\n"));
   });
 });

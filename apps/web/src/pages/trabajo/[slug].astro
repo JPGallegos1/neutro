@@ -6,6 +6,7 @@ import {
   getWorkCase,
   workCaseCanonical,
   workCaseDocumentTitle,
+  workCaseHeadline,
   workCases,
 } from "@/data/work-cases";
 import Base from "@/layouts/base.astro";
@@ -23,6 +24,7 @@ if (!workCase) {
 }
 
 const title = workCaseDocumentTitle(workCase);
+const headline = workCaseHeadline(workCase);
 const caseUrl = workCaseCanonical(workCase.slug);
 const origin = new URL(caseUrl).origin;
 
@@ -33,8 +35,8 @@ const jsonLd = {
       "@type": "CreativeWork",
       "@id": `${caseUrl}#work`,
       url: caseUrl,
-      name: workCase.shortTitle,
-      headline: title,
+      name: workCase.clientName,
+      headline,
       description: workCase.metaDescription,
       image: `${origin}${workCase.imageSrc}`,
       inLanguage: "es-AR",
@@ -64,7 +66,7 @@ const jsonLd = {
         {
           "@type": "ListItem",
           position: 3,
-          name: workCase.shortTitle,
+          name: workCase.clientName,
           item: caseUrl,
         },
       ],

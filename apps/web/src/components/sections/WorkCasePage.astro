@@ -15,13 +15,12 @@ const related = relatedWorkProjects(workCase.slug, 3);
 <article class="work-case" aria-labelledby="work-case-title">
   <div class="landing-shell landing-gutter work-case__inner">
     <header class="work-case__aside">
-      <h1
-        id="work-case-title"
-        class="work-case__title"
-        aria-label={workCase.titleLines.join(" ")}
-      >
-        {workCase.titleLines.map((line) => (
-          <span class="work-case__title-line">{line}</span>
+      <h1 id="work-case-title" class="work-case__title">
+        {workCase.titleLines.map((line, index) => (
+          <>
+            {index > 0 ? " " : null}
+            <span class="work-case__title-line">{line}</span>
+          </>
         ))}
       </h1>
       <p class="work-case__tag">{workCase.tag}</p>
