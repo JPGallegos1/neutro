@@ -13,8 +13,15 @@ async function verticalGaps(page: Page): Promise<number[]> {
     );
     const gaps: number[] = [];
     for (let i = 0; i < cards.length - 1; i += 1) {
-      const a = cards[i].getBoundingClientRect();
-      const b = cards[i + 1].getBoundingClientRect();
+      const current = cards[i];
+      const next = cards[i + 1];
+      if (!current || !next) {
+        throw new Error(
+          `faltan cards adyacentes en el índice ${i} (visibles: ${cards.length})`,
+        );
+      }
+      const a = current.getBoundingClientRect();
+      const b = next.getBoundingClientRect();
       if (Math.abs(a.left - b.left) < 40) {
         gaps.push(b.top - a.bottom);
       }
@@ -91,6 +98,8 @@ async function focusRingReport(link: Locator) {
       clippedBy,
       insetRing: offset < 0,
       matchesFocusVisible: el.matches(":focus-visible"),
+      position: style.position,
+      zIndex: style.zIndex,
     };
   });
 }
@@ -152,6 +161,13 @@ test.describe("anillo de foco completo en work-card", () => {
       expect(report.ring?.right ?? width + 10).toBeLessThanOrEqual(
         width + RING_TOLERANCE,
       );
+      expect(report.position, "la card enfocada necesita position relative").toBe(
+        "relative",
+      );
+      expect(
+        report.zIndex,
+        "la card enfocada necesita z-index efectivo 1",
+      ).toBe("1");
     });
   }
 });
