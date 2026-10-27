@@ -198,6 +198,21 @@ const description =
     line-height: 1.2;
     text-decoration: none;
     color: inherit;
+    transition: transform 160ms var(--ease-out, cubic-bezier(0.23, 1, 0.32, 1));
+  }
+
+  .not-found__btn:active {
+    transform: scale(0.97);
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .not-found__btn {
+      transition: none;
+    }
+
+    .not-found__btn:active {
+      transform: none;
+    }
   }
 
   .not-found__btn--primary {

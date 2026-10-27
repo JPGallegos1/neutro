@@ -57,6 +57,27 @@ function homeCtaInContent(document: HTMLElement): HTMLElement | null {
   );
 }
 
+function pageStyles(document: HTMLElement): string {
+  return document
+    .querySelectorAll("style")
+    .map((style) => style.text)
+    .join("\n");
+}
+
+function assertPressableButtons(document: HTMLElement): void {
+  const css = pageStyles(document);
+  assert.match(
+    css,
+    /\.not-found__btn[^{]*:active\{[^}]*transform:\s*scale\(\.97\)/,
+    "dist/404.html debe definir .not-found__btn:active con transform: scale(0.97)",
+  );
+  assert.match(
+    css,
+    /@media\s*\(prefers-reduced-motion:\s*reduce\)\{[\s\S]*?\.not-found__btn[^{]*:active\{[^}]*transform:\s*none/,
+    "dist/404.html debe anular el scale de .not-found__btn:active con prefers-reduced-motion",
+  );
+}
+
 function assertNotFoundContract(document: HTMLElement): void {
   const html = document.querySelector("html");
   assert.ok(html, "dist/404.html debe tener <html>");
@@ -146,6 +167,8 @@ function assertNotFoundContract(document: HTMLElement): void {
     document.querySelector('a.skip-link[href="#contenido"], a[href="#contenido"]'),
     "dist/404.html debe conservar el skip link a #contenido",
   );
+
+  assertPressableButtons(document);
 }
 
 function withMutatedH1(html: string): string {
@@ -189,6 +212,19 @@ function withoutLang(document: HTMLElement): HTMLElement {
   return document;
 }
 
+function withoutActiveScale(html: string): string {
+  const next = html.replace(
+    /\.not-found__btn[^{]*:active\{[^}]*transform:\s*scale\(\.97\)[^}]*\}/g,
+    "",
+  );
+  assert.notEqual(
+    next,
+    html,
+    "no se encontró la regla :active scale(.97) para mutar",
+  );
+  return next;
+}
+
 describe("contrato 404 del dist", () => {
   it("exige title, noindex, sin canonical ni JSON-LD, un h1, tres enlaces, aria-hidden, header y footer", () => {
     assertNotFoundContract(page404());
@@ -224,6 +260,15 @@ describe("contrato 404 del dist", () => {
     assert.throws(
       () => assertNotFoundContract(mutated),
       /<html lang>/,
+    );
+    assertNotFoundContract(page404());
+  });
+
+  it("falla si se quita el scale(0.97) de :active en los botones", () => {
+    const mutated = parse(withoutActiveScale(page404().toString()));
+    assert.throws(
+      () => assertNotFoundContract(mutated),
+      /scale\(0\.97\)/,
     );
     assertNotFoundContract(page404());
   });
