@@ -131,6 +131,14 @@ Official names (slugs stay immutable):
 - Maximum **60 characters**, counting the brand suffix.
 - The same string is `<title>`, `og:title`, and `twitter:title`.
 
+**Más trabajo**
+
+Replaces the **2–3 related cases** lines in the routes table and in the case document section. Proposed until Juan’s OK; those lines stay in the decision above until then.
+
+- Each case page shows every other published case, and not itself. With the five published cases, that is **4** cards.
+- Order is fixed: the published list in `apps/web/src/data/work.ts`, with the current case removed.
+- The grid has **2 columns**. Four cards fill **2 rows**. In a listing of **5** cards, the fifth card sits alone on a third row until more projects exist.
+
 ## Consequences
 
 - Landing and `/trabajo` share the same project list and Card / Work presentation; case links are real `/trabajo/<slug>` routes.
@@ -140,3 +148,4 @@ Official names (slugs stay immutable):
 - Design follows v34 (Iris / Juan): **En producción** ships; card/case chrome avoids 1px borders except `.work-index__more` `border-top` on `/trabajo`.
 - At **12** published cases, reopen `/trabajo` pagination and evaluate a CMS (code order + call performance).
 - Proposed (SEO-15, pending Juan’s OK): `apps/web/src/contract/jsonld.test.ts` protects the JSON-LD contract in the amendment above.
+- Proposed (SEO-15, pending Juan’s OK): `apps/web/src/contract/mas-trabajo.test.ts` protects the Más trabajo set and `work.ts` order.
