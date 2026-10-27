@@ -440,8 +440,76 @@ function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null;
 }
 
+function caseTitleSocialProblems(
+  route: string,
+  documentTitle: string,
+  titleValues: string[],
+  ogTitles: string[],
+  twitterTitles: string[],
+): string[] {
+  const problems: string[] = [];
+  if (titleValues.length !== 1 || titleValues[0] !== documentTitle) {
+    problems.push(
+      `${route} <title>=${JSON.stringify(titleValues)}; se exige ${documentTitle}`,
+    );
+  }
+  if (ogTitles.length !== 1 || ogTitles[0] !== documentTitle) {
+    problems.push(
+      `${route} og:title=${JSON.stringify(ogTitles)}; se exige igual a <title> ${documentTitle}`,
+    );
+  }
+  if (twitterTitles.length === 0) {
+    return problems;
+  }
+  if (twitterTitles.length !== 1 || twitterTitles[0] !== documentTitle) {
+    problems.push(
+      `${route} twitter:title=${JSON.stringify(twitterTitles)}; se exige igual a <title> ${documentTitle}`,
+    );
+  }
+  return problems;
+}
+
 describe("contrato SEO-04 y SEO-05 de fichas", () => {
-  it("fija title y og:title exactos ≤ 60 y headline sin sufijo de marca", () => {
+  it("falla si og:title o twitter:title difieren del <title> de la ficha", () => {
+    const title = "Conexión Laboral: landing de asesoría | Neutro Solutions";
+    assert.deepEqual(
+      caseTitleSocialProblems("/trabajo/x", title, [title], [title], []),
+      [],
+    );
+    assert.deepEqual(
+      caseTitleSocialProblems("/trabajo/x", title, [title], [title], [title]),
+      [],
+    );
+    assert.ok(
+      caseTitleSocialProblems(
+        "/trabajo/x",
+        title,
+        [title],
+        ["titulo mutado"],
+        [],
+      ).length > 0,
+    );
+    assert.ok(
+      caseTitleSocialProblems(
+        "/trabajo/x",
+        title,
+        [title],
+        [title],
+        ["titulo mutado"],
+      ).length > 0,
+    );
+    assert.ok(
+      caseTitleSocialProblems(
+        "/trabajo/x",
+        title,
+        [title],
+        [title],
+        [title, title],
+      ).length > 0,
+    );
+  });
+
+  it("fija title exacto ≤ 60, og:title igual, twitter:title igual si existe, y headline sin marca", () => {
     const problems: string[] = [];
     for (const workCase of workCases) {
       const route = `/trabajo/${workCase.slug}`;
@@ -455,26 +523,15 @@ describe("contrato SEO-04 y SEO-05 de fichas", () => {
         `${route} title length ${expectedTitle.length}`,
       );
 
-      const titles = titleTexts(page.document);
-      const ogTitles = metaPropertyContent(page.document, "og:title");
-      const twitterTitles = metaNameContent(page.document, "twitter:title");
-      if (titles.length !== 1 || titles[0] !== expectedTitle) {
-        problems.push(
-          `${route} <title>=${JSON.stringify(titles)}; se exige ${expectedTitle}`,
-        );
-      }
-      if (ogTitles.length !== 1 || ogTitles[0] !== expectedTitle) {
-        problems.push(
-          `${route} og:title=${JSON.stringify(ogTitles)}; se exige ${expectedTitle}`,
-        );
-      }
-      if (twitterTitles.length > 0) {
-        if (twitterTitles.length !== 1 || twitterTitles[0] !== expectedTitle) {
-          problems.push(
-            `${route} twitter:title=${JSON.stringify(twitterTitles)}; si existe debe ser ${expectedTitle}`,
-          );
-        }
-      }
+      problems.push(
+        ...caseTitleSocialProblems(
+          route,
+          expectedTitle,
+          titleTexts(page.document),
+          metaPropertyContent(page.document, "og:title"),
+          metaNameContent(page.document, "twitter:title"),
+        ),
+      );
 
       const graphs = jsonLdGraphs(page.document);
       const creative = graphs.find(
