@@ -97,6 +97,40 @@ Verification gates (`curl` or equivalent, no JS):
 
 Reuse the landing **Card / Work** components and the landing Trabajo grid for cards. Case pages follow Iris **v34**: sticky title column, visible **En producción** tag on cards and case pages, primary CTA for **Visitar sitio**, 16:9 cover, sectioned body + featured quote; **no 1px dividers**, with one exception already noted in `AGENTS.md`: the `border-top` on `.work-index__more` above **Cargar más** on `/trabajo`. Primary **Cargar más** button: `#2B4BFF`, centered on desktop, left-aligned on mobile. Site nav label `Trabajo` links to `/trabajo`.
 
+### Enmienda SEO-15 (propuesta, pendiente de OK de Juan)
+
+Jake (SEO) proposes the following. It does not change this ADR’s status (Accepted) and is **not** in force until Juan’s OK. Until that OK, the decision above stays the one in force; this section is the proposed contract.
+
+**Index (`/trabajo`)**
+
+- Add a `BreadcrumbList` with exactly two items: `Inicio` → `https://neutro.solutions/`, `Trabajo` → `https://neutro.solutions/trabajo`. `CollectionPage` and `ItemList` stay as specified above.
+
+**Case `CreativeWork` (`/trabajo/<slug>`)**
+
+On the case `CreativeWork` inside the page `@graph` (the layout still emits `https://neutro.solutions/#organization` and `https://neutro.solutions/#website`):
+
+- `creator` is `{ "@id": "https://neutro.solutions/#organization" }`. `publisher` keeps pointing at that same Organization.
+- `about` stays the client `Organization` and adds `url`: the client site, the same `href` as **Visitar sitio**. The `url` is an absolute `https` URL.
+- `headline` is the document title without the suffix ` | Neutro Solutions`. It does not contain `Neutro Solutions` and it is not longer than `<title>`.
+- `name` is the client’s official name. That same string is the case `<h1>` text, the matching card name on `/trabajo`, the `name` of that case in the `/trabajo` `ItemList`, and position 3 of the case `BreadcrumbList`.
+- Do not emit `datePublished` or `dateModified` on any JSON-LD node. There are no real dates; do not invent them.
+
+Official names (slugs stay immutable):
+
+| Path                              | Official name              |
+| --------------------------------- | -------------------------- |
+| `/trabajo/conexion-laboral`       | Conexión Laboral           |
+| `/trabajo/afectiva`               | Afectiva Comunicaciones    |
+| `/trabajo/capa-automotores`       | Capa Automotores           |
+| `/trabajo/suplementacion-ciencia` | Suplementación con Ciencia |
+| `/trabajo/luxurycars`             | Luxury Cars                |
+
+**Case document title**
+
+- `<title>`: `<Cliente>: <qué se hizo, corto> | Neutro Solutions`.
+- Maximum **60 characters**, counting the brand suffix.
+- The same string is `<title>`, `og:title`, and `twitter:title`.
+
 ## Consequences
 
 - Landing and `/trabajo` share the same project list and Card / Work presentation; case links are real `/trabajo/<slug>` routes.
@@ -105,3 +139,4 @@ Reuse the landing **Card / Work** components and the landing Trabajo grid for ca
 - Implementation PRs must satisfy the curl href and no-trailing-slash checks before claiming SEO readiness.
 - Design follows v34 (Iris / Juan): **En producción** ships; card/case chrome avoids 1px borders except `.work-index__more` `border-top` on `/trabajo`.
 - At **12** published cases, reopen `/trabajo` pagination and evaluate a CMS (code order + call performance).
+- Proposed (SEO-15, pending Juan’s OK): `apps/web/src/contract/jsonld.test.ts` protects the JSON-LD contract in the amendment above.
