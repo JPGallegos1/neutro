@@ -6,7 +6,7 @@ import { join } from "node:path";
 import { describe, it } from "node:test";
 import { fileURLToPath, pathToFileURL } from "node:url";
 
-import { checkPrBody } from "./check-pr-body.mjs";
+import { checkPrBody, extractAuthorBody } from "./check-pr-body.mjs";
 
 const script = fileURLToPath(new URL("./check-pr-body.mjs", import.meta.url));
 const workflowPath = fileURLToPath(
@@ -244,8 +244,100 @@ describe("checkPrBody", () => {
     assert.equal(checkPrBody(hiddenHeading).ok, true);
   });
 
+  it("un comentario sin cerrar, <!--> o <!---> no cuenta como contenido", () => {
+    const vacios = [
+      "<!-- sin cerrar",
+      "<!-->",
+      "<!--->",
+      "  <!-->  ",
+      "<!--->\n",
+    ];
+    for (const content of vacios) {
+      const result = checkPrBody(
+        validBody(["uno", "dos", "tres", "cuatro", "cinco", content]),
+      );
+      assert.deepEqual(result.problems, [
+        "La sección «Verificación» no tiene contenido.",
+      ]);
+    }
+    for (const content of ["<!-->", "<!--->"]) {
+      const result = checkPrBody(
+        validBody(["uno", content, "tres", "cuatro", "cinco", "seis"]),
+      );
+      assert.deepEqual(result.problems, [
+        "La sección «Restricciones y verdades» no tiene contenido.",
+      ]);
+    }
+    const abiertoAlMedio = [
+      section("Problema", "uno"),
+      section("Restricciones y verdades", "<!-- sin cerrar"),
+      section("Razonamiento", "tres"),
+      section("Solución", "cuatro"),
+      section("Trade-offs", "cinco"),
+      section("Verificación", "seis"),
+    ].join("\n\n");
+    assert.deepEqual(checkPrBody(abiertoAlMedio).problems, [
+      "La sección «Restricciones y verdades» no tiene contenido.",
+      ...HEADINGS.slice(2).map((title) => missing(title)),
+    ]);
+    const withText = validBody([
+      "visible <!--> sigue",
+      "dos <!---> también",
+      "tres",
+      "cuatro",
+      "cinco",
+      "seis",
+    ]);
+    assert.equal(checkPrBody(withText).ok, true);
+  });
+
+  it("un comentario citado en código inline o en un fence cuenta como texto", () => {
+    const fence = "`".repeat(3);
+    const conFence = validBody([
+      "uno",
+      ["dos", "", fence, "<!--", fence, "sigue"].join("\n"),
+      "tres",
+      "cuatro",
+      "cinco",
+      "seis",
+    ]);
+    assert.equal(checkPrBody(conFence).ok, true);
+    assert.equal(extractAuthorBody(conFence).includes("<!--"), true);
+    assert.equal(checkPrBody(conFence.replaceAll("\n", "\r\n")).ok, true);
+
+    const conInline = validBody([
+      "uno `<!-->` sigue",
+      "dos `<!--->` también",
+      "tres",
+      "cuatro",
+      "cinco",
+      "seis",
+    ]);
+    assert.equal(checkPrBody(conInline).ok, true);
+    assert.equal(extractAuthorBody(conInline).includes("`<!-->`"), true);
+    assert.equal(extractAuthorBody(conInline).includes("`<!--->`"), true);
+
+    const real = validBody(["uno", "dos", "tres", "cuatro", "cinco", "<!-->"]);
+    assert.deepEqual(checkPrBody(real).problems, [
+      "La sección «Verificación» no tiene contenido.",
+    ]);
+    const suelto = validBody([
+      "uno",
+      "<!--",
+      "tres",
+      "cuatro",
+      "cinco",
+      "seis",
+    ]);
+    assert.deepEqual(checkPrBody(suelto).problems, [
+      "La sección «Restricciones y verdades» no tiene contenido.",
+      ...HEADINGS.slice(2).map((title) => missing(title)),
+    ]);
+  });
+
   it("ignora un BOM UTF-8 inicial antes de los encabezados", () => {
     assert.equal(checkPrBody(`\uFEFF${validBody()}`).ok, true);
+    assert.equal(checkPrBody(`\uFEFF\uFEFF${validBody()}`).ok, true);
     const wrapped = [
       "\uFEFF<!-- CURSOR_AGENT_PR_BODY_BEGIN -->",
       validBody(),
