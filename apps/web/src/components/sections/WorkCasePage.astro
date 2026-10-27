@@ -9,7 +9,7 @@ interface Props {
 }
 
 const { workCase } = Astro.props;
-const related = relatedWorkProjects(workCase.slug, 3);
+const related = relatedWorkProjects(workCase.slug);
 ---
 
 <article class="work-case" aria-labelledby="work-case-title">
@@ -398,7 +398,7 @@ const related = relatedWorkProjects(workCase.slug, 3);
 
   @media (min-width: 1024px) {
     .work-case__related-grid {
-      grid-template-columns: repeat(3, minmax(0, 1fr));
+      grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
     }
   }
 </style>
