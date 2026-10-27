@@ -7,7 +7,9 @@ import {
   viewports,
   type ExcepcionAxe,
 } from "./a11y-rutas.ts";
-import { rutasEsperadas, rutasPublicas } from "./rutas-publicas.ts";
+import { leerRutasPublicas, rutasEsperadas } from "./rutas-publicas.ts";
+
+const rutasPublicas = leerRutasPublicas();
 
 type Origen = "violacion" | "incompleto";
 

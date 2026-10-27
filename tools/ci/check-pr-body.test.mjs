@@ -6,7 +6,7 @@ import { join } from "node:path";
 import { describe, it } from "node:test";
 import { fileURLToPath, pathToFileURL } from "node:url";
 
-import { checkPrBody } from "./check-pr-body.mjs";
+import { checkPrBody, extractAuthorBody } from "./check-pr-body.mjs";
 
 const script = fileURLToPath(new URL("./check-pr-body.mjs", import.meta.url));
 const workflowPath = fileURLToPath(
@@ -289,6 +289,50 @@ describe("checkPrBody", () => {
       "seis",
     ]);
     assert.equal(checkPrBody(withText).ok, true);
+  });
+
+  it("un comentario citado en código inline o en un fence cuenta como texto", () => {
+    const fence = "`".repeat(3);
+    const conFence = validBody([
+      "uno",
+      ["dos", "", fence, "<!--", fence, "sigue"].join("\n"),
+      "tres",
+      "cuatro",
+      "cinco",
+      "seis",
+    ]);
+    assert.equal(checkPrBody(conFence).ok, true);
+    assert.equal(extractAuthorBody(conFence).includes("<!--"), true);
+    assert.equal(checkPrBody(conFence.replaceAll("\n", "\r\n")).ok, true);
+
+    const conInline = validBody([
+      "uno `<!-->` sigue",
+      "dos `<!--->` también",
+      "tres",
+      "cuatro",
+      "cinco",
+      "seis",
+    ]);
+    assert.equal(checkPrBody(conInline).ok, true);
+    assert.equal(extractAuthorBody(conInline).includes("`<!-->`"), true);
+    assert.equal(extractAuthorBody(conInline).includes("`<!--->`"), true);
+
+    const real = validBody(["uno", "dos", "tres", "cuatro", "cinco", "<!-->"]);
+    assert.deepEqual(checkPrBody(real).problems, [
+      "La sección «Verificación» no tiene contenido.",
+    ]);
+    const suelto = validBody([
+      "uno",
+      "<!--",
+      "tres",
+      "cuatro",
+      "cinco",
+      "seis",
+    ]);
+    assert.deepEqual(checkPrBody(suelto).problems, [
+      "La sección «Restricciones y verdades» no tiene contenido.",
+      ...HEADINGS.slice(2).map((title) => missing(title)),
+    ]);
   });
 
   it("ignora un BOM UTF-8 inicial antes de los encabezados", () => {

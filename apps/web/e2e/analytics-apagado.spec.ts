@@ -1,5 +1,7 @@
 import { expect, test } from "@playwright/test";
-import { rutasEsperadas, rutasPublicas } from "./rutas-publicas.ts";
+import { leerRutasPublicas, rutasEsperadas } from "./rutas-publicas.ts";
+
+const rutasPublicas = leerRutasPublicas();
 
 const ESPERA_MS = 2000;
 

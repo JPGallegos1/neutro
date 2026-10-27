@@ -33,16 +33,122 @@ function stripCursorFooter(text) {
   return lines.slice(0, end).join("\n");
 }
 
-function stripHtmlComments(text) {
-  let out = "";
+function fenceSpans(text) {
+  const spans = [];
+  let offset = 0;
+  let openAt = -1;
+  const lines = text.split("\n");
+  for (let i = 0; i < lines.length; i += 1) {
+    const line = lines[i];
+    const lineEnd = offset + line.length + (i < lines.length - 1 ? 1 : 0);
+    if (/^ {0,3}(`{3,}|~{3,})/.test(line)) {
+      if (openAt === -1) {
+        openAt = offset;
+      } else {
+        spans.push([openAt, lineEnd]);
+        openAt = -1;
+      }
+    }
+    offset = lineEnd;
+  }
+  if (openAt !== -1) {
+    spans.push([openAt, text.length]);
+  }
+  return spans;
+}
+
+function spanCovering(spans, index) {
+  for (const span of spans) {
+    if (index < span[0]) return null;
+    if (index < span[1]) return span;
+  }
+  return null;
+}
+
+function nextSpanFrom(spans, index) {
+  for (const span of spans) {
+    if (span[0] >= index) return span;
+  }
+  return null;
+}
+
+function findBacktickRun(text, from, length, fences) {
+  let index = from;
+  while (index < text.length) {
+    if (spanCovering(fences, index)) return -1;
+    if (text[index] !== "`") {
+      index += 1;
+      continue;
+    }
+    const ahead = nextSpanFrom(fences, index);
+    const limit = ahead ? ahead[0] : text.length;
+    let run = 0;
+    while (index + run < limit && text[index + run] === "`") run += 1;
+    if (run === length) return index;
+    index += run;
+  }
+  return -1;
+}
+
+function codeSpans(text) {
+  const fences = fenceSpans(text);
+  const spans = fences.slice();
   let index = 0;
   while (index < text.length) {
-    const start = text.indexOf("<!--", index);
-    if (start === -1) {
-      out += text.slice(index);
-      break;
+    const fence = spanCovering(fences, index);
+    if (fence) {
+      index = fence[1];
+      continue;
     }
-    out += text.slice(index, start);
+    if (text[index] !== "`") {
+      index += 1;
+      continue;
+    }
+    let length = 0;
+    while (
+      index + length < text.length &&
+      text[index + length] === "`" &&
+      !spanCovering(fences, index + length)
+    ) {
+      length += 1;
+    }
+    if (length === 0) {
+      index += 1;
+      continue;
+    }
+    const closer = findBacktickRun(text, index + length, length, fences);
+    if (closer === -1) {
+      index += length;
+      continue;
+    }
+    spans.push([index, closer + length]);
+    index = closer + length;
+  }
+  spans.sort((a, b) => a[0] - b[0]);
+  return spans;
+}
+
+function stripHtmlComments(text) {
+  const spans = codeSpans(text);
+  const parts = [];
+  let index = 0;
+  while (index < text.length) {
+    const span = spanCovering(spans, index);
+    if (span) {
+      parts.push(text.slice(index, span[1]));
+      index = span[1];
+      continue;
+    }
+    const upcoming = nextSpanFrom(spans, index);
+    const limit = upcoming ? upcoming[0] : text.length;
+    const start = text.indexOf("<!--", index);
+    if (start === -1 || start >= limit) {
+      parts.push(text.slice(index, start === -1 ? text.length : limit));
+      if (start === -1) break;
+      index = limit;
+      continue;
+    }
+    parts.push(text.slice(index, start));
     const after = start + 4;
     if (text.startsWith(">", after)) {
       index = after + 1;
@@ -53,12 +159,10 @@ function stripHtmlComments(text) {
       continue;
     }
     const end = text.indexOf("-->", after);
-    if (end === -1) {
-      break;
-    }
+    if (end === -1) break;
     index = end + 3;
   }
-  return out;
+  return parts.join("");
 }
 
 export function extractAuthorBody(raw) {
