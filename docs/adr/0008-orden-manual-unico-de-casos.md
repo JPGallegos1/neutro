@@ -1,5 +1,5 @@
 ---
-status: proposed
+status: accepted
 ---
 
 # Un solo orden manual de casos para landing, listado y «Más trabajo»
