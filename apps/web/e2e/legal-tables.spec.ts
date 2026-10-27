@@ -238,7 +238,7 @@ test.describe("tablas legales sin desborde en móvil", () => {
     }
   }
 
-  for (const width of [320, 340] as const) {
+  for (const width of [320, 324, 333, 340, 360] as const) {
     for (const path of [
       "/privacidad",
       "/cookies",
@@ -249,10 +249,22 @@ test.describe("tablas legales sin desborde en móvil", () => {
         expect(metrics.length).toBeGreaterThan(0);
         for (const row of metrics) {
           expect(row.pageScroll).toBe(0);
+          expect(row.wrapOverflow).toBeLessThanOrEqual(1);
         }
       });
     }
   }
+
+  test("/cookies tablas sin clase: anywhere solo ≤329px", async ({ page }) => {
+    const at329 = await tableMetrics(page, "/cookies", 329);
+    const at330 = await tableMetrics(page, "/cookies", 330);
+    expect(at329[0]?.overflowWrap).toBe("anywhere");
+    expect(at330[0]?.overflowWrap).toBe("normal");
+    expect(at329[0]?.pageScroll).toBe(0);
+    expect(at330[0]?.pageScroll).toBe(0);
+    expect(at329[0]?.wrapOverflow ?? 99).toBeLessThanOrEqual(1);
+    expect(at330[0]?.wrapOverflow ?? 99).toBeLessThanOrEqual(1);
+  });
 
   test("/privacidad proveedores a 360: Para qué usable y mail sin 3 líneas", async ({
     page,
@@ -277,11 +289,11 @@ test.describe("tablas legales sin desborde en móvil", () => {
     const paraRatio = paraQue.width / tableWidth;
     expect(
       paraRatio,
-      `Para qué es ${(paraRatio * 100).toFixed(1)}% del ancho; esperado ~56% (50–62)`,
+      `Para qué es ${(paraRatio * 100).toFixed(1)}% del sum de anchos de celda; esperado ~55.9% (50–62)`,
     ).toBeGreaterThanOrEqual(0.5);
     expect(
       paraRatio,
-      `Para qué es ${(paraRatio * 100).toFixed(1)}% del ancho; esperado ~56% (50–62)`,
+      `Para qué es ${(paraRatio * 100).toFixed(1)}% del sum de anchos de celda; esperado ~55.9% (50–62)`,
     ).toBeLessThanOrEqual(0.62);
     const hola = proveedores.emailLines.find((e) =>
       e.text.includes("hola@neutro.solutions"),
