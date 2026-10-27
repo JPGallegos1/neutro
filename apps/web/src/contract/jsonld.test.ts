@@ -482,7 +482,7 @@ describe("contrato JSON-LD (SEO-15)", () => {
     assert.deepEqual(problems, [], problems.join("\n"));
   });
 
-  it("limita el title de cada ficha a 60 y lo iguala en og:title y twitter:title", () => {
+  it("limita el title de cada ficha a 60, lo iguala en og:title y, si existe, en twitter:title", () => {
     const problems: string[] = [];
     const cases = casePages(loadPages());
     if (cases.length === 0) {
@@ -514,6 +514,16 @@ describe("contrato JSON-LD (SEO-15)", () => {
       const og = metaContents(entry.page.document, "og:title");
       const twitter = metaContents(entry.page.document, "twitter:title");
       const ogTitle = singleValue(og, `${label} og:title`, problems);
+      if (
+        title === undefined ||
+        ogTitle === undefined ||
+        ogTitle !== title
+      ) {
+        problems.push(
+          `${label} title=${JSON.stringify(title ?? null)} og:title=${JSON.stringify(ogTitle ?? null)}; tienen que ser el mismo texto`,
+        );
+      }
+      if (twitter.length === 0) continue;
       const twitterTitle = singleValue(
         twitter,
         `${label} twitter:title`,
@@ -521,13 +531,11 @@ describe("contrato JSON-LD (SEO-15)", () => {
       );
       if (
         title === undefined ||
-        ogTitle === undefined ||
         twitterTitle === undefined ||
-        ogTitle !== title ||
         twitterTitle !== title
       ) {
         problems.push(
-          `${label} title=${JSON.stringify(title ?? null)} og:title=${JSON.stringify(ogTitle ?? null)} twitter:title=${JSON.stringify(twitterTitle ?? null)}; los tres tienen que ser el mismo texto`,
+          `${label} twitter:title=${JSON.stringify(twitterTitle ?? null)}; se exige igual a <title> ${JSON.stringify(title ?? null)}`,
         );
       }
     }
