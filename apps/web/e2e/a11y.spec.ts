@@ -1,25 +1,15 @@
 import AxeBuilder from "@axe-core/playwright";
 import { expect, test } from "@playwright/test";
-import { workProjects } from "../src/data/work.ts";
 import {
   etiquetasAxe,
   excepcionesAxe,
-  rutasPublicas,
   temas,
   viewports,
   type ExcepcionAxe,
 } from "./a11y-rutas.ts";
+import { leerRutasPublicas, rutasEsperadas } from "./rutas-publicas.ts";
 
-const RUTAS_ESPERADAS = [
-  "/",
-  "/nosotros",
-  "/cookies",
-  "/privacidad",
-  "/terminos",
-  "/alerta-estafa",
-  "/trabajo",
-  ...workProjects.map((project) => project.href),
-] as const;
+const rutasPublicas = leerRutasPublicas();
 
 type Origen = "violacion" | "incompleto";
 
@@ -110,7 +100,7 @@ function lineasDe(
 }
 
 test("las rutas públicas salen de las páginas y de los casos", () => {
-  for (const ruta of RUTAS_ESPERADAS) {
+  for (const ruta of rutasEsperadas) {
     expect(rutasPublicas, ruta).toContain(ruta);
   }
   expect(rutasPublicas.includes("/404")).toBe(false);
