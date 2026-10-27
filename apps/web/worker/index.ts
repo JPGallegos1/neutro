@@ -3,6 +3,7 @@ import {
   resolveQrRedirect,
 } from "@neutro/core/qr-redirects";
 
+import { withAssetErrorCacheControl } from "./asset-cache.ts";
 import {
   captureQrScanned,
   isPosthogIngestPath,
@@ -97,7 +98,13 @@ export default {
       if (slash) {
         return respond(slash, url.hostname);
       }
-      return respond(await env.ASSETS.fetch(request), url.hostname);
+      return respond(
+        withAssetErrorCacheControl(
+          await env.ASSETS.fetch(request),
+          url.pathname,
+        ),
+        url.hostname,
+      );
     }
 
     if (
