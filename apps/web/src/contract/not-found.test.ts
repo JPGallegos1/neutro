@@ -7,6 +7,8 @@ import { readDistPage } from "./dist.ts";
 
 const EXPECTED_TITLE = "Página no encontrada | Neutro Solutions";
 const EXPECTED_H1 = "Esta página no existe";
+const EXPECTED_LANG = "es";
+const EXPECTED_HOME_CTA = "Volver al inicio";
 
 function page404(): HTMLElement {
   return readDistPage("404.html");
@@ -39,7 +41,31 @@ function jsonLdScripts(document: HTMLElement): HTMLElement[] {
   return document.querySelectorAll('script[type="application/ld+json"]');
 }
 
+function notFoundRoot(document: HTMLElement): HTMLElement {
+  const main = document.querySelector("main#contenido.not-found, main#contenido");
+  assert.ok(main, 'dist/404.html debe tener <main id="contenido">');
+  return main;
+}
+
+function homeCtaInContent(document: HTMLElement): HTMLElement | null {
+  const main = notFoundRoot(document);
+  return (
+    main.querySelectorAll("a").find((anchor) => {
+      if ((anchor.getAttribute("href") ?? "") !== "/") return false;
+      return anchor.text.trim() === EXPECTED_HOME_CTA;
+    }) ?? null
+  );
+}
+
 function assertNotFoundContract(document: HTMLElement): void {
+  const html = document.querySelector("html");
+  assert.ok(html, "dist/404.html debe tener <html>");
+  assert.equal(
+    html.getAttribute("lang"),
+    EXPECTED_LANG,
+    `dist/404.html <html lang> = ${JSON.stringify(html.getAttribute("lang"))}; se exige ${JSON.stringify(EXPECTED_LANG)}`,
+  );
+
   const titles = document.querySelectorAll("title").map((node) => node.text.trim());
   assert.equal(
     titles.length,
@@ -54,7 +80,7 @@ function assertNotFoundContract(document: HTMLElement): void {
 
   assert.ok(
     isNoindex(document),
-    "dist/404.html debe incluir <meta name=\"robots\" content=\"noindex\">",
+    'dist/404.html debe incluir <meta name="robots" content="noindex">',
   );
 
   const canonicals = canonicalHrefs(document);
@@ -82,17 +108,21 @@ function assertNotFoundContract(document: HTMLElement): void {
     `dist/404.html h1=${JSON.stringify(headings[0]?.text.trim())}; se exige ${JSON.stringify(EXPECTED_H1)}`,
   );
 
-  const home = document.querySelector('a[href="/"]');
+  const homeCta = homeCtaInContent(document);
+  assert.ok(
+    homeCta,
+    `dist/404.html debe tener en main#contenido un <a href="/"> con texto ${JSON.stringify(EXPECTED_HOME_CTA)}`,
+  );
+
   const work = document.querySelector('a[href="/trabajo"]');
   const mail = document.querySelector('a[href="mailto:hola@neutro.solutions"]');
-  assert.ok(home, 'dist/404.html debe enlazar href="/"');
   assert.ok(work, 'dist/404.html debe enlazar href="/trabajo"');
   assert.ok(mail, 'dist/404.html debe enlazar mailto:hola@neutro.solutions');
 
   const tag = [...document.querySelectorAll("[aria-hidden]")].find((el) =>
     el.text.trim().toUpperCase().includes("ERROR 404"),
   );
-  assert.ok(tag, 'la etiqueta ERROR 404 debe tener aria-hidden');
+  assert.ok(tag, "la etiqueta ERROR 404 debe tener aria-hidden");
 
   const frames = document.querySelectorAll(".not-found__frame");
   assert.ok(frames.length >= 1, "debe existir el marco .not-found__frame");
@@ -100,7 +130,7 @@ function assertNotFoundContract(document: HTMLElement): void {
     assert.equal(
       frame.getAttribute("aria-hidden"),
       "true",
-      "los marcos deben tener aria-hidden=\"true\"",
+      'los marcos deben tener aria-hidden="true"',
     );
   }
 
@@ -111,10 +141,6 @@ function assertNotFoundContract(document: HTMLElement): void {
   assert.ok(
     document.querySelector("footer.site-footer, footer"),
     "dist/404.html debe incluir el footer del sitio",
-  );
-  assert.ok(
-    document.querySelector('main#contenido, main[id="contenido"]'),
-    'dist/404.html debe tener <main id="contenido">',
   );
   assert.ok(
     document.querySelector('a.skip-link[href="#contenido"], a[href="#contenido"]'),
@@ -149,6 +175,20 @@ function withCanonical(document: HTMLElement): HTMLElement {
   return document;
 }
 
+function withoutHomeCta(document: HTMLElement): HTMLElement {
+  const cta = homeCtaInContent(document);
+  assert.ok(cta, "no se encontró el CTA a mutar");
+  cta.remove();
+  return document;
+}
+
+function withoutLang(document: HTMLElement): HTMLElement {
+  const html = document.querySelector("html");
+  assert.ok(html, "falta <html> en el HTML mutado");
+  html.removeAttribute("lang");
+  return document;
+}
+
 describe("contrato 404 del dist", () => {
   it("exige title, noindex, sin canonical ni JSON-LD, un h1, tres enlaces, aria-hidden, header y footer", () => {
     assertNotFoundContract(page404());
@@ -157,25 +197,34 @@ describe("contrato 404 del dist", () => {
   it("falla si se cambia el h1", () => {
     const html = page404().toString();
     const mutated = parse(withMutatedH1(html));
-    assert.throws(
-      () => assertNotFoundContract(mutated),
-      /h1=/,
-    );
+    assert.throws(() => assertNotFoundContract(mutated), /h1=/);
   });
 
   it("falla si se quita noindex", () => {
     const mutated = withoutNoindex(parse(page404().toString()));
-    assert.throws(
-      () => assertNotFoundContract(mutated),
-      /noindex/,
-    );
+    assert.throws(() => assertNotFoundContract(mutated), /noindex/);
   });
 
   it("falla si se agrega canonical", () => {
     const mutated = withCanonical(parse(page404().toString()));
+    assert.throws(() => assertNotFoundContract(mutated), /canonical/);
+  });
+
+  it("falla si se quita el CTA Volver al inicio del contenido", () => {
+    const mutated = withoutHomeCta(parse(page404().toString()));
     assert.throws(
       () => assertNotFoundContract(mutated),
-      /canonical/,
+      /Volver al inicio/,
     );
+    assertNotFoundContract(page404());
+  });
+
+  it("falla si se quita lang del html", () => {
+    const mutated = withoutLang(parse(page404().toString()));
+    assert.throws(
+      () => assertNotFoundContract(mutated),
+      /<html lang>/,
+    );
+    assertNotFoundContract(page404());
   });
 });
