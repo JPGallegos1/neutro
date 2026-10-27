@@ -82,57 +82,48 @@ describe("workCases", () => {
     );
   });
 
-  it("devuelve los otros casos en el orden fijo de workProjects", () => {
-    const expectedBySlug = {
-      "conexion-laboral": [
-        "afectiva",
-        "capa-automotores",
-        "suplementacion-ciencia",
-        "luxurycars",
-      ],
-      afectiva: [
-        "conexion-laboral",
-        "capa-automotores",
-        "suplementacion-ciencia",
-        "luxurycars",
-      ],
-      "capa-automotores": [
-        "conexion-laboral",
-        "afectiva",
-        "suplementacion-ciencia",
-        "luxurycars",
-      ],
-      "suplementacion-ciencia": [
-        "conexion-laboral",
-        "afectiva",
-        "capa-automotores",
-        "luxurycars",
-      ],
-      luxurycars: [
-        "conexion-laboral",
-        "afectiva",
-        "capa-automotores",
-        "suplementacion-ciencia",
-      ],
-    } as const;
+  it("devuelve todos los otros casos en el orden de workProjects", () => {
+    assert.ok(workProjects.length >= 2);
 
-    for (const workCase of workCases) {
-      const related = relatedWorkProjects(workCase.slug);
-      const slugs = related.map((project) => project.slug);
+    for (const project of workProjects) {
+      const related = relatedWorkProjects(project.slug);
+      const expected = workProjects.filter((item) => item.slug !== project.slug);
       assert.deepEqual(
-        slugs,
-        [...expectedBySlug[workCase.slug as keyof typeof expectedBySlug]],
-        workCase.slug,
+        related.map((item) => item.slug),
+        expected.map((item) => item.slug),
+        project.slug,
       );
-      assert.equal(slugs.length, 4, workCase.slug);
-      assert.equal(new Set(slugs).size, 4, workCase.slug);
-      assert.ok(
-        related.every((project) => project.slug !== workCase.slug),
-        workCase.slug,
-      );
+      assert.equal(related.length, workProjects.length - 1, project.slug);
+      assert.equal(new Set(related.map((item) => item.slug)).size, related.length);
+      assert.ok(related.every((item) => item.slug !== project.slug), project.slug);
     }
 
     assert.deepEqual(relatedWorkProjects("no-existe"), []);
+  });
+
+  it("con 6 casos simulados devuelve los 5 ajenos en el orden de la lista", () => {
+    const base = workProjects[0];
+    assert.ok(base);
+    const six = [0, 1, 2, 3, 4, 5].map((index) => ({
+      ...base,
+      id: `simulado-${index}`,
+      slug: `simulado-${index}`,
+      title: `Simulado ${index}`,
+      href: `/trabajo/simulado-${index}`,
+    }));
+
+    const current = six[2];
+    assert.ok(current);
+    const related = relatedWorkProjects(current.slug, six);
+    const expected = six.filter((item) => item.slug !== current.slug);
+
+    assert.equal(related.length, expected.length);
+    assert.deepEqual(
+      related.map((item) => item.slug),
+      expected.map((item) => item.slug),
+    );
+    assert.ok(!related.some((item) => item.slug === current.slug));
+    assert.equal(expected.length, six.length - 1);
   });
 });
 

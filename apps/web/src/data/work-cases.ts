@@ -266,7 +266,10 @@ export function getWorkCase(slug: string): WorkCase | undefined {
   return workCases.find((item) => item.slug === slug);
 }
 
-export function relatedWorkProjects(slug: string): WorkProject[] {
-  if (!workProjects.some((project) => project.slug === slug)) return [];
-  return workProjects.filter((project) => project.slug !== slug);
+export function relatedWorkProjects(
+  slug: string,
+  projects: readonly WorkProject[] = workProjects,
+): WorkProject[] {
+  if (!projects.some((project) => project.slug === slug)) return [];
+  return projects.filter((project) => project.slug !== slug);
 }
