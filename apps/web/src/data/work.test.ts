@@ -68,7 +68,7 @@ describe("workProjects", () => {
     );
   });
 
-  it("deja LuxuryCars fuera del tope de cuatro para Cargar más", () => {
+  it("deja luxurycars fuera del tope de cuatro para Cargar más", () => {
     assert.ok(workProjects.length > LANDING_WORK_LIMIT);
     assert.deepEqual(
       workProjects.slice(0, LANDING_WORK_LIMIT).map((project) => project.id),

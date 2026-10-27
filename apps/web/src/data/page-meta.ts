@@ -34,7 +34,7 @@ export const pageMeta = {
   trabajo: page(
     "/trabajo",
     "Casos y proyectos | Neutro Solutions",
-    "Explorá nuestro trabajo seleccionado: sitios y sistemas en producción para PyMEs y marcas. Conexión Laboral, Afectiva, Capa Automotores y más.",
+    "Explorá nuestro trabajo seleccionado: sitios y sistemas en producción para PyMEs y marcas. Conexión Laboral, Afectiva Comunicaciones, Capa Automotores y más.",
     "Trabajo",
   ),
   cookies: page(
