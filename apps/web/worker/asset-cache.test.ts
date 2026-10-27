@@ -1,7 +1,5 @@
 import assert from "node:assert/strict";
-import { readFileSync } from "node:fs";
 import { describe, it } from "node:test";
-import { fileURLToPath } from "node:url";
 
 import {
   ASSET_ERROR_CACHE_CONTROL,
@@ -18,10 +16,6 @@ const WORKERS_DEV = "https://neutro-web.jpgallegos20.workers.dev";
 const IMMUTABLE = "public, max-age=31536000, immutable";
 const HOUR = "public, max-age=3600";
 const HTML_DEFAULT = "public, max-age=0, must-revalidate";
-const INDEX_SOURCE = readFileSync(
-  fileURLToPath(new URL("./index.ts", import.meta.url)),
-  "utf8",
-);
 
 function executionContext(): ExecutionContext {
   return {
@@ -97,6 +91,9 @@ describe("asset-cache path and status helpers", () => {
     assert.equal(isLongCacheAssetPath("/"), false);
     assert.equal(isLongCacheAssetPath("/_astro"), false);
     assert.equal(isLongCacheAssetPath("/favicon.ico.bak"), false);
+    assert.equal(isLongCacheAssetPath("/icon-999.png"), false);
+    assert.equal(isLongCacheAssetPath("/favicon.ico/x"), false);
+    assert.equal(isLongCacheAssetPath("/Images/x.webp"), false);
     assert.equal(isLongCacheAssetPath("/x/images/x"), false);
     assert.equal(isLongCacheAssetPath("/images-other/x"), false);
     assert.equal(isLongCacheAssetPath("/x/og/x"), false);
@@ -187,12 +184,15 @@ describe("withAssetErrorCacheControl", () => {
     }
   });
 
-  it("no aplica a /x/images/x, /images-other/x, /x/og/x ni /og-other/x", () => {
+  it("no aplica a negativos de alcance (prefijo, exacto y mayúsculas)", () => {
     for (const path of [
       "/x/images/x",
       "/images-other/x",
       "/x/og/x",
       "/og-other/x",
+      "/icon-999.png",
+      "/favicon.ico/x",
+      "/Images/x.webp",
     ] as const) {
       assert.equal(isLongCacheAssetPath(path), false);
       const upstream = new Response("missing", {
@@ -206,10 +206,43 @@ describe("withAssetErrorCacheControl", () => {
     }
   });
 
-  it("propaga webSocket y cf al reconstruir un 404", () => {
-    const upstream = new Response("missing", {
+  it("pone no-store en 405 y 500 bajo prefijos (no solo 404)", () => {
+    for (const status of [405, 500] as const) {
+      for (const path of [
+        "/_astro/gone.css",
+        "/images/gone.webp",
+        "/og/gone.png",
+      ] as const) {
+        const upstream = new Response(`err-${status}`, {
+          status,
+          statusText: status === 405 ? "Method Not Allowed" : "Internal Server Error",
+          headers: {
+            "content-type": "text/plain",
+            "cache-control": IMMUTABLE,
+            "x-upstream": "keep-me",
+          },
+        });
+        const fixed = withAssetErrorCacheControl(upstream, path);
+        assert.equal(fixed.status, status);
+        assert.equal(fixed.headers.get("Cache-Control"), "no-store");
+        assert.notEqual(fixed.headers.get("Cache-Control"), IMMUTABLE);
+        assert.equal(isCacheableAssetStatus(status), false);
+        assert.notEqual(status, 404);
+      }
+    }
+  });
+
+  it("al reconstruir conserva cuerpo, statusText, cabeceras, webSocket y cf", async () => {
+    const bodyText = "missing-asset-body";
+    const upstream = new Response(bodyText, {
       status: 404,
-      headers: { "cache-control": IMMUTABLE },
+      statusText: "Not Found",
+      headers: {
+        "content-type": "text/html; charset=utf-8",
+        "cache-control": IMMUTABLE,
+        "x-upstream-probe": "preserve",
+        etag: '"abc123"',
+      },
     });
     Object.defineProperty(upstream, "webSocket", {
       value: null,
@@ -222,8 +255,10 @@ describe("withAssetErrorCacheControl", () => {
 
     const OriginalResponse = globalThis.Response;
     const inits: ResponseInit[] = [];
+    const bodies: Array<BodyInit | null | undefined> = [];
     globalThis.Response = class extends OriginalResponse {
       constructor(body?: BodyInit | null, init?: ResponseInit) {
+        bodies.push(body);
         inits.push(init ?? {});
         super(body, init);
       }
@@ -235,9 +270,31 @@ describe("withAssetErrorCacheControl", () => {
         "/_astro/gone.CssHash.css",
       );
       assert.equal(fixed.status, 404);
+      assert.equal(fixed.statusText, "Not Found");
+      assert.equal(fixed.statusText, upstream.statusText);
+      assert.equal(await fixed.text(), bodyText);
       assert.equal(fixed.headers.get("Cache-Control"), "no-store");
+      assert.equal(fixed.headers.get("content-type"), "text/html; charset=utf-8");
+      assert.equal(fixed.headers.get("x-upstream-probe"), "preserve");
+      assert.equal(fixed.headers.get("etag"), '"abc123"');
+      assert.notEqual(fixed.headers.get("Cache-Control"), IMMUTABLE);
+
       assert.equal(inits.length, 1);
+      assert.notEqual(bodies[0], null);
+      assert.notEqual(bodies[0], undefined);
       assert.equal(inits[0]?.status, 404);
+      assert.equal(inits[0]?.statusText, "Not Found");
+      assert.equal(typeof inits[0]?.statusText, "string");
+      assert.notEqual(inits[0]?.statusText, undefined);
+      assert.ok(inits[0]?.headers instanceof Headers);
+      assert.equal(
+        new Headers(inits[0]?.headers).get("x-upstream-probe"),
+        "preserve",
+      );
+      assert.equal(
+        new Headers(inits[0]?.headers).get("Cache-Control"),
+        "no-store",
+      );
       assert.equal(
         Object.prototype.hasOwnProperty.call(inits[0], "webSocket"),
         true,
@@ -250,6 +307,26 @@ describe("withAssetErrorCacheControl", () => {
     } finally {
       globalThis.Response = OriginalResponse;
     }
+  });
+
+  it("mutación: new Response(null) o Headers vacío o sin statusText fallarían", async () => {
+    const upstream = new Response("keep-body", {
+      status: 404,
+      statusText: "Not Found",
+      headers: {
+        "cache-control": IMMUTABLE,
+        "x-upstream-probe": "preserve",
+      },
+    });
+    const fixed = withAssetErrorCacheControl(upstream, "/images/gone.webp");
+    const fixedBody = await fixed.text();
+    assert.equal(fixedBody, "keep-body");
+    assert.notEqual(await new Response(null, { status: 404 }).text(), fixedBody);
+    assert.equal(fixed.statusText, "Not Found");
+    assert.notEqual(fixed.statusText, "");
+    assert.equal(fixed.headers.get("x-upstream-probe"), "preserve");
+    assert.equal(new Headers().get("x-upstream-probe"), null);
+    assert.equal(fixed.headers.get("Cache-Control"), "no-store");
   });
 
   it("mutación: sin withAssetErrorCacheControl el 404 conserva immutable", () => {
@@ -317,7 +394,7 @@ describe("Worker: 404 bajo assets con Cache-Control propio", () => {
     "/favicon.ico",
     "/site.webmanifest",
   ] as const) {
-    it(`sirve 404 GET de ${path} con no-store y cabeceras de seguridad`, async () => {
+    it(`sirve 404 GET de ${path} con no-store y cabeceras de #62`, async () => {
       const { calls, env } = assetEnv(404, "missing", {
         "content-type": "text/html; charset=utf-8",
         "cache-control": IMMUTABLE,
@@ -330,6 +407,20 @@ describe("Worker: 404 bajo assets con Cache-Control propio", () => {
         ASSET_ERROR_CACHE_CONTROL,
       );
       assert.equal(response.headers.get("X-Content-Type-Options"), "nosniff");
+      assert.equal(
+        response.headers.get("Referrer-Policy"),
+        "strict-origin-when-cross-origin",
+      );
+      assert.equal(
+        response.headers.get("Permissions-Policy"),
+        "camera=(), microphone=(), geolocation=(), payment=(), usb=(), browsing-topics=()",
+      );
+      assert.equal(response.headers.get("X-Frame-Options"), "DENY");
+      assert.ok(
+        (response.headers.get("Content-Security-Policy-Report-Only") ?? "").includes(
+          "default-src 'self'",
+        ),
+      );
       assert.equal(
         response.headers.get("Strict-Transport-Security"),
         "max-age=300",
@@ -447,34 +538,64 @@ describe("Worker: 404 bajo assets con Cache-Control propio", () => {
     assert.equal(response.headers.get("Strict-Transport-Security"), null);
   });
 
-  it("mutación: el wrapper solo envuelve env.ASSETS.fetch en index.ts", () => {
-    assert.match(
-      INDEX_SOURCE,
-      /return respond\(\s*withAssetErrorCacheControl\(\s*await env\.ASSETS\.fetch\(request\),\s*url\.pathname,\s*\),\s*url\.hostname,\s*\);/,
+  it("el wrapper no toca 301 de barra final bajo /_astro (solo ASSETS.fetch)", async () => {
+    const { calls, env } = assetEnv(404, "unused", {
+      "content-type": "text/html; charset=utf-8",
+      "cache-control": IMMUTABLE,
+    });
+    const response = await fetchWorker(
+      `${PRODUCTION}/_astro/gone.CssHash.css/`,
+      env,
     );
+    assert.equal(response.status, 301);
     assert.equal(
-      [...INDEX_SOURCE.matchAll(/withAssetErrorCacheControl/g)].length,
-      2,
+      response.headers.get("Location"),
+      `${PRODUCTION}/_astro/gone.CssHash.css`,
     );
-    assert.doesNotMatch(
-      INDEX_SOURCE,
-      /withAssetErrorCacheControl\(\s*await proxyPosthogIngest/,
+    assert.notEqual(response.headers.get("Cache-Control"), "no-store");
+    assert.deepEqual(calls, []);
+  });
+
+  it("el wrapper no toca /ingest ni /f/999 aunque ASSETS devolvería immutable", async () => {
+    const { calls, env } = assetEnv(404, "unused", {
+      "content-type": "text/html; charset=utf-8",
+      "cache-control": IMMUTABLE,
+    });
+    const originalFetch = globalThis.fetch;
+    globalThis.fetch = (async () =>
+      new Response("array", {
+        status: 200,
+        headers: {
+          "content-type": "application/javascript",
+          "cache-control": "public, max-age=14400",
+          "access-control-allow-origin": "*",
+        },
+      })) as typeof fetch;
+    try {
+      const ingest = await fetchWorker(
+        `${PRODUCTION}/ingest/static/array.js`,
+        env,
+      );
+      assert.equal(ingest.status, 200);
+      assert.equal(ingest.headers.get("Cache-Control"), "public, max-age=14400");
+      assert.notEqual(ingest.headers.get("Cache-Control"), "no-store");
+
+      const redirect = await fetchWorker(`${PRODUCTION}/f/999`, env);
+      assert.equal(redirect.status, 302);
+      assert.equal(redirect.headers.get("Cache-Control"), "no-store");
+      assert.equal(redirect.headers.get("CDN-Cache-Control"), "no-store");
+      assert.deepEqual(calls, []);
+    } finally {
+      globalThis.fetch = originalFetch;
+    }
+
+    const asset404 = await fetchWorker(
+      `${PRODUCTION}/_astro/gone.CssHash.css`,
+      env,
     );
-    assert.doesNotMatch(
-      INDEX_SOURCE,
-      /withAssetErrorCacheControl\(\s*createQrRedirectResponse/,
-    );
-    assert.doesNotMatch(INDEX_SOURCE, /withAssetErrorCacheControl\(\s*slash/);
-    const respondFn = INDEX_SOURCE.slice(
-      INDEX_SOURCE.indexOf("function respond("),
-      INDEX_SOURCE.indexOf("export default"),
-    );
-    assert.doesNotMatch(respondFn, /withAssetErrorCacheControl/);
-    const ingestBranch = INDEX_SOURCE.slice(
-      INDEX_SOURCE.indexOf("if (isPosthogIngestPath"),
-      INDEX_SOURCE.indexOf("const redirect = resolveQrRedirect"),
-    );
-    assert.doesNotMatch(ingestBranch, /withAssetErrorCacheControl/);
+    assert.equal(asset404.status, 404);
+    assert.equal(asset404.headers.get("Cache-Control"), "no-store");
+    assert.equal(calls.length, 1);
   });
 
   it("mutación: solo-GET fallaría porque HEAD también recibe no-store", async () => {
