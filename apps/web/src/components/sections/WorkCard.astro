@@ -176,6 +176,10 @@ const TitleTag = titleAs;
     inset: 0;
     z-index: 2;
     pointer-events: none;
-    box-shadow: inset 0 0 0 2px var(--landing-focus);
+    outline: 2px solid transparent;
+    outline-offset: -2px;
+    box-shadow:
+      inset 0 0 0 2px var(--neutro-bg),
+      inset 0 0 0 4px var(--landing-focus);
   }
 </style>

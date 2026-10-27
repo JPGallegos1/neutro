@@ -11,7 +11,7 @@ const distDir = fileURLToPath(new URL("../../dist/", import.meta.url));
 const GLUED_BEFORE_ANCHOR = /([A-Za-zÁÉÍÓÚÜáéíóúüÑñ0-9)])<a\b/g;
 const LOOSE_AT = /@(?:\s*<a\b|\s+[a-z0-9][a-z0-9.-]*\.[a-z]{2,})/gi;
 const INLINE_CLOSE =
-  "a|abbr|b|cite|code|em|i|kbd|mark|small|span|strong|sub|sup|u";
+  "a|abbr|b|cite|code|del|em|i|ins|kbd|mark|q|s|small|span|strong|sub|sup|time|u";
 const SPACE_BEFORE_PUNCT = new RegExp(
   `</(?:${INLINE_CLOSE})>(\\s+)([.,;:)!?»”…])`,
   "gi",
@@ -283,6 +283,30 @@ describe("espacios antes de enlaces y mails en el dist", () => {
     const html =
       '<script type="application/ld+json">{"name":"</span> …"}</script><p>ok</p>';
     assertNoPunctuationSpacing(html, "mut.html", "/mut");
+  });
+
+  it("falla si hay espacio antes de puntuación tras </q> </s> </del> </ins> o </time>", () => {
+    for (const tag of ["q", "s", "del", "ins", "time"] as const) {
+      const mutated = `<p>x</p><${tag}>hola</${tag}>\n.`;
+      assert.throws(
+        () => assertNoPunctuationSpacing(mutated, "mut.html", "/mut"),
+        /espacio-antes-puntuacion/,
+      );
+    }
+  });
+
+  it("detecta puntuación defectuosa pegada al JSON-LD sin perder la exclusión del bloque", () => {
+    const html =
+      '<script type="application/ld+json">{"name":"</span> …"}</script><b>aviso</b>\n.<p>ok</p>';
+    assert.throws(
+      () => assertNoPunctuationSpacing(html, "mut.html", "/mut"),
+      /espacio-antes-puntuacion/,
+    );
+    assertNoPunctuationSpacing(
+      '<script type="application/ld+json">{"name":"</span> …"}</script><p>ok</p>',
+      "mut.html",
+      "/mut",
+    );
   });
 });
 
