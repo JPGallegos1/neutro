@@ -5,7 +5,7 @@ import { parse } from "node-html-parser";
 
 import { readDistPage } from "./dist.ts";
 
-const EXPECTED_TITLE = "Página no encontrada | Neutro Solutions";
+const EXPECTED_TITLE = "Página no encontrada — Neutro Solutions";
 const EXPECTED_H1 = "Esta página no existe";
 const EXPECTED_LANG = "es";
 const EXPECTED_HOME_CTA = "Volver al inicio";
