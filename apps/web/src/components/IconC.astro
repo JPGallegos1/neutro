@@ -1,0 +1,50 @@
+---
+interface Props {
+  class?: string;
+  size?: number;
+}
+
+const { class: className, size = 56 } = Astro.props;
+---
+
+<span class:list={["icon-c", className]} aria-hidden="true">
+  <img
+    class="icon-c__img"
+    src="/images/neutro/ns-icono-c-positivo.png"
+    alt=""
+    width={size}
+    height={size}
+    decoding="async"
+  />
+</span>
+
+<style>
+  .icon-c {
+    display: inline-flex;
+    width: 48px;
+    height: 48px;
+    line-height: 0;
+    box-sizing: border-box;
+    border: 1px solid var(--neutro-text);
+    overflow: hidden;
+    flex-shrink: 0;
+  }
+
+  @media (min-width: 1024px) {
+    .icon-c {
+      width: 56px;
+      height: 56px;
+    }
+  }
+
+  .icon-c__img {
+    display: block;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+
+  :global(html.dark) .icon-c__img {
+    filter: invert(1);
+  }
+</style>
