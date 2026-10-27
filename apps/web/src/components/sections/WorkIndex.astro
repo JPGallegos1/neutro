@@ -1,5 +1,6 @@
 ---
 import WorkCard from "@/components/sections/WorkCard.astro";
+import { pageMeta } from "@/data/page-meta";
 import { LANDING_WORK_LIMIT, workProjects } from "@/data/work";
 
 const showLoadMore = workProjects.length > LANDING_WORK_LIMIT;
@@ -9,7 +10,7 @@ const showLoadMore = workProjects.length > LANDING_WORK_LIMIT;
   <div class="landing-shell">
     <div class="landing-gutter work-index__intro">
       <h1 id="trabajo-heading" class="work-index__title">
-        Trabajo
+        {pageMeta.trabajo.heading}
       </h1>
       <p class="work-index__lead">Explorá nuestro trabajo seleccionado.</p>
     </div>

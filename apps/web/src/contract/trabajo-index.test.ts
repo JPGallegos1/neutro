@@ -275,7 +275,7 @@ describe("dist/trabajo.html", () => {
     );
   });
 
-  it("tiene un solo h1 con texto Trabajo y mayúsculas por CSS", () => {
+  it("tiene un solo h1 con texto Casos de clientes y mayúsculas por CSS", () => {
     const root = readDistPage("trabajo.html");
     const headings = root.querySelectorAll("h1");
     assert.equal(
@@ -288,8 +288,8 @@ describe("dist/trabajo.html", () => {
     const h1Text = h1.text.trim();
     assert.equal(
       h1Text,
-      "Trabajo",
-      `el h1 de dist/trabajo.html es «${h1Text}»; se exige «Trabajo»`,
+      "Casos de clientes",
+      `el h1 de dist/trabajo.html es «${h1Text}»; se exige «Casos de clientes»`,
     );
     assert.equal(
       h1Text,
@@ -298,8 +298,13 @@ describe("dist/trabajo.html", () => {
     );
     assert.notEqual(
       h1Text,
-      "TRABAJO",
+      "CASOS DE CLIENTES",
       "el h1 no puede ir en mayúsculas en el HTML; la apariencia va por CSS",
+    );
+    assert.notEqual(
+      h1Text,
+      "TRABAJO",
+      "el h1 ya no es TRABAJO en el HTML; el menú sigue diciendo Trabajo",
     );
     const className = h1.getAttribute("class") ?? "";
     assert.ok(
@@ -321,4 +326,99 @@ describe("dist/trabajo.html", () => {
       "ningún <style> de dist/trabajo.html define .work-index__title con text-transform en mayúsculas",
     );
   });
+
+  it("fija title, description, og/twitter y JSON-LD de /trabajo", () => {
+    const root = readDistPage("trabajo.html");
+    const expectedTitle = pageMeta.trabajo.title;
+    const expectedDescription = pageMeta.trabajo.description;
+    assert.equal(expectedTitle.length, 53);
+    assert.equal(expectedDescription.length, 153);
+
+    const titles = root.querySelectorAll("title").map((node) => node.text.trim());
+    assert.deepEqual(titles, [expectedTitle]);
+
+    const descriptions = root.querySelectorAll("meta").flatMap((meta) => {
+      if ((meta.getAttribute("name") ?? "").toLowerCase() !== "description") {
+        return [];
+      }
+      return [meta.getAttribute("content")?.trim() ?? ""];
+    });
+    assert.deepEqual(descriptions, [expectedDescription]);
+
+    const ogTitles = metaPropertyContents(root, "og:title");
+    const ogDescriptions = metaPropertyContents(root, "og:description");
+    const twitterTitles = metaNameContents(root, "twitter:title");
+    const twitterDescriptions = metaNameContents(root, "twitter:description");
+    assert.deepEqual(ogTitles, [expectedTitle]);
+    assert.deepEqual(ogDescriptions, [expectedDescription]);
+    assert.deepEqual(twitterTitles, [expectedTitle]);
+    assert.deepEqual(twitterDescriptions, [expectedDescription]);
+
+    const graphs = jsonLdGraphs(root);
+    const collection = graphs.find(
+      (node) => isRecord(node) && node["@type"] === "CollectionPage",
+    );
+    assert.ok(isRecord(collection), "falta CollectionPage en /trabajo");
+    assert.equal(
+      collection.name,
+      "Casos de clientes",
+      `CollectionPage.name=${JSON.stringify(collection.name)}; se exige Casos de clientes`,
+    );
+    assert.equal(collection.description, expectedDescription);
+
+    const breadcrumb = graphs.find(
+      (node) => isRecord(node) && node["@type"] === "BreadcrumbList",
+    );
+    assert.ok(isRecord(breadcrumb), "falta BreadcrumbList en /trabajo");
+    assert.ok(Array.isArray(breadcrumb.itemListElement));
+    const crumbNames = breadcrumb.itemListElement.map((item) => {
+      assert.ok(isRecord(item));
+      return String(item.name ?? "");
+    });
+    assert.deepEqual(crumbNames, ["Inicio", "Trabajo"]);
+  });
 });
+
+function metaPropertyContents(document: HTMLElement, property: string): string[] {
+  const needle = property.toLowerCase();
+  return document.querySelectorAll("meta").flatMap((meta) => {
+    if ((meta.getAttribute("property") ?? "").toLowerCase() !== needle) {
+      return [];
+    }
+    return [meta.getAttribute("content")?.trim() ?? ""];
+  });
+}
+
+function metaNameContents(document: HTMLElement, name: string): string[] {
+  const needle = name.toLowerCase();
+  return document.querySelectorAll("meta").flatMap((meta) => {
+    if ((meta.getAttribute("name") ?? "").toLowerCase() !== needle) {
+      return [];
+    }
+    return [meta.getAttribute("content")?.trim() ?? ""];
+  });
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null;
+}
+
+function jsonLdGraphs(document: HTMLElement): unknown[] {
+  return document
+    .querySelectorAll('script[type="application/ld+json"]')
+    .flatMap((script) => {
+      try {
+        const parsed: unknown = JSON.parse(script.text);
+        if (
+          isRecord(parsed) &&
+          "@graph" in parsed &&
+          Array.isArray(parsed["@graph"])
+        ) {
+          return parsed["@graph"];
+        }
+        return [parsed];
+      } catch {
+        return [];
+      }
+    });
+}

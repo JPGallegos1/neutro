@@ -97,15 +97,21 @@ describe("pageMeta.trabajo", () => {
     assert.equal(pageMeta.trabajo.path, "/trabajo");
     assert.equal(
       pageMeta.trabajo.title,
-      "Casos y proyectos | Neutro Solutions",
+      "Casos de clientes: webs y sistemas | Neutro Solutions",
     );
+    assert.equal(pageMeta.trabajo.title.length, 53);
+    assert.equal(
+      pageMeta.trabajo.description,
+      "Casos reales de Neutro Solutions: webs, tiendas online, catálogos y plataformas a medida. Mirá qué necesitaba cada cliente y qué resolvimos con cada uno.",
+    );
+    assert.equal(pageMeta.trabajo.description.length, 153);
+    assert.ok(pageMeta.trabajo.description.includes("Mirá"));
     assert.equal(
       pageMeta.trabajo.canonical,
       "https://neutro.solutions/trabajo",
     );
     assert.ok(!pageMeta.trabajo.canonical.includes("?"));
     assert.ok(!pageMeta.trabajo.canonical.includes("page="));
-    assert.ok(pageMeta.trabajo.description.length > 80);
-    assert.equal(pageMeta.trabajo.heading, "Trabajo");
+    assert.equal(pageMeta.trabajo.heading, "Casos de clientes");
   });
 });
