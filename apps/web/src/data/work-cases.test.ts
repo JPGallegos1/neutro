@@ -124,6 +124,10 @@ describe("workCases", () => {
     );
     assert.ok(!related.some((item) => item.slug === current.slug));
     assert.equal(expected.length, six.length - 1);
+    assert.notDeepEqual(
+      related.map((item) => item.slug),
+      expected.slice(0, 4).map((item) => item.slug),
+    );
   });
 });
 
