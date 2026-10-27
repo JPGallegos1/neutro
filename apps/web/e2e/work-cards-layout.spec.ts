@@ -66,6 +66,14 @@ function isTransparentColor(color: string): boolean {
   return false;
 }
 
+function normalizeColor(color: string): string {
+  return color.replace(/\s+/g, "").toLowerCase();
+}
+
+function colorsEqual(a: string, b: string): boolean {
+  return normalizeColor(a) === normalizeColor(b);
+}
+
 async function verticalGaps(page: Page, cardScope: string): Promise<number[]> {
   return page.evaluate((scope) => {
     const root = document.querySelector(scope);
@@ -133,6 +141,12 @@ async function focusRingReport(link: Locator) {
     const style = getComputedStyle(el);
     const after = getComputedStyle(el, "::after");
     const boxShadow = after.boxShadow;
+    const probe = document.createElement("span");
+    probe.style.cssText =
+      "position:absolute;visibility:hidden;background-color:var(--neutro-bg)";
+    document.body.appendChild(probe);
+    const neutroBg = getComputedStyle(probe).backgroundColor;
+    probe.remove();
     const rect = el.getBoundingClientRect();
     const ring = {
       left: rect.left,
@@ -150,6 +164,7 @@ async function focusRingReport(link: Locator) {
       afterOutlineWidth: after.outlineWidth,
       afterOutlineColor: after.outlineColor,
       afterZIndex: after.zIndex,
+      neutroBg,
       ring,
       inViewportX:
         ring.left >= -0.5 && ring.right <= window.innerWidth + 0.5,
@@ -160,29 +175,64 @@ async function focusRingReport(link: Locator) {
   });
 }
 
+async function expandTrabajoGrid(page: Page): Promise<void> {
+  const loadMore = page.locator("[data-work-more] button, .work-index__load");
+  if (await loadMore.isVisible().catch(() => false)) {
+    await loadMore.click();
+  }
+}
+
+async function tabHastaNthCard(
+  page: Page,
+  links: Locator,
+  index: number,
+): Promise<Locator> {
+  const link = links.nth(index);
+  let llego = false;
+  for (let paso = 0; paso < MAX_TABS + index * 5; paso += 1) {
+    await page.keyboard.press("Tab");
+    llego = await link.evaluate((el) => document.activeElement === el);
+    if (llego) break;
+  }
+  expect(llego, `Tab no llegó a la work-card #${index}`).toBe(true);
+  await expect(link).toBeFocused();
+  return link;
+}
+
 function assertInsetRing(
-  report: Awaited<ReturnType<typeof focusRingReport>>,
+  report: Awaited<ReturnType<typeof focusRingReport>> & {
+    neutroBg?: string;
+  },
 ): void {
   expect(report, JSON.stringify(report)).not.toHaveProperty("error");
   const shadows = parseInsetShadows(String(report.afterBoxShadow ?? "none"));
+  const opaque = shadows.filter((s) => !isTransparentColor(s.color));
   expect(
-    shadows.length,
-    `falta box-shadow inset en ::after: ${report.afterBoxShadow}`,
-  ).toBeGreaterThan(0);
-  const maxSpread = Math.max(...shadows.map((s) => s.spreadPx));
+    opaque.length,
+    `anillo inset necesita ≥2 sombras opacas (banda fondo + color); hay ${opaque.length}: ${report.afterBoxShadow}`,
+  ).toBeGreaterThanOrEqual(2);
+  const maxSpread = Math.max(...opaque.map((s) => s.spreadPx));
   expect(
     maxSpread,
     `anillo inset demasiado fino (${maxSpread}px); mínimo ${MIN_RING_PX}px: ${report.afterBoxShadow}`,
   ).toBeGreaterThanOrEqual(MIN_RING_PX);
-  const colored = shadows.filter((s) => !isTransparentColor(s.color));
+  const distinct = new Set(opaque.map((s) => normalizeColor(s.color)));
   expect(
-    colored.length,
-    `anillo inset sin color opaco: ${report.afterBoxShadow}`,
-  ).toBeGreaterThan(0);
-  expect(
-    Math.max(...colored.map((s) => s.spreadPx)),
-    `anillo inset coloreado < ${MIN_RING_PX}px: ${report.afterBoxShadow}`,
-  ).toBeGreaterThanOrEqual(MIN_RING_PX);
+    distinct.size,
+    `anillo inset sin dos colores distintos (banda vs foco): ${report.afterBoxShadow}`,
+  ).toBeGreaterThanOrEqual(2);
+  const neutroBg = String(report.neutroBg ?? "").trim();
+  if (neutroBg) {
+    const nonBg = opaque.filter((s) => !colorsEqual(s.color, neutroBg));
+    expect(
+      nonBg.length,
+      `falta banda de color distinta de --neutro-bg (${neutroBg}): ${report.afterBoxShadow}`,
+    ).toBeGreaterThan(0);
+    expect(
+      Math.max(...nonBg.map((s) => s.spreadPx)),
+      `banda de color < ${MIN_RING_PX}px: ${report.afterBoxShadow}`,
+    ).toBeGreaterThanOrEqual(MIN_RING_PX);
+  }
 }
 
 function assertForcedColorsIndicator(
@@ -257,31 +307,47 @@ test.describe("separación vertical de work-cards en una columna", () => {
 
 test.describe("anillo de foco completo en work-card", () => {
   for (const width of DESKTOP_FOCUS) {
-    test(`anillo inset ≥${MIN_RING_PX}px y color opaco a ${width}px`, async ({
+    test(`anillo inset 2 bandas en todas las cards a ${width}px`, async ({
       page,
     }) => {
       await page.setViewportSize({ width, height: 900 });
       await page.goto("/trabajo", { waitUntil: "domcontentloaded" });
-      const link = page.locator("a.work-card__inner").first();
-      await tabHastaCard(page, link);
-      const report = await focusRingReport(link);
-      expect(report.matchesFocusVisible).toBe(true);
-      expect(report.outlineStyle).toBe("none");
-      assertInsetRing(report);
-      expect(report.afterContent).toBe('""');
-      expect(report.inViewportX).toBe(true);
-      expect(report.ring?.left ?? -1).toBeGreaterThanOrEqual(-RING_TOLERANCE);
-      expect(report.ring?.right ?? width + 10).toBeLessThanOrEqual(
-        width + RING_TOLERANCE,
-      );
-      expect(report.position, "la card enfocada necesita position relative").toBe(
-        "relative",
-      );
-      expect(
-        report.zIndex,
-        "la card enfocada necesita z-index efectivo 1",
-      ).toBe("1");
-      expect(report.afterZIndex, "::after necesita z-index 2").toBe("2");
+      await expandTrabajoGrid(page);
+      const links = page.locator(".work-index__grid a.work-card__inner");
+      const count = await links.count();
+      expect(count, "se esperaban cards en /trabajo").toBeGreaterThanOrEqual(3);
+      const indices = [
+        0,
+        Math.floor((count - 1) / 2),
+        count - 1,
+      ].filter((v, i, arr) => arr.indexOf(v) === i);
+      for (const index of indices) {
+        const link = await tabHastaNthCard(page, links, index);
+        const report = await focusRingReport(link);
+        expect(
+          report.matchesFocusVisible,
+          `card #${index} sin :focus-visible`,
+        ).toBe(true);
+        expect(report.outlineStyle).toBe("none");
+        assertInsetRing(report);
+        expect(report.afterContent).toBe('""');
+        expect(report.inViewportX).toBe(true);
+        expect(report.ring?.left ?? -1).toBeGreaterThanOrEqual(-RING_TOLERANCE);
+        expect(report.ring?.right ?? width + 10).toBeLessThanOrEqual(
+          width + RING_TOLERANCE,
+        );
+        expect(
+          report.position,
+          `card #${index}: necesita position relative`,
+        ).toBe("relative");
+        expect(
+          report.zIndex,
+          `card #${index}: necesita z-index efectivo 1`,
+        ).toBe("1");
+        expect(report.afterZIndex, `card #${index}: ::after z-index 2`).toBe(
+          "2",
+        );
+      }
     });
   }
 
