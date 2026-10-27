@@ -10,6 +10,9 @@ const distDir = fileURLToPath(new URL("../../dist/", import.meta.url));
 
 const GLUED_BEFORE_ANCHOR = /([A-Za-zÁÉÍÓÚÜáéíóúüÑñ0-9)])<a\b/g;
 const LOOSE_AT = /@(?:\s*<a\b|\s+[a-z0-9][a-z0-9.-]*\.[a-z]{2,})/gi;
+const SPACE_BEFORE_PUNCT =
+  /<\/(?:a|code|strong)>(\s+)([.,;:)])/gi;
+const SPACE_AFTER_OPEN_PAREN = /\((\s+)<(?:a|code|strong)\b/gi;
 
 function readPageHtml(relativePath: string): string {
   return readFileSync(join(distDir, relativePath), "utf8");
@@ -78,6 +81,63 @@ function assertNoLooseAt(
   assert.deepEqual(problems, [], problems.join("\n"));
 }
 
+function punctuationSpacingProblems(
+  html: string,
+  relativePath: string,
+  route: string,
+): string[] {
+  const problems: string[] = [];
+  for (const match of html.matchAll(SPACE_BEFORE_PUNCT)) {
+    const at = match.index ?? 0;
+    const snippet = html
+      .slice(Math.max(0, at - 28), Math.min(html.length, at + 40))
+      .replace(/\s+/g, " ");
+    problems.push(
+      `dist/${relativePath} ruta ${route} espacio-antes-puntuacion=${JSON.stringify(match[2])} …${snippet}…`,
+    );
+  }
+  for (const match of html.matchAll(SPACE_AFTER_OPEN_PAREN)) {
+    const at = match.index ?? 0;
+    const snippet = html
+      .slice(Math.max(0, at - 20), Math.min(html.length, at + 48))
+      .replace(/\s+/g, " ");
+    problems.push(
+      `dist/${relativePath} ruta ${route} espacio-despues-de-abrir-paren …${snippet}…`,
+    );
+  }
+  return problems;
+}
+
+function assertNoPunctuationSpacing(
+  html: string,
+  relativePath: string,
+  route: string,
+): void {
+  const problems = punctuationSpacingProblems(html, relativePath, route);
+  assert.deepEqual(problems, [], problems.join("\n"));
+}
+
+function withSpaceBeforePunctuation(html: string): string {
+  const needle = '<a href="/cookies"><strong>Política de cookies</strong></a>.';
+  const replacement =
+    '<a href="/cookies"><strong>Política de cookies</strong></a>\n.';
+  assert.ok(
+    html.includes(needle),
+    "no se encontró «Política de cookies</a>.» en privacidad para mutar",
+  );
+  return html.replace(needle, replacement);
+}
+
+function withSpaceAfterOpenParen(html: string): string {
+  const needle = "dominio (<code>neutro.solutions/ingest</code>)";
+  const replacement = "dominio (\n<code>neutro.solutions/ingest</code>)";
+  assert.ok(
+    html.includes(needle),
+    "no se encontró «dominio (<code>…» en cookies para mutar",
+  );
+  return html.replace(needle, replacement);
+}
+
 function withAtOutsideLink(html: string): string {
   const needle =
     '(siempre termina en\n<a href="https://neutro.solutions">@neutro.solutions</a>)';
@@ -130,5 +190,39 @@ describe("espacios antes de enlaces y mails en el dist", () => {
     );
     assert.match(mutated, /@\s*<a\b/);
     assertNoGluedBeforeAnchor(html, "alerta-estafa.html", "/alerta-estafa");
+  });
+
+  it("no deja espacio ni salto de línea antes de puntuación tras </a>, </code> o </strong>", () => {
+    const problems: string[] = [];
+    for (const page of readDistHtmlPages()) {
+      const html = readPageHtml(page.relativePath);
+      problems.push(
+        ...punctuationSpacingProblems(html, page.relativePath, page.route),
+      );
+    }
+    assert.deepEqual(problems, [], problems.join("\n"));
+  });
+
+  it("falla si aparece espacio o salto antes de puntuación tras un cierre inline", () => {
+    const html = readPageHtml("privacidad.html");
+    assertNoPunctuationSpacing(html, "privacidad.html", "/privacidad");
+    const mutated = withSpaceBeforePunctuation(html);
+    assert.throws(
+      () =>
+        assertNoPunctuationSpacing(mutated, "privacidad.html", "/privacidad"),
+      /espacio-antes-puntuacion/,
+    );
+    assert.match(mutated, /<\/a>\s+\./);
+  });
+
+  it("falla si aparece espacio o salto entre ( y un <a>/<code>/<strong>", () => {
+    const html = readPageHtml("cookies.html");
+    assertNoPunctuationSpacing(html, "cookies.html", "/cookies");
+    const mutated = withSpaceAfterOpenParen(html);
+    assert.throws(
+      () => assertNoPunctuationSpacing(mutated, "cookies.html", "/cookies"),
+      /espacio-despues-de-abrir-paren/,
+    );
+    assert.match(mutated, /\(\s+<code\b/);
   });
 });
