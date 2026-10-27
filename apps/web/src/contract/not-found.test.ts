@@ -57,6 +57,10 @@ function homeCtaInContent(document: HTMLElement): HTMLElement | null {
   );
 }
 
+type RecoveryVariant = "primary" | "secondary";
+
+const RECOVERY_VARIANTS = ["primary", "secondary"] as const;
+
 function pageStyles(document: HTMLElement): string {
   return document
     .querySelectorAll("style")
@@ -64,18 +68,76 @@ function pageStyles(document: HTMLElement): string {
     .join("\n");
 }
 
+function scopedBtnSelector(variant?: RecoveryVariant): string {
+  const base = variant
+    ? `\\.not-found__btn--${variant}`
+    : `\\.not-found__btn`;
+  return `${base}(?:\\[data-astro-cid-[^\\]]+\\])?`;
+}
+
+function hasActiveScale(css: string, variant?: RecoveryVariant): boolean {
+  return new RegExp(
+    `${scopedBtnSelector(variant)}:active\\{[^}]*transform:\\s*scale\\(\\.97\\)`,
+  ).test(css);
+}
+
+function hasActiveNone(css: string, variant?: RecoveryVariant): boolean {
+  return new RegExp(
+    `${scopedBtnSelector(variant)}:active\\{[^}]*transform:\\s*none`,
+  ).test(css);
+}
+
+function coversActiveScale(css: string, variant: RecoveryVariant): boolean {
+  return hasActiveScale(css) || hasActiveScale(css, variant);
+}
+
+function coversActiveNone(css: string, variant: RecoveryVariant): boolean {
+  return hasActiveNone(css) || hasActiveNone(css, variant);
+}
+
+function reducedMotionBlock(css: string): string {
+  const marker = css.search(/@media\s*\(prefers-reduced-motion:\s*reduce\)\s*\{/);
+  assert.ok(
+    marker >= 0,
+    "dist/404.html debe incluir @media (prefers-reduced-motion: reduce)",
+  );
+  const open = css.indexOf("{", marker);
+  let depth = 0;
+  for (let index = open; index < css.length; index += 1) {
+    const char = css[index];
+    if (char === "{") depth += 1;
+    else if (char === "}") {
+      depth -= 1;
+      if (depth === 0) return css.slice(open + 1, index);
+    }
+  }
+  assert.fail("el bloque prefers-reduced-motion no cierra");
+}
+
 function assertPressableButtons(document: HTMLElement): void {
+  const main = notFoundRoot(document);
+  for (const variant of RECOVERY_VARIANTS) {
+    assert.ok(
+      main.querySelector(`a.not-found__btn--${variant}`),
+      `dist/404.html debe tener el botón .not-found__btn--${variant} en main#contenido`,
+    );
+  }
+
   const css = pageStyles(document);
-  assert.match(
-    css,
-    /\.not-found__btn[^{]*:active\{[^}]*transform:\s*scale\(\.97\)/,
-    "dist/404.html debe definir .not-found__btn:active con transform: scale(0.97)",
-  );
-  assert.match(
-    css,
-    /@media\s*\(prefers-reduced-motion:\s*reduce\)\{[\s\S]*?\.not-found__btn[^{]*:active\{[^}]*transform:\s*none/,
-    "dist/404.html debe anular el scale de .not-found__btn:active con prefers-reduced-motion",
-  );
+  for (const variant of RECOVERY_VARIANTS) {
+    assert.ok(
+      coversActiveScale(css, variant),
+      `dist/404.html debe definir :active scale(0.97) para .not-found__btn--${variant}`,
+    );
+  }
+
+  const reduced = reducedMotionBlock(css);
+  for (const variant of RECOVERY_VARIANTS) {
+    assert.ok(
+      coversActiveNone(reduced, variant),
+      `dist/404.html debe anular :active de .not-found__btn--${variant} con prefers-reduced-motion`,
+    );
+  }
 }
 
 function assertNotFoundContract(document: HTMLElement): void {
@@ -212,17 +274,45 @@ function withoutLang(document: HTMLElement): HTMLElement {
   return document;
 }
 
-function withoutActiveScale(html: string): string {
-  const next = html.replace(
-    /\.not-found__btn[^{]*:active\{[^}]*transform:\s*scale\(\.97\)[^}]*\}/g,
-    "",
+function sharedActiveScaleRule(html: string): RegExpMatchArray {
+  const match = html.match(
+    /\.not-found__btn(\[data-astro-cid-[^\]]+\])?:active\{[^}]*transform:\s*scale\(\.97\)[^}]*\}/,
   );
-  assert.notEqual(
-    next,
-    html,
-    "no se encontró la regla :active scale(.97) para mutar",
+  assert.ok(match, "no se encontró la regla compartida :active scale(.97)");
+  return match;
+}
+
+function withActiveScaleOnlyOn(
+  html: string,
+  keep: RecoveryVariant,
+): string {
+  const match = sharedActiveScaleRule(html);
+  const scope = match[1] ?? "";
+  const replacement = `.not-found__btn--${keep}${scope}:active{transform:scale(.97)}`;
+  return html.replace(match[0], replacement);
+}
+
+function withoutReducedMotionBlock(html: string): string {
+  const marker = html.search(
+    /@media\s*\(prefers-reduced-motion:\s*reduce\)\s*\{/,
   );
-  return next;
+  assert.ok(marker >= 0, "no se encontró prefers-reduced-motion para mutar");
+  const open = html.indexOf("{", marker);
+  let depth = 0;
+  let end = -1;
+  for (let index = open; index < html.length; index += 1) {
+    const char = html[index];
+    if (char === "{") depth += 1;
+    else if (char === "}") {
+      depth -= 1;
+      if (depth === 0) {
+        end = index + 1;
+        break;
+      }
+    }
+  }
+  assert.ok(end > marker, "no se pudo cerrar el bloque reduced-motion");
+  return `${html.slice(0, marker)}${html.slice(end)}`;
 }
 
 describe("contrato 404 del dist", () => {
@@ -264,11 +354,33 @@ describe("contrato 404 del dist", () => {
     assertNotFoundContract(page404());
   });
 
-  it("falla si se quita el scale(0.97) de :active en los botones", () => {
-    const mutated = parse(withoutActiveScale(page404().toString()));
+  it("falla si :active scale(0.97) queda solo en primary", () => {
+    const mutated = parse(
+      withActiveScaleOnlyOn(page404().toString(), "primary"),
+    );
     assert.throws(
       () => assertNotFoundContract(mutated),
-      /scale\(0\.97\)/,
+      /not-found__btn--secondary/,
+    );
+    assertNotFoundContract(page404());
+  });
+
+  it("falla si :active scale(0.97) queda solo en secondary", () => {
+    const mutated = parse(
+      withActiveScaleOnlyOn(page404().toString(), "secondary"),
+    );
+    assert.throws(
+      () => assertNotFoundContract(mutated),
+      /not-found__btn--primary/,
+    );
+    assertNotFoundContract(page404());
+  });
+
+  it("falla si se quita prefers-reduced-motion de los botones", () => {
+    const mutated = parse(withoutReducedMotionBlock(page404().toString()));
+    assert.throws(
+      () => assertNotFoundContract(mutated),
+      /prefers-reduced-motion/,
     );
     assertNotFoundContract(page404());
   });
