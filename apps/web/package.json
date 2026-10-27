@@ -12,7 +12,7 @@
     "deploy": "wrangler deploy",
     "deploy:check": "wrangler deploy --dry-run",
     "test": "node --experimental-strip-types --test worker/posthog.test.ts worker/seo.test.ts worker/asset-cache.test.ts src/components/sections/video-section.test.ts src/data/services.test.ts src/data/work.test.ts src/data/work-cases.test.ts e2e/rutas-publicas.unit.ts",
-    "test:contract": "astro build && node --experimental-strip-types --test src/contract/trabajo-index.test.ts src/contract/seo.test.ts src/contract/links.test.ts src/contract/home-cards.test.ts src/contract/image-priority.test.ts src/contract/cookies-robots.test.ts src/contract/og-social.test.ts src/contract/site-brand.test.ts src/contract/jsonld.test.ts src/contract/mas-trabajo.test.ts src/contract/not-found.test.ts src/contract/headers.test.ts",
+    "test:contract": "astro build && node --experimental-strip-types --test src/contract/trabajo-index.test.ts src/contract/seo.test.ts src/contract/links.test.ts src/contract/home-cards.test.ts src/contract/image-priority.test.ts src/contract/cookies-robots.test.ts src/contract/og-social.test.ts src/contract/site-brand.test.ts src/contract/jsonld.test.ts src/contract/mas-trabajo.test.ts src/contract/not-found.test.ts src/contract/headers.test.ts src/contract/link-spacing.test.ts",
     "test:e2e": "playwright test"
   },
   "dependencies": {
