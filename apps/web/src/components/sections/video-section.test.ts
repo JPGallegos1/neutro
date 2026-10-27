@@ -61,9 +61,27 @@ describe("video section contract", () => {
     assert.match(scriptSource, /removeAttribute\(\s*["']autoplay["']\s*\)/);
     assert.match(scriptSource, /removeAttribute\(\s*["']src["']\s*\)/);
   });
+
+  it("keeps preload none on the video element markup", () => {
+    const videoTag = source.match(/<video[\s\S]*?>/)?.[0] ?? "";
+    assert.match(videoTag, /\spreload="none"(?:\s|>)/);
+    assert.doesNotMatch(videoTag, /\spreload="auto"(?:\s|>)/);
+  });
+
+  it("puts media URLs only in data-src on source markup", () => {
+    const tags = [...source.matchAll(/<source\b[^>]*>/g)].map((match) => match[0]);
+    assert.ok(tags.length >= 1, "expected at least one source tag");
+    for (const tag of tags) {
+      assert.match(tag, /\bdata-src=/);
+      const withoutDataSrc = tag.replaceAll(/\bdata-src=/g, "");
+      assert.doesNotMatch(withoutDataSrc, /\bsrc=/);
+    }
+  });
 });
 
 type Listener = () => void;
+
+const videoRequests: string[] = [];
 
 function dataKey(attribute: string): string {
   return attribute
@@ -112,8 +130,14 @@ class El {
 
   set src(value: string) {
     this.#src = value;
-    if (value) this.attrs.set("src", value);
-    else this.attrs.delete("src");
+    if (value) {
+      this.attrs.set("src", value);
+      if (this.tag === "source" || this.tag === "video") {
+        videoRequests.push(value);
+      }
+    } else {
+      this.attrs.delete("src");
+    }
   }
 
   setAttribute(name: string, value: string) {
@@ -216,6 +240,7 @@ function buildTree() {
     muted: "",
     loop: "",
     playsinline: "",
+    preload: "none",
     poster: "/video/neutro-poster.jpg",
   });
   const mp4 = new El("source", { "data-src": "/video/neutro.mp4" });
@@ -321,6 +346,15 @@ function assertSourcesIdle(ui: VideoUi) {
   assert.equal(ui.mp4.src, "");
   assert.equal(ui.webm.src, "");
   assert.equal(ui.video.paused, true);
+  assert.equal(videoRequests.length, 0);
+}
+
+function assertPreloadDeferred(ui: VideoUi) {
+  const preload = ui.video.getAttribute("preload");
+  assert.ok(
+    preload === null || preload === "none",
+    `preload before load must be none or absent, got ${String(preload)}`,
+  );
 }
 
 async function boot(options?: {
@@ -335,6 +369,7 @@ async function boot(options?: {
   reducedMotion = options?.reduced ?? false;
   doc.readyState = options?.readyState ?? "complete";
   win.listeners.clear();
+  videoRequests.length = 0;
   if (options?.saveData === null) {
     nav.connection = undefined;
   } else if (options?.saveData === undefined) {
@@ -414,6 +449,7 @@ describe("video section playback", () => {
         readyState: "loading",
         fireLoad: false,
       });
+      assertPreloadDeferred(ui);
       assertSourcesIdle(ui);
       assert.equal(ui.video.getAttribute("autoplay"), "");
       doc.readyState = "complete";
@@ -424,6 +460,25 @@ describe("video section playback", () => {
       assert.equal(ui.mp4.src, "/video/neutro.mp4");
       assert.equal(ui.webm.src, "/video/neutro.webm");
       assert.equal(ui.video.loadCalls, 1);
+      assert.deepEqual(videoRequests, [
+        "/video/neutro.mp4",
+        "/video/neutro.webm",
+      ]);
+    }));
+
+  it("keeps preload none and issues no video request before window load", () =>
+    exclusive(async () => {
+      const ui = await boot({
+        readyState: "loading",
+        fireLoad: false,
+      });
+      assertPreloadDeferred(ui);
+      assert.equal(ui.video.getAttribute("preload"), "none");
+      assertSourcesIdle(ui);
+      assert.equal(ui.mp4.getAttribute("src"), null);
+      assert.equal(ui.webm.getAttribute("src"), null);
+      assert.equal(ui.mp4.getAttribute("data-src"), "/video/neutro.mp4");
+      assert.equal(ui.webm.getAttribute("data-src"), "/video/neutro.webm");
     }));
 
   it("shows the poster and does not download video when Save-Data is on", () =>
