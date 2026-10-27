@@ -523,7 +523,7 @@ describe("contrato JSON-LD (SEO-15)", () => {
     assert.deepEqual(problems, [], problems.join("\n"));
   });
 
-  it("limita el title de cada ficha a 60, lo iguala en og:title y, si existe, en twitter:title", () => {
+  it("limita el title de cada ficha a 60 y lo iguala en og:title y en twitter:title", () => {
     const problems: string[] = [];
     const cases = casePages(loadPages());
     if (cases.length === 0) {
@@ -564,7 +564,12 @@ describe("contrato JSON-LD (SEO-15)", () => {
           `${label} title=${JSON.stringify(title ?? null)} og:title=${JSON.stringify(ogTitle ?? null)}; tienen que ser el mismo texto`,
         );
       }
-      if (twitter.length === 0) continue;
+      if (twitter.length === 0) {
+        problems.push(
+          `${label} no tiene twitter:title; se exige igual a <title> ${JSON.stringify(title ?? null)}`,
+        );
+        continue;
+      }
       const twitterTitle = singleValue(
         twitter,
         `${label} twitter:title`,

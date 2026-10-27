@@ -488,6 +488,9 @@ function caseTitleSocialProblems(
     );
   }
   if (twitterTitles.length === 0) {
+    problems.push(
+      `${route} no tiene twitter:title; se exige igual a <title> ${documentTitle}`,
+    );
     return problems;
   }
   if (twitterTitles.length !== 1 || twitterTitles[0] !== documentTitle) {
@@ -543,6 +546,25 @@ describe("contrato SEO-04 y SEO-05 de fichas", () => {
         [mutatedTitle],
       ).length > 0,
     );
+    assert.ok(
+      caseTitleSocialProblems(
+        "/trabajo/conexion-laboral",
+        title,
+        [title],
+        [title],
+        [],
+      ).some((problem) => problem.includes("no tiene twitter:title")),
+    );
+    assert.deepEqual(
+      caseTitleSocialProblems(
+        "/trabajo/conexion-laboral",
+        title,
+        [title],
+        [title],
+        [title],
+      ),
+      [],
+    );
 
     const official = JAKE_OFFICIAL_NAMES.afectiva;
     const mutatedName = official.replace("Comunicaciones", "Comunicacion");
@@ -557,7 +579,7 @@ describe("contrato SEO-04 y SEO-05 de fichas", () => {
     );
   });
 
-  it("fija title exacto ≤ 60, og:title igual, twitter:title igual si existe, y headline sin marca", () => {
+  it("fija title exacto ≤ 60, og:title y twitter:title iguales, y headline sin marca", () => {
     const problems: string[] = [];
     for (const workCase of workCases) {
       const slug = workCase.slug as JakeCaseSlug;
