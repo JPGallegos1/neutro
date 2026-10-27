@@ -20,6 +20,7 @@ type TableMetric = {
     cellW: number;
     localFits: boolean;
     domainFits: boolean;
+    hasWbrAfterAt: boolean;
   }[];
 };
 
@@ -104,6 +105,7 @@ async function tableMetrics(
             cellW: number;
             localFits: boolean;
             domainFits: boolean;
+            hasWbrAfterAt: boolean;
           }[],
         };
       }
@@ -143,6 +145,8 @@ async function tableMetrics(
         const cellW = cell.getBoundingClientRect().width - pad;
         const localW = measureTextWidth(local, a);
         const domainW = measureTextWidth(domain, a);
+        const html = a.innerHTML.replace(/\s+/g, "");
+        const hasWbrAfterAt = /@<wbr\s*\/?>/i.test(html);
         return {
           text,
           href,
@@ -153,6 +157,7 @@ async function tableMetrics(
           cellW: Math.round(cellW),
           localFits: localW <= cellW + 0.5,
           domainFits: domainW <= cellW + 0.5,
+          hasWbrAfterAt,
         };
       });
       return {
@@ -338,6 +343,12 @@ test.describe("tablas legales sin desborde en móvil", () => {
         expect(mail.href.startsWith("mailto:")).toBe(true);
         expect(mail.href.slice("mailto:".length)).toBe(mail.text);
         expect(mail.text.includes("\u200B")).toBe(false);
+        expect(
+          mail.hasWbrAfterAt,
+          `${mail.text}: falta <wbr> justo después de @`,
+        ).toBe(true);
+        expect(mail.text.includes("@")).toBe(true);
+        expect(mail.href).toBe(`mailto:${mail.text}`);
         if (width >= 360) {
           expect(
             mail.localFits,
