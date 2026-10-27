@@ -97,7 +97,7 @@ describe("pageMeta.trabajo", () => {
     assert.equal(pageMeta.trabajo.path, "/trabajo");
     assert.equal(
       pageMeta.trabajo.title,
-      "Casos y proyectos | Neutro Solutions",
+      "Casos de clientes: webs y sistemas | Neutro Solutions",
     );
     assert.equal(
       pageMeta.trabajo.canonical,
@@ -106,6 +106,6 @@ describe("pageMeta.trabajo", () => {
     assert.ok(!pageMeta.trabajo.canonical.includes("?"));
     assert.ok(!pageMeta.trabajo.canonical.includes("page="));
     assert.ok(pageMeta.trabajo.description.length > 80);
-    assert.equal(pageMeta.trabajo.heading, "Trabajo");
+    assert.equal(pageMeta.trabajo.heading, "Casos de clientes");
   });
 });

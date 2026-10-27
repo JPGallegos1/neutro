@@ -7,6 +7,11 @@ import { readDistPage } from "./dist.ts";
 
 const SITE = "https://neutro.solutions";
 const INDEX_CANONICAL = "https://neutro.solutions/trabajo";
+const TRABAJO_TITLE =
+  "Casos de clientes: webs y sistemas | Neutro Solutions";
+const TRABAJO_DESCRIPTION =
+  "Casos reales de Neutro Solutions: webs, tiendas online, catálogos y plataformas a medida. Mirá qué necesitaba cada cliente y qué resolvimos con cada uno.";
+const TRABAJO_H1 = "Casos de clientes";
 const PUBLISHED_CASE_PATHS = [
   "/trabajo/conexion-laboral",
   "/trabajo/afectiva",
@@ -275,7 +280,7 @@ describe("dist/trabajo.html", () => {
     );
   });
 
-  it("tiene un solo h1 con texto Trabajo y mayúsculas por CSS", () => {
+  it("tiene un solo h1 con texto Casos de clientes y mayúsculas por CSS", () => {
     const root = readDistPage("trabajo.html");
     const headings = root.querySelectorAll("h1");
     assert.equal(
@@ -288,18 +293,18 @@ describe("dist/trabajo.html", () => {
     const h1Text = h1.text.trim();
     assert.equal(
       h1Text,
-      "Trabajo",
-      `el h1 de dist/trabajo.html es «${h1Text}»; se exige «Trabajo»`,
+      TRABAJO_H1,
+      `el h1 de dist/trabajo.html es «${h1Text}»; se exige «${TRABAJO_H1}»`,
     );
-    assert.equal(
+    assert.notEqual(
       h1Text,
-      pageMeta.trabajo.heading,
-      `el h1 («${h1Text}») no coincide con pageMeta.trabajo.heading («${pageMeta.trabajo.heading}»)`,
+      "CASOS DE CLIENTES",
+      "el h1 no puede ir en mayúsculas en el HTML; la apariencia va por CSS",
     );
     assert.notEqual(
       h1Text,
       "TRABAJO",
-      "el h1 no puede ir en mayúsculas en el HTML; la apariencia va por CSS",
+      "el h1 ya no es TRABAJO en el HTML; el menú sigue diciendo Trabajo",
     );
     const className = h1.getAttribute("class") ?? "";
     assert.ok(
@@ -321,4 +326,101 @@ describe("dist/trabajo.html", () => {
       "ningún <style> de dist/trabajo.html define .work-index__title con text-transform en mayúsculas",
     );
   });
+
+  it("fija title, description, og/twitter y JSON-LD de /trabajo", () => {
+    assert.equal(TRABAJO_TITLE.length, 53);
+    assert.equal(TRABAJO_DESCRIPTION.length, 153);
+    assert.ok(
+      TRABAJO_DESCRIPTION.includes("Mirá"),
+      "la description de Jake debe incluir «Mirá» con acento",
+    );
+
+    const root = readDistPage("trabajo.html");
+    const titles = root.querySelectorAll("title").map((node) => node.text.trim());
+    assert.deepEqual(titles, [TRABAJO_TITLE]);
+
+    const descriptions = root.querySelectorAll("meta").flatMap((meta) => {
+      if ((meta.getAttribute("name") ?? "").toLowerCase() !== "description") {
+        return [];
+      }
+      return [meta.getAttribute("content")?.trim() ?? ""];
+    });
+    assert.deepEqual(descriptions, [TRABAJO_DESCRIPTION]);
+
+    const ogTitles = metaPropertyContents(root, "og:title");
+    const ogDescriptions = metaPropertyContents(root, "og:description");
+    const twitterTitles = metaNameContents(root, "twitter:title");
+    const twitterDescriptions = metaNameContents(root, "twitter:description");
+    assert.deepEqual(ogTitles, [TRABAJO_TITLE]);
+    assert.deepEqual(ogDescriptions, [TRABAJO_DESCRIPTION]);
+    assert.deepEqual(twitterTitles, [TRABAJO_TITLE]);
+    assert.deepEqual(twitterDescriptions, [TRABAJO_DESCRIPTION]);
+
+    const graphs = jsonLdGraphs(root);
+    const collection = graphs.find(
+      (node) => isRecord(node) && node["@type"] === "CollectionPage",
+    );
+    assert.ok(isRecord(collection), "falta CollectionPage en /trabajo");
+    assert.equal(
+      collection.name,
+      TRABAJO_H1,
+      `CollectionPage.name=${JSON.stringify(collection.name)}; se exige ${TRABAJO_H1}`,
+    );
+    assert.equal(collection.description, TRABAJO_DESCRIPTION);
+
+    const breadcrumb = graphs.find(
+      (node) => isRecord(node) && node["@type"] === "BreadcrumbList",
+    );
+    assert.ok(isRecord(breadcrumb), "falta BreadcrumbList en /trabajo");
+    assert.ok(Array.isArray(breadcrumb.itemListElement));
+    const crumbNames = breadcrumb.itemListElement.map((item) => {
+      assert.ok(isRecord(item));
+      return String(item.name ?? "");
+    });
+    assert.deepEqual(crumbNames, ["Inicio", "Trabajo"]);
+  });
 });
+
+function metaPropertyContents(document: HTMLElement, property: string): string[] {
+  const needle = property.toLowerCase();
+  return document.querySelectorAll("meta").flatMap((meta) => {
+    if ((meta.getAttribute("property") ?? "").toLowerCase() !== needle) {
+      return [];
+    }
+    return [meta.getAttribute("content")?.trim() ?? ""];
+  });
+}
+
+function metaNameContents(document: HTMLElement, name: string): string[] {
+  const needle = name.toLowerCase();
+  return document.querySelectorAll("meta").flatMap((meta) => {
+    if ((meta.getAttribute("name") ?? "").toLowerCase() !== needle) {
+      return [];
+    }
+    return [meta.getAttribute("content")?.trim() ?? ""];
+  });
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null;
+}
+
+function jsonLdGraphs(document: HTMLElement): unknown[] {
+  return document
+    .querySelectorAll('script[type="application/ld+json"]')
+    .flatMap((script) => {
+      try {
+        const parsed: unknown = JSON.parse(script.text);
+        if (
+          isRecord(parsed) &&
+          "@graph" in parsed &&
+          Array.isArray(parsed["@graph"])
+        ) {
+          return parsed["@graph"];
+        }
+        return [parsed];
+      } catch {
+        return [];
+      }
+    });
+}
