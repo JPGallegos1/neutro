@@ -161,3 +161,4 @@ Official names, confirmed by Juan, including Capa Automotores (slugs stay immuta
 - Design follows v34 (Iris / Juan): **En producción** ships; card/case chrome avoids 1px borders except `.work-index__more` `border-top` on `/trabajo`.
 - At **12** published cases, reopen `/trabajo` pagination and evaluate a CMS (code order + call performance).
 - Proposed (SEO-15, pending Juan’s OK): `apps/web/src/contract/jsonld.test.ts` protects the JSON-LD contract in the amendment above.
+- `apps/web/src/contract/mas-trabajo.test.ts` protects **Más trabajo**: every other published case, in `work.ts` order. The count is that list minus the current case.
