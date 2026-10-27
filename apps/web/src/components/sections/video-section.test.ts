@@ -34,6 +34,14 @@ describe("video section contract", () => {
     assert.doesNotMatch(source, /from "@lucide\/astro"/);
   });
 
+  it("lists mp4 before webm among video sources", () => {
+    const mp4 = source.indexOf('"/video/neutro.mp4"');
+    const webm = source.indexOf('"/video/neutro.webm"');
+    assert.ok(mp4 >= 0, "expected mp4 source path");
+    assert.ok(webm >= 0, "expected webm source path");
+    assert.ok(mp4 < webm, "mp4 must come before webm");
+  });
+
   it("drops playback and sound controls from markup, css, and script", () => {
     assert.doesNotMatch(
       source,
@@ -53,9 +61,27 @@ describe("video section contract", () => {
     assert.match(scriptSource, /removeAttribute\(\s*["']autoplay["']\s*\)/);
     assert.match(scriptSource, /removeAttribute\(\s*["']src["']\s*\)/);
   });
+
+  it("keeps preload none on the video element markup", () => {
+    const videoTag = source.match(/<video[\s\S]*?>/)?.[0] ?? "";
+    assert.match(videoTag, /\spreload="none"(?:\s|>)/);
+    assert.doesNotMatch(videoTag, /\spreload="auto"(?:\s|>)/);
+  });
+
+  it("puts media URLs only in data-src on source markup", () => {
+    const tags = [...source.matchAll(/<source\b[^>]*>/g)].map((match) => match[0]);
+    assert.ok(tags.length >= 1, "expected at least one source tag");
+    for (const tag of tags) {
+      assert.match(tag, /\bdata-src=/);
+      const withoutDataSrc = tag.replaceAll(/\bdata-src=/g, "");
+      assert.doesNotMatch(withoutDataSrc, /\bsrc=/);
+    }
+  });
 });
 
 type Listener = () => void;
+
+const videoRequests: string[] = [];
 
 function dataKey(attribute: string): string {
   return attribute
@@ -104,8 +130,14 @@ class El {
 
   set src(value: string) {
     this.#src = value;
-    if (value) this.attrs.set("src", value);
-    else this.attrs.delete("src");
+    if (value) {
+      this.attrs.set("src", value);
+      if (this.tag === "source" || this.tag === "video") {
+        videoRequests.push(value);
+      }
+    } else {
+      this.attrs.delete("src");
+    }
   }
 
   setAttribute(name: string, value: string) {
@@ -208,12 +240,13 @@ function buildTree() {
     muted: "",
     loop: "",
     playsinline: "",
+    preload: "none",
     poster: "/video/neutro-poster.jpg",
   });
-  const webm = new El("source", { "data-src": "/video/neutro.webm" });
   const mp4 = new El("source", { "data-src": "/video/neutro.mp4" });
-  video.append(webm);
+  const webm = new El("source", { "data-src": "/video/neutro.webm" });
   video.append(mp4);
+  video.append(webm);
   frame.append(video);
   section.append(frame);
   return { section, frame, video, webm, mp4 };
@@ -224,6 +257,7 @@ type VideoUi = ReturnType<typeof buildTree>;
 const doc = {
   tree: new El("body"),
   listeners: new Map<string, Listener[]>(),
+  readyState: "complete",
   querySelector(selector: string) {
     return queryAll(this.tree, selector)[0] ?? null;
   },
@@ -239,7 +273,10 @@ const doc = {
 
 let reducedMotion = false;
 
+type WinListener = Listener & { once?: boolean };
+
 const win = {
+  listeners: new Map<string, WinListener[]>(),
   matchMedia(query: string) {
     return {
       matches:
@@ -247,11 +284,38 @@ const win = {
       media: query,
     };
   },
+  addEventListener(
+    type: string,
+    fn: Listener,
+    options?: boolean | { once?: boolean },
+  ) {
+    const list = this.listeners.get(type) ?? [];
+    const wrapped: WinListener = () => fn();
+    wrapped.once =
+      typeof options === "object" && options !== null
+        ? options.once === true
+        : false;
+    list.push(wrapped);
+    this.listeners.set(type, list);
+  },
+  emit(type: string) {
+    const list = this.listeners.get(type) ?? [];
+    this.listeners.set(
+      type,
+      list.filter((fn) => !fn.once),
+    );
+    for (const fn of list) fn();
+  },
+};
+
+const nav = {
+  connection: undefined as { saveData?: boolean } | undefined,
 };
 
 const context = vm.createContext({
   document: doc,
   window: win,
+  navigator: nav,
   IntersectionObserver: FakeObserver,
   console,
 });
@@ -276,12 +340,43 @@ function takeObserver(): FakeObserver {
   return observer;
 }
 
+function assertSourcesIdle(ui: VideoUi) {
+  assert.equal(ui.video.playCalls, 0);
+  assert.equal(ui.video.loadCalls, 0);
+  assert.equal(ui.mp4.src, "");
+  assert.equal(ui.webm.src, "");
+  assert.equal(ui.video.paused, true);
+  assert.equal(videoRequests.length, 0);
+}
+
+function assertPreloadDeferred(ui: VideoUi) {
+  const preload = ui.video.getAttribute("preload");
+  assert.ok(
+    preload === null || preload === "none",
+    `preload before load must be none or absent, got ${String(preload)}`,
+  );
+}
+
 async function boot(options?: {
   reduced?: boolean;
   rejectPlay?: boolean;
   throwPlay?: boolean;
+  saveData?: boolean | null;
+  readyState?: "loading" | "interactive" | "complete";
+  intersect?: boolean;
+  fireLoad?: boolean;
 }): Promise<VideoUi> {
   reducedMotion = options?.reduced ?? false;
+  doc.readyState = options?.readyState ?? "complete";
+  win.listeners.clear();
+  videoRequests.length = 0;
+  if (options?.saveData === null) {
+    nav.connection = undefined;
+  } else if (options?.saveData === undefined) {
+    nav.connection = undefined;
+  } else {
+    nav.connection = { saveData: options.saveData };
+  }
   const ui = buildTree();
   ui.video.rejectPlay = options?.rejectPlay ?? false;
   ui.video.throwPlay = options?.throwPlay ?? false;
@@ -295,7 +390,12 @@ async function boot(options?: {
   }
   const observer = takeObserver();
   assert.equal(ui.frame.dataset.ready, "true");
+  if (options?.intersect === false) return ui;
   observer.callback([{ isIntersecting: true }]);
+  if (options?.fireLoad) {
+    doc.readyState = "complete";
+    win.emit("load");
+  }
   await settle();
   return ui;
 }
@@ -315,23 +415,87 @@ function assertPoster(ui: VideoUi) {
   assert.equal(ui.webm.src, "");
   assert.equal(ui.mp4.src, "");
   assert.equal(ui.webm.getAttribute("data-src"), "/video/neutro.webm");
+  assert.equal(ui.mp4.getAttribute("data-src"), "/video/neutro.mp4");
   assert.equal(ui.video.getAttribute("poster"), "/video/neutro-poster.jpg");
   assert.equal(ui.video.getAttribute("autoplay"), null);
   assert.equal(ui.video.autoplay, false);
 }
 
 describe("video section playback", () => {
-  it("autoplays muted once the frame is visible", () =>
+  it("autoplays muted once the frame is visible after load", () =>
     exclusive(async () => {
       const ui = await boot();
       assert.equal(ui.video.paused, false);
       assert.equal(ui.video.muted, true);
       assert.equal(ui.video.defaultMuted, true);
       assert.ok(ui.video.playCalls >= 1);
-      assert.equal(ui.webm.src, "/video/neutro.webm");
       assert.equal(ui.mp4.src, "/video/neutro.mp4");
+      assert.equal(ui.webm.src, "/video/neutro.webm");
       assert.equal(ui.video.getAttribute("autoplay"), "");
       assert.equal(ui.video.loadCalls, 1);
+      assert.equal(
+        ui.video.children.findIndex((child) => child === ui.mp4),
+        0,
+      );
+      assert.equal(
+        ui.video.children.findIndex((child) => child === ui.webm),
+        1,
+      );
+    }));
+
+  it("does not attach sources when the frame intersects before load", () =>
+    exclusive(async () => {
+      const ui = await boot({
+        readyState: "loading",
+        fireLoad: false,
+      });
+      assertPreloadDeferred(ui);
+      assertSourcesIdle(ui);
+      assert.equal(ui.video.getAttribute("autoplay"), "");
+      doc.readyState = "complete";
+      win.emit("load");
+      await settle();
+      assert.equal(ui.video.paused, false);
+      assert.ok(ui.video.playCalls >= 1);
+      assert.equal(ui.mp4.src, "/video/neutro.mp4");
+      assert.equal(ui.webm.src, "/video/neutro.webm");
+      assert.equal(ui.video.loadCalls, 1);
+      assert.deepEqual(videoRequests, [
+        "/video/neutro.mp4",
+        "/video/neutro.webm",
+      ]);
+    }));
+
+  it("keeps preload none and issues no video request before window load", () =>
+    exclusive(async () => {
+      const ui = await boot({
+        readyState: "loading",
+        fireLoad: false,
+      });
+      assertPreloadDeferred(ui);
+      assert.equal(ui.video.getAttribute("preload"), "none");
+      assertSourcesIdle(ui);
+      assert.equal(ui.mp4.getAttribute("src"), null);
+      assert.equal(ui.webm.getAttribute("src"), null);
+      assert.equal(ui.mp4.getAttribute("data-src"), "/video/neutro.mp4");
+      assert.equal(ui.webm.getAttribute("data-src"), "/video/neutro.webm");
+    }));
+
+  it("shows the poster and does not download video when Save-Data is on", () =>
+    exclusive(async () => {
+      const ui = await boot({ saveData: true });
+      assert.equal(ui.video.playCalls, 0);
+      assert.equal(ui.video.loadCalls, 0);
+      assertPoster(ui);
+    }));
+
+  it("still autoplays when the connection API is missing", () =>
+    exclusive(async () => {
+      const ui = await boot({ saveData: null });
+      assert.equal(ui.video.paused, false);
+      assert.ok(ui.video.playCalls >= 1);
+      assert.equal(ui.mp4.src, "/video/neutro.mp4");
+      assert.equal(ui.webm.src, "/video/neutro.webm");
     }));
 
   it("does not toggle playback when the video is clicked", () =>
