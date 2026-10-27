@@ -137,6 +137,13 @@ async function servirTrabajoConNueveCards(page: Page): Promise<void> {
   });
 }
 
+async function liveRegion(main: Locator): Promise<Locator> {
+  const live = main.locator("[data-work-live]");
+  await expect(live).toHaveCount(1);
+  await expect(live).toHaveAttribute("aria-live", "polite");
+  return live;
+}
+
 async function assertFocoEnCardNueva(
   page: Page,
   main: Locator,
@@ -212,7 +219,7 @@ test.describe("Cargar más en /trabajo", () => {
       includeHidden: true,
     });
     const more = main.locator("[data-work-more]");
-    const live = main.locator("[data-work-live]");
+    const live = await liveRegion(main);
 
     await expect(cards).toHaveCount(CARDS_PUBLICADAS);
     await expect(cargarMas).toBeVisible();
@@ -259,7 +266,7 @@ test.describe("Cargar más en /trabajo", () => {
       includeHidden: true,
     });
     const more = main.locator("[data-work-more]");
-    const live = main.locator("[data-work-live]");
+    const live = await liveRegion(main);
 
     await expect(cargarMas).toBeVisible();
     expect(await cardsVisibles(main)).toBe(PAGE_SIZE);
@@ -289,7 +296,7 @@ test.describe("Cargar más en /trabajo", () => {
       includeHidden: true,
     });
     const more = main.locator("[data-work-more]");
-    const live = main.locator("[data-work-live]");
+    const live = await liveRegion(main);
 
     await expect(cards).toHaveCount(CARDS_NUEVE);
     await expect(cargarMas).toBeVisible();
