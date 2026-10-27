@@ -189,4 +189,15 @@ describe("contrato OG/Twitter (SEO-08)", () => {
       problems.join("\n"),
     );
   });
+
+  it("falla si og:site_name es Neutro a secas", () => {
+    const document = parse(
+      validHeadHtml().replace(`content="${SITE_NAME}"`, `content="Neutro"`),
+    );
+    const problems = ogSocialProblems(document, "mutación og:site_name Neutro");
+    assert.ok(
+      problems.some((problem) => problem.includes("og:site_name")),
+      problems.join("\n"),
+    );
+  });
 });

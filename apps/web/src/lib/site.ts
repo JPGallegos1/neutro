@@ -4,7 +4,7 @@ import { Effect } from "effect";
 
 export const site = Effect.runSync(
   decodeSiteMetadata({
-    name: "Neutro",
+    name: "Neutro Solutions",
     title: pageMeta.home.title,
     description: pageMeta.home.description,
     language: "es",
