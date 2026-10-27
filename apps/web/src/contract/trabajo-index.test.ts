@@ -7,6 +7,11 @@ import { readDistPage } from "./dist.ts";
 
 const SITE = "https://neutro.solutions";
 const INDEX_CANONICAL = "https://neutro.solutions/trabajo";
+const TRABAJO_TITLE =
+  "Casos de clientes: webs y sistemas | Neutro Solutions";
+const TRABAJO_DESCRIPTION =
+  "Casos reales de Neutro Solutions: webs, tiendas online, catálogos y plataformas a medida. Mirá qué necesitaba cada cliente y qué resolvimos con cada uno.";
+const TRABAJO_H1 = "Casos de clientes";
 const PUBLISHED_CASE_PATHS = [
   "/trabajo/conexion-laboral",
   "/trabajo/afectiva",
@@ -288,13 +293,8 @@ describe("dist/trabajo.html", () => {
     const h1Text = h1.text.trim();
     assert.equal(
       h1Text,
-      "Casos de clientes",
-      `el h1 de dist/trabajo.html es «${h1Text}»; se exige «Casos de clientes»`,
-    );
-    assert.equal(
-      h1Text,
-      pageMeta.trabajo.heading,
-      `el h1 («${h1Text}») no coincide con pageMeta.trabajo.heading («${pageMeta.trabajo.heading}»)`,
+      TRABAJO_H1,
+      `el h1 de dist/trabajo.html es «${h1Text}»; se exige «${TRABAJO_H1}»`,
     );
     assert.notEqual(
       h1Text,
@@ -328,14 +328,16 @@ describe("dist/trabajo.html", () => {
   });
 
   it("fija title, description, og/twitter y JSON-LD de /trabajo", () => {
-    const root = readDistPage("trabajo.html");
-    const expectedTitle = pageMeta.trabajo.title;
-    const expectedDescription = pageMeta.trabajo.description;
-    assert.equal(expectedTitle.length, 53);
-    assert.equal(expectedDescription.length, 153);
+    assert.equal(TRABAJO_TITLE.length, 53);
+    assert.equal(TRABAJO_DESCRIPTION.length, 153);
+    assert.ok(
+      TRABAJO_DESCRIPTION.includes("Mirá"),
+      "la description de Jake debe incluir «Mirá» con acento",
+    );
 
+    const root = readDistPage("trabajo.html");
     const titles = root.querySelectorAll("title").map((node) => node.text.trim());
-    assert.deepEqual(titles, [expectedTitle]);
+    assert.deepEqual(titles, [TRABAJO_TITLE]);
 
     const descriptions = root.querySelectorAll("meta").flatMap((meta) => {
       if ((meta.getAttribute("name") ?? "").toLowerCase() !== "description") {
@@ -343,16 +345,16 @@ describe("dist/trabajo.html", () => {
       }
       return [meta.getAttribute("content")?.trim() ?? ""];
     });
-    assert.deepEqual(descriptions, [expectedDescription]);
+    assert.deepEqual(descriptions, [TRABAJO_DESCRIPTION]);
 
     const ogTitles = metaPropertyContents(root, "og:title");
     const ogDescriptions = metaPropertyContents(root, "og:description");
     const twitterTitles = metaNameContents(root, "twitter:title");
     const twitterDescriptions = metaNameContents(root, "twitter:description");
-    assert.deepEqual(ogTitles, [expectedTitle]);
-    assert.deepEqual(ogDescriptions, [expectedDescription]);
-    assert.deepEqual(twitterTitles, [expectedTitle]);
-    assert.deepEqual(twitterDescriptions, [expectedDescription]);
+    assert.deepEqual(ogTitles, [TRABAJO_TITLE]);
+    assert.deepEqual(ogDescriptions, [TRABAJO_DESCRIPTION]);
+    assert.deepEqual(twitterTitles, [TRABAJO_TITLE]);
+    assert.deepEqual(twitterDescriptions, [TRABAJO_DESCRIPTION]);
 
     const graphs = jsonLdGraphs(root);
     const collection = graphs.find(
@@ -361,10 +363,10 @@ describe("dist/trabajo.html", () => {
     assert.ok(isRecord(collection), "falta CollectionPage en /trabajo");
     assert.equal(
       collection.name,
-      "Casos de clientes",
-      `CollectionPage.name=${JSON.stringify(collection.name)}; se exige Casos de clientes`,
+      TRABAJO_H1,
+      `CollectionPage.name=${JSON.stringify(collection.name)}; se exige ${TRABAJO_H1}`,
     );
-    assert.equal(collection.description, expectedDescription);
+    assert.equal(collection.description, TRABAJO_DESCRIPTION);
 
     const breadcrumb = graphs.find(
       (node) => isRecord(node) && node["@type"] === "BreadcrumbList",
