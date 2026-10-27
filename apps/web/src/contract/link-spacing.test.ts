@@ -10,9 +10,15 @@ const distDir = fileURLToPath(new URL("../../dist/", import.meta.url));
 
 const GLUED_BEFORE_ANCHOR = /([A-Za-zÁÉÍÓÚÜáéíóúüÑñ0-9)])<a\b/g;
 const LOOSE_AT = /@(?:\s*<a\b|\s+[a-z0-9][a-z0-9.-]*\.[a-z]{2,})/gi;
-const SPACE_BEFORE_PUNCT =
-  /<\/(?:a|code|strong)>(\s+)([.,;:)])/gi;
-const SPACE_AFTER_OPEN_PAREN = /\((\s+)<(?:a|code|strong)\b/gi;
+const INLINE_CLOSE = "a|code|strong|em|span";
+const SPACE_BEFORE_PUNCT = new RegExp(
+  `</(?:${INLINE_CLOSE})>(\\s+)([.,;:)!?»”…])`,
+  "gi",
+);
+const SPACE_AFTER_OPENER = new RegExp(
+  `([(\\u00ab])(\\s+)<(?:${INLINE_CLOSE})\\b`,
+  "gi",
+);
 
 function readPageHtml(relativePath: string): string {
   return readFileSync(join(distDir, relativePath), "utf8");
@@ -87,6 +93,7 @@ function punctuationSpacingProblems(
   route: string,
 ): string[] {
   const problems: string[] = [];
+  SPACE_BEFORE_PUNCT.lastIndex = 0;
   for (const match of html.matchAll(SPACE_BEFORE_PUNCT)) {
     const at = match.index ?? 0;
     const snippet = html
@@ -96,13 +103,15 @@ function punctuationSpacingProblems(
       `dist/${relativePath} ruta ${route} espacio-antes-puntuacion=${JSON.stringify(match[2])} …${snippet}…`,
     );
   }
-  for (const match of html.matchAll(SPACE_AFTER_OPEN_PAREN)) {
+  SPACE_AFTER_OPENER.lastIndex = 0;
+  for (const match of html.matchAll(SPACE_AFTER_OPENER)) {
     const at = match.index ?? 0;
+    const opener = match[1] ?? "";
     const snippet = html
       .slice(Math.max(0, at - 20), Math.min(html.length, at + 48))
       .replace(/\s+/g, " ");
     problems.push(
-      `dist/${relativePath} ruta ${route} espacio-despues-de-abrir-paren …${snippet}…`,
+      `dist/${relativePath} ruta ${route} espacio-despues-de-apertura=${JSON.stringify(opener)} …${snippet}…`,
     );
   }
   return problems;
@@ -192,7 +201,7 @@ describe("espacios antes de enlaces y mails en el dist", () => {
     assertNoGluedBeforeAnchor(html, "alerta-estafa.html", "/alerta-estafa");
   });
 
-  it("no deja espacio ni salto de línea antes de puntuación tras </a>, </code> o </strong>", () => {
+  it("no deja espacio ni salto de línea antes de puntuación tras cierres inline ni tras ( o «", () => {
     const problems: string[] = [];
     for (const page of readDistHtmlPages()) {
       const html = readPageHtml(page.relativePath);
@@ -215,14 +224,42 @@ describe("espacios antes de enlaces y mails en el dist", () => {
     assert.match(mutated, /<\/a>\s+\./);
   });
 
-  it("falla si aparece espacio o salto entre ( y un <a>/<code>/<strong>", () => {
+  it("falla si aparece espacio o salto entre ( o « y un cierre inline", () => {
     const html = readPageHtml("cookies.html");
     assertNoPunctuationSpacing(html, "cookies.html", "/cookies");
-    const mutated = withSpaceAfterOpenParen(html);
+    const mutatedParen = withSpaceAfterOpenParen(html);
     assert.throws(
-      () => assertNoPunctuationSpacing(mutated, "cookies.html", "/cookies"),
-      /espacio-despues-de-abrir-paren/,
+      () =>
+        assertNoPunctuationSpacing(mutatedParen, "cookies.html", "/cookies"),
+      /espacio-despues-de-apertura/,
     );
-    assert.match(mutated, /\(\s+<code\b/);
+    assert.match(mutatedParen, /\(\s+<code\b/);
+    const mutatedGuillemet = html.replace(
+      "dominio (<code>neutro.solutions/ingest</code>)",
+      "dominio «\n<code>neutro.solutions/ingest</code>»",
+    );
+    assert.throws(
+      () =>
+        assertNoPunctuationSpacing(
+          mutatedGuillemet,
+          "cookies.html",
+          "/cookies",
+        ),
+      /espacio-despues-de-apertura/,
+    );
+  });
+
+  it("falla si hay espacio antes de ! ? » ” … tras </em> o </span>", () => {
+    const base = "<p>texto</p>";
+    const mutatedEm = `${base}<em>hola</em>\n!`;
+    assert.throws(
+      () => assertNoPunctuationSpacing(mutatedEm, "mut.html", "/mut"),
+      /espacio-antes-puntuacion/,
+    );
+    const mutatedSpan = `${base}<span>hola</span>\n…`;
+    assert.throws(
+      () => assertNoPunctuationSpacing(mutatedSpan, "mut.html", "/mut"),
+      /espacio-antes-puntuacion/,
+    );
   });
 });

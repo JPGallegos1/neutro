@@ -176,7 +176,7 @@ const showLoadMore = workProjects.length > LANDING_WORK_LIMIT;
     list-style: none;
   }
 
-  @media (max-width: 767px) {
+  @media (max-width: 1023px) {
     .work-index__grid {
       row-gap: 24px;
     }
@@ -185,6 +185,7 @@ const showLoadMore = workProjects.length > LANDING_WORK_LIMIT;
   @media (min-width: 1024px) {
     .work-index__grid {
       grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+      padding-inline: 5px;
     }
   }
 

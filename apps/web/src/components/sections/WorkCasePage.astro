@@ -182,7 +182,7 @@ const related = relatedWorkProjects(workCase.slug);
     display: flex;
     flex-direction: column;
     max-width: 100%;
-    font-size: clamp(2rem, 11.2cqi, 5rem);
+    font-size: clamp(2.5rem, 18cqi, 6.5rem);
     font-weight: 700;
     line-height: 0.93;
     letter-spacing: -0.04em;
@@ -192,9 +192,7 @@ const related = relatedWorkProjects(workCase.slug);
   .work-case__title-line {
     display: block;
     max-width: 100%;
-    overflow-wrap: normal;
-    word-break: normal;
-    hyphens: none;
+    overflow-wrap: break-word;
   }
 
   .work-case__tag {
@@ -397,7 +395,7 @@ const related = relatedWorkProjects(workCase.slug);
     list-style: none;
   }
 
-  @media (max-width: 767px) {
+  @media (max-width: 1023px) {
     .work-case__related-grid {
       row-gap: 24px;
     }
@@ -406,6 +404,7 @@ const related = relatedWorkProjects(workCase.slug);
   @media (min-width: 1024px) {
     .work-case__related-grid {
       grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+      padding-inline: 5px;
     }
   }
 </style>
