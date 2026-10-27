@@ -266,11 +266,7 @@ export function getWorkCase(slug: string): WorkCase | undefined {
   return workCases.find((item) => item.slug === slug);
 }
 
-export function relatedWorkProjects(slug: string, count = 3): WorkProject[] {
-  const current = getWorkCase(slug);
-  if (!current) return [];
-  const others = workProjects.filter(
-    (project) => project.id !== current.projectId,
-  );
-  return others.slice(0, count);
+export function relatedWorkProjects(slug: string): WorkProject[] {
+  if (!workProjects.some((project) => project.slug === slug)) return [];
+  return workProjects.filter((project) => project.slug !== slug);
 }

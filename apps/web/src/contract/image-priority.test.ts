@@ -102,7 +102,7 @@ describe("prioridad de imágenes (SEO-03 / SEO-02)", () => {
     }
   });
 
-  it("ficha: imagen principal high; las 3 de Más trabajo lazy", () => {
+  it("ficha: imagen principal high; las 4 de Más trabajo lazy", () => {
     const root = readDistPage("trabajo/conexion-laboral.html");
     const main = root.querySelector("img.work-case__image");
     assert.ok(main, "falta img.work-case__image en la ficha");
@@ -114,8 +114,8 @@ describe("prioridad de imágenes (SEO-03 / SEO-02)", () => {
     const related = cardImages(root);
     assert.equal(
       related.length,
-      3,
-      `Más trabajo tiene ${related.length} cards; se exigen 3`,
+      4,
+      `Más trabajo tiene ${related.length} cards; se exigen 4`,
     );
     for (const [index, img] of related.entries()) {
       assertLazyCard(img, `Más trabajo card #${index + 1}`);
