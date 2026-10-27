@@ -22,6 +22,7 @@ const trabajoCasePaths = [
 ];
 
 export default defineConfig({
+  compressHTML: true,
   site,
   output: "static",
   trailingSlash: "never",
