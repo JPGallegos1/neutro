@@ -6,8 +6,8 @@ const PAGE_SIZE = 4;
 const CARDS_NUEVE = 9;
 const MAX_TABS = 40;
 
-const ANUNCIO_UNO = "Se cargó 1 proyecto más.";
-const anuncioVarios = (n: number) => `Se cargaron ${n} proyectos más.`;
+const ANUNCIO_UNO = "Se cargó 1 caso más.";
+const anuncioVarios = (n: number) => `Se cargaron ${n} casos más.`;
 
 const EXTRAS_PARA_NUEVE = [
   { slug: "extra-alfa", title: "Extra Alfa" },
