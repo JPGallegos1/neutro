@@ -6,6 +6,7 @@ import { readDistHtmlPages, type DistHtmlPage } from "./dist.ts";
 
 const SITE = "https://neutro.solutions";
 const ORGANIZATION_ID = `${SITE}/#organization`;
+const WEBSITE_ID = `${SITE}/#website`;
 const INDEX_ROUTE = "/trabajo";
 const CASE_ROUTE = /^\/trabajo\/[a-z0-9-]+$/;
 const BRAND = "Neutro Solutions";
@@ -277,13 +278,53 @@ describe("contrato JSON-LD (SEO-15)", () => {
       problems.push(...entry.problems);
       const ids = definedIds(entry.nodes);
       for (const node of entry.nodes) {
+        const caseCreative =
+          CASE_ROUTE.test(entry.page.route) &&
+          typesOf(node).includes("CreativeWork");
         for (const key of REF_KEYS) {
-          if (!(key in node)) continue;
-          for (const id of referencedIds(node[key])) {
-            if (ids.has(id)) continue;
+          if (!(key in node)) {
+            if (!caseCreative) continue;
+            problems.push(
+              `${where(entry.page)} CreativeWork no tiene ${key}`,
+            );
+            continue;
+          }
+          const refs = referencedIds(node[key]);
+          if (refs.length === 0) {
             const type = typesOf(node)[0] ?? "(sin @type)";
             problems.push(
-              `${where(entry.page)} ${type}.${key} apunta a ${JSON.stringify(id)} y ese @id no está en el grafo de la página`,
+              `${where(entry.page)} ${type}.${key} no tiene @id`,
+            );
+            continue;
+          }
+          for (const id of refs) {
+            const type = typesOf(node)[0] ?? "(sin @type)";
+            if (!ids.has(id)) {
+              problems.push(
+                `${where(entry.page)} ${type}.${key} apunta a ${JSON.stringify(id)} y ese @id no está en el grafo de la página`,
+              );
+              continue;
+            }
+            if (!caseCreative) continue;
+            if (key === "creator" || key === "publisher") {
+              const organization = entry.nodes.some(
+                (item) =>
+                  item["@id"] === id &&
+                  typesOf(item).includes("Organization"),
+              );
+              if (id === ORGANIZATION_ID && organization) continue;
+              problems.push(
+                `${where(entry.page)} CreativeWork.${key} apunta a ${JSON.stringify(id)}; se exige la Organization ${ORGANIZATION_ID} de la misma página`,
+              );
+              continue;
+            }
+            const website = entry.nodes.some(
+              (item) =>
+                item["@id"] === id && typesOf(item).includes("WebSite"),
+            );
+            if (id === WEBSITE_ID && website) continue;
+            problems.push(
+              `${where(entry.page)} CreativeWork.isPartOf apunta a ${JSON.stringify(id)}; se exige el WebSite ${WEBSITE_ID} de la misma página`,
             );
           }
         }
