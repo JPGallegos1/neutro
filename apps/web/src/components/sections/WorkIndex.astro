@@ -95,9 +95,9 @@ const showLoadMore = workProjects.length > LANDING_WORK_LIMIT;
       const added = visible - previous;
       sync({ focusFirstNewFrom: previous });
       if (added === 1) {
-        live.textContent = "Se cargó 1 proyecto más.";
+        live.textContent = "Se cargó 1 caso más.";
       } else if (added > 1) {
-        live.textContent = `Se cargaron ${added} proyectos más.`;
+        live.textContent = `Se cargaron ${added} casos más.`;
       }
     }
 
