@@ -14,13 +14,12 @@ const MAX_RULES = 100;
 const MAX_LINE_CHARS = 2000;
 
 const IMMUTABLE = "public, max-age=31536000, immutable";
-const DAY = "public, max-age=86400, stale-while-revalidate=604800";
-const HOUR = "public, max-age=3600, stale-while-revalidate=86400";
+const HOUR = "public, max-age=3600";
 
 const EXPECTED_CACHE_CONTROL = new Map<string, string>([
   ["/_astro/*", IMMUTABLE],
-  ["/images/*", DAY],
-  ["/video/*", DAY],
+  ["/images/*", HOUR],
+  ["/video/*", HOUR],
   ["/favicon.ico", HOUR],
   ["/favicon.svg", HOUR],
   ["/favicon-16x16.png", HOUR],
@@ -191,6 +190,29 @@ describe("_headers (SEO-07)", () => {
       );
     }
     assert.equal(rules.length, EXPECTED_CACHE_CONTROL.size);
+    assert.equal(actual.get("/_astro/*"), "public, max-age=31536000, immutable");
+    for (const pattern of [
+      "/images/*",
+      "/video/*",
+      "/favicon.ico",
+      "/favicon.svg",
+      "/favicon-16x16.png",
+      "/favicon-32x32.png",
+      "/apple-touch-icon.png",
+      "/icon-192.png",
+      "/icon-512.png",
+      "/site.webmanifest",
+      "/og/*",
+    ] as const) {
+      const value = actual.get(pattern);
+      assert.equal(value, "public, max-age=3600");
+      assert.equal(value?.includes("stale-while-revalidate"), false);
+      assert.notEqual(value, "public, max-age=86400");
+      assert.notEqual(
+        value,
+        "public, max-age=86400, stale-while-revalidate=604800",
+      );
+    }
   });
 
   it("copia _headers a dist tras el build", () => {
