@@ -3,12 +3,74 @@ import { expect, test, type Locator, type Page } from "@playwright/test";
 const GAP_VIEWPORTS = [360, 390, 768, 1023] as const;
 const DESKTOP_FOCUS = [1024, 1440] as const;
 const MIN_GAP_PX = 24;
+const MIN_RING_PX = 2;
 const RING_TOLERANCE = 0.5;
 const MAX_TABS = 40;
 
-async function verticalGaps(page: Page): Promise<number[]> {
-  return page.evaluate(() => {
-    const cards = [...document.querySelectorAll("li.work-card")].filter(
+const GAP_SURFACES = [
+  {
+    name: "/trabajo",
+    path: "/trabajo",
+    grid: ".work-index__grid",
+    cardScope: ".work-index__grid",
+  },
+  {
+    name: "home",
+    path: "/",
+    grid: ".work__grid",
+    cardScope: ".work__grid",
+  },
+  {
+    name: "Más trabajo",
+    path: "/trabajo/conexion-laboral",
+    grid: ".work-case__related-grid",
+    cardScope: ".work-case__related-grid",
+  },
+] as const;
+
+function parseInsetShadows(boxShadow: string): Array<{
+  spreadPx: number;
+  color: string;
+}> {
+  if (!boxShadow || boxShadow === "none") return [];
+  const parts = boxShadow.split(/,(?![^(]*\))/);
+  const colorRe =
+    /rgba?\([^)]+\)|hsla?\([^)]+\)|#[0-9a-fA-F]{3,8}|\b[a-zA-Z]+\b/;
+  const inset: Array<{ spreadPx: number; color: string }> = [];
+  for (const part of parts) {
+    if (!/\binset\b/i.test(part)) continue;
+    const withoutInset = part.replace(/\binset\b/gi, " ").trim();
+    const colorMatch = withoutInset.match(colorRe);
+    const nums = [...withoutInset.matchAll(/-?\d+(?:\.\d+)?px/gi)].map((m) =>
+      Number.parseFloat(m[0]),
+    );
+    if (nums.length < 4) continue;
+    const spreadPx = Math.abs(nums[3] ?? 0);
+    const color = (colorMatch?.[0] ?? "").trim();
+    if (/^(inset|px)$/i.test(color)) continue;
+    inset.push({ spreadPx, color });
+  }
+  return inset;
+}
+
+function isTransparentColor(color: string): boolean {
+  const c = color.trim().toLowerCase();
+  if (!c || c === "transparent") return true;
+  const rgba = c.match(
+    /^rgba?\(\s*([\d.]+)\s*,\s*([\d.]+)\s*,\s*([\d.]+)(?:\s*,\s*([\d.]+))?\s*\)$/,
+  );
+  if (rgba) {
+    const alpha = rgba[4] === undefined ? 1 : Number.parseFloat(rgba[4]);
+    return alpha === 0;
+  }
+  return false;
+}
+
+async function verticalGaps(page: Page, cardScope: string): Promise<number[]> {
+  return page.evaluate((scope) => {
+    const root = document.querySelector(scope);
+    if (!root) throw new Error(`falta ${scope}`);
+    const cards = [...root.querySelectorAll(":scope > li.work-card")].filter(
       (card) => getComputedStyle(card).display !== "none",
     );
     const gaps: number[] = [];
@@ -27,15 +89,26 @@ async function verticalGaps(page: Page): Promise<number[]> {
       }
     }
     return gaps;
-  });
+  }, cardScope);
 }
 
-async function gridRowGap(page: Page): Promise<string> {
-  return page.evaluate(() => {
-    const grid = document.querySelector(".work-index__grid");
-    if (!grid) throw new Error("falta .work-index__grid");
+async function gridRowGap(page: Page, gridSelector: string): Promise<string> {
+  return page.evaluate((selector) => {
+    const grid = document.querySelector(selector);
+    if (!grid) throw new Error(`falta ${selector}`);
     return getComputedStyle(grid).rowGap;
-  });
+  }, gridSelector);
+}
+
+async function gridColumnCount(
+  page: Page,
+  gridSelector: string,
+): Promise<number> {
+  return page.evaluate((selector) => {
+    const grid = document.querySelector(selector);
+    if (!grid) return 0;
+    return getComputedStyle(grid).gridTemplateColumns.split(" ").length;
+  }, gridSelector);
 }
 
 async function tabHastaCard(page: Page, link: Locator): Promise<void> {
@@ -60,8 +133,6 @@ async function focusRingReport(link: Locator) {
     const style = getComputedStyle(el);
     const after = getComputedStyle(el, "::after");
     const boxShadow = after.boxShadow;
-    const hasInsetRing =
-      boxShadow !== "none" && /\binset\b/i.test(boxShadow);
     const rect = el.getBoundingClientRect();
     const ring = {
       left: rect.left,
@@ -71,9 +142,13 @@ async function focusRingReport(link: Locator) {
     };
     return {
       outlineStyle: style.outlineStyle,
+      outlineWidth: style.outlineWidth,
+      outlineColor: style.outlineColor,
       afterContent: after.content,
       afterBoxShadow: boxShadow,
-      hasInsetRing,
+      afterOutlineStyle: after.outlineStyle,
+      afterOutlineWidth: after.outlineWidth,
+      afterOutlineColor: after.outlineColor,
       afterZIndex: after.zIndex,
       ring,
       inViewportX:
@@ -85,56 +160,104 @@ async function focusRingReport(link: Locator) {
   });
 }
 
+function assertInsetRing(
+  report: Awaited<ReturnType<typeof focusRingReport>>,
+): void {
+  expect(report, JSON.stringify(report)).not.toHaveProperty("error");
+  const shadows = parseInsetShadows(String(report.afterBoxShadow ?? "none"));
+  expect(
+    shadows.length,
+    `falta box-shadow inset en ::after: ${report.afterBoxShadow}`,
+  ).toBeGreaterThan(0);
+  const maxSpread = Math.max(...shadows.map((s) => s.spreadPx));
+  expect(
+    maxSpread,
+    `anillo inset demasiado fino (${maxSpread}px); mínimo ${MIN_RING_PX}px: ${report.afterBoxShadow}`,
+  ).toBeGreaterThanOrEqual(MIN_RING_PX);
+  const colored = shadows.filter((s) => !isTransparentColor(s.color));
+  expect(
+    colored.length,
+    `anillo inset sin color opaco: ${report.afterBoxShadow}`,
+  ).toBeGreaterThan(0);
+  expect(
+    Math.max(...colored.map((s) => s.spreadPx)),
+    `anillo inset coloreado < ${MIN_RING_PX}px: ${report.afterBoxShadow}`,
+  ).toBeGreaterThanOrEqual(MIN_RING_PX);
+}
+
+function assertForcedColorsIndicator(
+  report: Awaited<ReturnType<typeof focusRingReport>>,
+): void {
+  expect(report, JSON.stringify(report)).not.toHaveProperty("error");
+  const style = String(report.afterOutlineStyle ?? "");
+  const width = Number.parseFloat(String(report.afterOutlineWidth ?? "0"));
+  const color = String(report.afterOutlineColor ?? "");
+  const outlineOk =
+    style !== "none" &&
+    Number.isFinite(width) &&
+    width >= MIN_RING_PX &&
+    !isTransparentColor(color);
+  expect(
+    outlineOk,
+    `forced-colors sin indicador visible en ::after (style=${style}, width=${report.afterOutlineWidth}, color=${color}, boxShadow=${report.afterBoxShadow})`,
+  ).toBe(true);
+}
+
 test.describe("separación vertical de work-cards en una columna", () => {
-  for (const width of GAP_VIEWPORTS) {
-    test(`row-gap ≥ ${MIN_GAP_PX}px en /trabajo a ${width}px`, async ({
+  for (const surface of GAP_SURFACES) {
+    for (const width of GAP_VIEWPORTS) {
+      test(`row-gap ≥ ${MIN_GAP_PX}px en ${surface.name} a ${width}px`, async ({
+        page,
+      }) => {
+        await page.setViewportSize({ width, height: 900 });
+        await page.goto(surface.path, { waitUntil: "domcontentloaded" });
+        const gaps = await verticalGaps(page, surface.cardScope);
+        expect(
+          gaps.length,
+          `se esperaban gaps entre cards apiladas en ${surface.name}`,
+        ).toBeGreaterThan(0);
+        for (const gap of gaps) {
+          expect(
+            gap,
+            `gap=${gap} en ${surface.name} a ${width}px`,
+          ).toBeGreaterThanOrEqual(MIN_GAP_PX - RING_TOLERANCE);
+        }
+        if (width === 1023) {
+          const rowGap = await gridRowGap(page, surface.grid);
+          expect(
+            rowGap,
+            `row-gap computado en ${surface.name} a 1023=${rowGap}`,
+          ).toBe("24px");
+        }
+      });
+    }
+
+    test(`a 1024px en ${surface.name}: 2 columnas y row-gap 0`, async ({
       page,
     }) => {
-      await page.setViewportSize({ width, height: 900 });
-      await page.goto("/trabajo", { waitUntil: "domcontentloaded" });
-      const gaps = await verticalGaps(page);
+      await page.setViewportSize({ width: 1024, height: 900 });
+      await page.goto(surface.path, { waitUntil: "domcontentloaded" });
+      const cols = await gridColumnCount(page, surface.grid);
+      expect(cols, `columnas en ${surface.name}`).toBe(2);
+      const rowGap = await gridRowGap(page, surface.grid);
       expect(
-        gaps.length,
-        "se esperaban gaps entre cards apiladas",
-      ).toBeGreaterThan(0);
+        rowGap,
+        `row-gap a 1024 en ${surface.name} debe ser 0px; quedó ${rowGap}`,
+      ).toBe("0px");
+      const gaps = await verticalGaps(page, surface.cardScope);
       for (const gap of gaps) {
-        expect(gap, `gap=${gap} a ${width}px`).toBeGreaterThanOrEqual(
-          MIN_GAP_PX - RING_TOLERANCE,
-        );
-      }
-      if (width === 1023) {
-        const rowGap = await gridRowGap(page);
-        expect(rowGap, `row-gap computado a 1023=${rowGap}`).toBe("24px");
+        expect(
+          gap,
+          `no debería haber gap vertical de columna en ${surface.name} a 1024; gap=${gap}`,
+        ).toBeLessThan(MIN_GAP_PX - RING_TOLERANCE);
       }
     });
   }
-
-  test("a 1024px: 2 columnas y row-gap 0 (el gap de 24 no aplica)", async ({
-    page,
-  }) => {
-    await page.setViewportSize({ width: 1024, height: 900 });
-    await page.goto("/trabajo", { waitUntil: "domcontentloaded" });
-    const cols = await page.evaluate(() => {
-      const grid = document.querySelector(".work-index__grid");
-      if (!grid) return 0;
-      return getComputedStyle(grid).gridTemplateColumns.split(" ").length;
-    });
-    expect(cols).toBe(2);
-    const rowGap = await gridRowGap(page);
-    expect(rowGap, `row-gap a 1024 debe ser 0px; quedó ${rowGap}`).toBe("0px");
-    const gaps = await verticalGaps(page);
-    for (const gap of gaps) {
-      expect(
-        gap,
-        `no debería haber gap vertical de columna a 1024; gap=${gap}`,
-      ).toBeLessThan(MIN_GAP_PX - RING_TOLERANCE);
-    }
-  });
 });
 
 test.describe("anillo de foco completo en work-card", () => {
   for (const width of DESKTOP_FOCUS) {
-    test(`anillo inset visible alrededor de la card a ${width}px`, async ({
+    test(`anillo inset ≥${MIN_RING_PX}px y color opaco a ${width}px`, async ({
       page,
     }) => {
       await page.setViewportSize({ width, height: 900 });
@@ -142,13 +265,9 @@ test.describe("anillo de foco completo en work-card", () => {
       const link = page.locator("a.work-card__inner").first();
       await tabHastaCard(page, link);
       const report = await focusRingReport(link);
-      expect(report, JSON.stringify(report)).not.toHaveProperty("error");
       expect(report.matchesFocusVisible).toBe(true);
       expect(report.outlineStyle).toBe("none");
-      expect(
-        report.hasInsetRing,
-        `falta box-shadow inset en ::after: ${report.afterBoxShadow}`,
-      ).toBe(true);
+      assertInsetRing(report);
       expect(report.afterContent).toBe('""');
       expect(report.inViewportX).toBe(true);
       expect(report.ring?.left ?? -1).toBeGreaterThanOrEqual(-RING_TOLERANCE);
@@ -165,4 +284,17 @@ test.describe("anillo de foco completo en work-card", () => {
       expect(report.afterZIndex, "::after necesita z-index 2").toBe("2");
     });
   }
+
+  test("forced-colors: indicador visible vía outline en ::after", async ({
+    page,
+  }) => {
+    await page.emulateMedia({ forcedColors: "active" });
+    await page.setViewportSize({ width: 1024, height: 900 });
+    await page.goto("/trabajo", { waitUntil: "domcontentloaded" });
+    const link = page.locator("a.work-card__inner").first();
+    await tabHastaCard(page, link);
+    const report = await focusRingReport(link);
+    expect(report.matchesFocusVisible).toBe(true);
+    assertForcedColorsIndicator(report);
+  });
 });
