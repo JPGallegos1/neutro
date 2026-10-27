@@ -59,6 +59,8 @@ export function withWorkersDevNoindex(
     status: response.status,
     statusText: response.statusText,
     headers,
+    webSocket: response.webSocket,
+    cf: response.cf,
   });
 }
 

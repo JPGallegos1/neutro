@@ -13,7 +13,7 @@ export const HSTS_VALUE = `max-age=${HSTS_MAX_AGE_SECONDS}`;
 const HSTS_HOSTS = new Set(["neutro.solutions", "www.neutro.solutions"]);
 
 export function isHstsHost(hostname: string): boolean {
-  return HSTS_HOSTS.has(hostname);
+  return HSTS_HOSTS.has(hostname.toLowerCase());
 }
 
 function isHtmlContentType(contentType: string | null): boolean {
@@ -21,6 +21,16 @@ function isHtmlContentType(contentType: string | null): boolean {
     return false;
   }
   return contentType.toLowerCase().startsWith("text/html");
+}
+
+function rebuildResponse(response: Response, headers: Headers): Response {
+  return new Response(response.body, {
+    status: response.status,
+    statusText: response.statusText,
+    headers,
+    webSocket: response.webSocket,
+    cf: response.cf,
+  });
 }
 
 export function withSecurityHeaders(
@@ -34,6 +44,8 @@ export function withSecurityHeaders(
   headers.set("Permissions-Policy", PERMISSIONS_POLICY);
   headers.set("X-Frame-Options", X_FRAME_OPTIONS);
 
+  headers.delete("Content-Security-Policy");
+
   if (isHtmlContentType(headers.get("content-type"))) {
     headers.set("Content-Security-Policy-Report-Only", CSP_REPORT_ONLY);
   }
@@ -42,9 +54,5 @@ export function withSecurityHeaders(
     headers.set("Strict-Transport-Security", HSTS_VALUE);
   }
 
-  return new Response(response.body, {
-    status: response.status,
-    statusText: response.statusText,
-    headers,
-  });
+  return rebuildResponse(response, headers);
 }

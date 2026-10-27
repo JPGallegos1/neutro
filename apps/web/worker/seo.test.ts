@@ -2,21 +2,32 @@ import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 
 import worker, { isWorkersDevHost } from "./index.ts";
-import {
-  CSP_REPORT_ONLY,
-  HSTS_MAX_AGE_SECONDS,
-  HSTS_VALUE,
-  PERMISSIONS_POLICY,
-  REFERRER_POLICY,
-  X_CONTENT_TYPE_OPTIONS,
-  X_FRAME_OPTIONS,
-  isHstsHost,
-} from "./security-headers.ts";
+import { isHstsHost, withSecurityHeaders } from "./security-headers.ts";
 
 const WORKERS_DEV = "https://neutro-web.jpgallegos20.workers.dev";
 const PRODUCTION = "https://neutro.solutions";
 const PRODUCTION_WWW = "https://www.neutro.solutions";
 const LOCALHOST = "http://localhost:8787";
+
+const EXPECTED_X_CONTENT_TYPE_OPTIONS = "nosniff";
+const EXPECTED_REFERRER_POLICY = "strict-origin-when-cross-origin";
+const EXPECTED_PERMISSIONS_POLICY =
+  "camera=(), microphone=(), geolocation=(), payment=(), usb=(), browsing-topics=()";
+const EXPECTED_X_FRAME_OPTIONS = "DENY";
+const EXPECTED_HSTS = "max-age=300";
+const EXPECTED_CSP_DIRECTIVES = [
+  "default-src 'self'",
+  "script-src 'self' 'unsafe-inline'",
+  "style-src 'self' 'unsafe-inline'",
+  "img-src 'self' data:",
+  "font-src 'self' data:",
+  "media-src 'self'",
+  "connect-src 'self'",
+  "object-src 'none'",
+  "base-uri 'self'",
+  "form-action 'self'",
+] as const;
+const EXPECTED_CSP_REPORT_ONLY = EXPECTED_CSP_DIRECTIVES.join("; ");
 
 function executionContext(): ExecutionContext {
   return {
@@ -260,31 +271,48 @@ describe("trailing slash", () => {
   });
 });
 
-const SIMPLE_SECURITY_HEADERS = {
-  "X-Content-Type-Options": X_CONTENT_TYPE_OPTIONS,
-  "Referrer-Policy": REFERRER_POLICY,
-  "Permissions-Policy": PERMISSIONS_POLICY,
-  "X-Frame-Options": X_FRAME_OPTIONS,
+const EXPECTED_SIMPLE_SECURITY_HEADERS = {
+  "X-Content-Type-Options": EXPECTED_X_CONTENT_TYPE_OPTIONS,
+  "Referrer-Policy": EXPECTED_REFERRER_POLICY,
+  "Permissions-Policy": EXPECTED_PERMISSIONS_POLICY,
+  "X-Frame-Options": EXPECTED_X_FRAME_OPTIONS,
 } as const;
 
 function assertSimpleSecurityHeaders(response: Response): void {
-  for (const [name, value] of Object.entries(SIMPLE_SECURITY_HEADERS)) {
+  for (const [name, value] of Object.entries(
+    EXPECTED_SIMPLE_SECURITY_HEADERS,
+  )) {
     assert.equal(response.headers.get(name), value, `missing or wrong ${name}`);
   }
 }
 
-function assertNoCspEnforce(response: Response): void {
+function assertCspReportOnly(response: Response): void {
+  const csp = response.headers.get("Content-Security-Policy-Report-Only");
+  assert.equal(csp, EXPECTED_CSP_REPORT_ONLY);
+  for (const directive of EXPECTED_CSP_DIRECTIVES) {
+    assert.equal(
+      csp?.includes(directive) ?? false,
+      true,
+      `CSP missing directive: ${directive}`,
+    );
+  }
   assert.equal(response.headers.get("Content-Security-Policy"), null);
+}
+
+function assertNoCsp(response: Response): void {
+  assert.equal(response.headers.get("Content-Security-Policy"), null);
+  assert.equal(
+    response.headers.get("Content-Security-Policy-Report-Only"),
+    null,
+  );
 }
 
 function assertHstsProduction(response: Response): void {
   const hsts = response.headers.get("Strict-Transport-Security");
-  assert.equal(hsts, HSTS_VALUE);
+  assert.equal(hsts, EXPECTED_HSTS);
   assert.equal(hsts?.includes("includeSubDomains"), false);
   assert.equal(hsts?.includes("preload"), false);
   assert.match(hsts ?? "", /^max-age=300$/);
-  assert.equal(HSTS_MAX_AGE_SECONDS, 300);
-  assert.equal(HSTS_MAX_AGE_SECONDS > 300, false);
 }
 
 function assertNoHsts(response: Response): void {
@@ -314,18 +342,7 @@ function typedAssetEnv(
 }
 
 describe("SEO-10 security headers", () => {
-  it("exports HSTS step-1 values without includeSubDomains or preload", () => {
-    assert.equal(HSTS_VALUE, "max-age=300");
-    assert.equal(HSTS_MAX_AGE_SECONDS, 300);
-    assert.equal(HSTS_VALUE.includes("includeSubDomains"), false);
-    assert.equal(HSTS_VALUE.includes("preload"), false);
-    assert.equal(isHstsHost("neutro.solutions"), true);
-    assert.equal(isHstsHost("www.neutro.solutions"), true);
-    assert.equal(isHstsHost("neutro-web.jpgallegos20.workers.dev"), false);
-    assert.equal(isHstsHost("localhost"), false);
-  });
-
-  it("applies simple headers and HSTS to HTML assets on production", async () => {
+  it("applies exact expected simple headers and every CSP directive on HTML", async () => {
     const { env } = typedAssetEnv(
       200,
       "<html>home</html>",
@@ -335,13 +352,19 @@ describe("SEO-10 security headers", () => {
     const response = await fetchWorker(`${PRODUCTION}/`, env);
 
     assert.equal(response.status, 200);
+    assert.equal(response.headers.get("X-Content-Type-Options"), "nosniff");
+    assert.equal(
+      response.headers.get("Referrer-Policy"),
+      "strict-origin-when-cross-origin",
+    );
+    assert.equal(
+      response.headers.get("Permissions-Policy"),
+      "camera=(), microphone=(), geolocation=(), payment=(), usb=(), browsing-topics=()",
+    );
+    assert.equal(response.headers.get("X-Frame-Options"), "DENY");
     assertSimpleSecurityHeaders(response);
     assertHstsProduction(response);
-    assertNoCspEnforce(response);
-    assert.equal(
-      response.headers.get("Content-Security-Policy-Report-Only"),
-      CSP_REPORT_ONLY,
-    );
+    assertCspReportOnly(response);
     assert.equal(
       response.headers.get("cache-control"),
       "public, max-age=0, must-revalidate",
@@ -360,11 +383,7 @@ describe("SEO-10 security headers", () => {
     assert.equal(response.status, 200);
     assertSimpleSecurityHeaders(response);
     assertHstsProduction(response);
-    assertNoCspEnforce(response);
-    assert.equal(
-      response.headers.get("Content-Security-Policy-Report-Only"),
-      null,
-    );
+    assertNoCsp(response);
     assert.equal(
       response.headers.get("cache-control"),
       "public, max-age=0, must-revalidate",
@@ -379,11 +398,7 @@ describe("SEO-10 security headers", () => {
     assert.equal(response.headers.get("Location"), `${PRODUCTION}/trabajo`);
     assertSimpleSecurityHeaders(response);
     assertHstsProduction(response);
-    assertNoCspEnforce(response);
-    assert.equal(
-      response.headers.get("Content-Security-Policy-Report-Only"),
-      null,
-    );
+    assertNoCsp(response);
     assert.deepEqual(calls, []);
   });
 
@@ -402,11 +417,7 @@ describe("SEO-10 security headers", () => {
     assert.equal(response.headers.get("X-Robots-Tag"), "noindex");
     assertSimpleSecurityHeaders(response);
     assertHstsProduction(response);
-    assertNoCspEnforce(response);
-    assert.equal(
-      response.headers.get("Content-Security-Policy-Report-Only"),
-      null,
-    );
+    assertNoCsp(response);
     assert.deepEqual(calls, []);
   });
 
@@ -440,11 +451,7 @@ describe("SEO-10 security headers", () => {
       );
       assertSimpleSecurityHeaders(response);
       assertHstsProduction(response);
-      assertNoCspEnforce(response);
-      assert.equal(
-        response.headers.get("Content-Security-Policy-Report-Only"),
-        null,
-      );
+      assertNoCsp(response);
       assert.deepEqual(calls, []);
     } finally {
       globalThis.fetch = originalFetch;
@@ -462,41 +469,173 @@ describe("SEO-10 security headers", () => {
     assert.equal(response.status, 404);
     assertSimpleSecurityHeaders(response);
     assertHstsProduction(response);
-    assertNoCspEnforce(response);
-    assert.equal(
-      response.headers.get("Content-Security-Policy-Report-Only"),
-      CSP_REPORT_ONLY,
-    );
+    assertCspReportOnly(response);
   });
 
-  it("sets HSTS on www.neutro.solutions and omits it on workers.dev and localhost", async () => {
-    const www = await fetchWorker(
+  it("sets HSTS only on apex and www, including uppercase host and explicit port", async () => {
+    const allowed = [
+      `${PRODUCTION}/`,
       `${PRODUCTION_WWW}/`,
-      typedAssetEnv(200, "www", "text/html; charset=utf-8").env,
-    );
-    assertHstsProduction(www);
-    assertSimpleSecurityHeaders(www);
+      "https://NEUTRO.SOLUTIONS/",
+      "https://WWW.NEUTRO.SOLUTIONS/",
+      "https://neutro.solutions:443/",
+      "https://www.neutro.solutions:443/",
+    ];
+    for (const url of allowed) {
+      const response = await fetchWorker(
+        url,
+        typedAssetEnv(200, "ok", "text/html; charset=utf-8").env,
+      );
+      assertHstsProduction(response);
+      assertSimpleSecurityHeaders(response);
+    }
 
-    const workers = await fetchWorker(
-      `${WORKERS_DEV}/`,
-      typedAssetEnv(200, "dev", "text/html; charset=utf-8").env,
-    );
-    assertNoHsts(workers);
-    assertSimpleSecurityHeaders(workers);
-    assert.equal(workers.headers.get("X-Robots-Tag"), "noindex");
+    assert.equal(isHstsHost("neutro.solutions"), true);
+    assert.equal(isHstsHost("www.neutro.solutions"), true);
+    assert.equal(isHstsHost("NEUTRO.SOLUTIONS"), true);
+    assert.equal(isHstsHost("WWW.NEUTRO.SOLUTIONS"), true);
+  });
+
+  it("omits HSTS on lookalike hosts, workers.dev and localhost", async () => {
+    const denied = [
+      "https://neutro.solutions.evil.com/",
+      "https://evilneutro.solutions/",
+      "https://workers.dev/",
+      WORKERS_DEV + "/",
+      LOCALHOST + "/",
+      "http://localhost/",
+      "https://localhost/",
+      "https://notneutro.solutions/",
+      "https://neutro.solutions.attacker.test/",
+    ];
+    for (const url of denied) {
+      const response = await fetchWorker(
+        url,
+        typedAssetEnv(200, "ok", "text/html; charset=utf-8").env,
+      );
+      assertNoHsts(response);
+      assertSimpleSecurityHeaders(response);
+    }
+
+    assert.equal(isHstsHost("neutro.solutions.evil.com"), false);
+    assert.equal(isHstsHost("evilneutro.solutions"), false);
+    assert.equal(isHstsHost("workers.dev"), false);
+    assert.equal(isHstsHost("localhost"), false);
+    assert.equal(isHstsHost("neutro-web.jpgallegos20.workers.dev"), false);
+  });
+
+  it("overwrites weaker upstream security headers with set", async () => {
+    const { env } = typedAssetEnv(200, "<html>x</html>", "text/html", {
+      "x-frame-options": "SAMEORIGIN",
+      "referrer-policy": "no-referrer",
+      "permissions-policy": "camera=(self)",
+      "x-content-type-options": "nosniff ",
+      "content-security-policy": "default-src 'none'",
+      "content-security-policy-report-only": "default-src 'none'",
+      "strict-transport-security":
+        "max-age=31536000; includeSubDomains; preload",
+    });
+    const response = await fetchWorker(`${PRODUCTION}/`, env);
+
+    assert.equal(response.headers.get("X-Frame-Options"), "DENY");
     assert.equal(
-      workers.headers.get("Content-Security-Policy-Report-Only"),
-      CSP_REPORT_ONLY,
+      response.headers.get("Referrer-Policy"),
+      "strict-origin-when-cross-origin",
     );
-    assertNoCspEnforce(workers);
+    assert.equal(
+      response.headers.get("Permissions-Policy"),
+      EXPECTED_PERMISSIONS_POLICY,
+    );
+    assert.equal(response.headers.get("X-Content-Type-Options"), "nosniff");
+    assert.equal(
+      response.headers.get("Strict-Transport-Security"),
+      EXPECTED_HSTS,
+    );
+    assertCspReportOnly(response);
+    assert.equal(response.headers.get("Content-Security-Policy"), null);
+  });
 
-    const local = await fetchWorker(
-      `${LOCALHOST}/`,
-      typedAssetEnv(200, "local", "text/html; charset=utf-8").env,
+  it("preserves 206 Partial Content status, Content-Range and body", async () => {
+    const body = "0123456789";
+    const env = {
+      ASSETS: {
+        fetch: async (input: RequestInfo | URL) => {
+          const request = input instanceof Request ? input : new Request(input);
+          const range = request.headers.get("Range");
+          assert.equal(range, "bytes=0-3");
+          return new Response(body.slice(0, 4), {
+            status: 206,
+            statusText: "Partial Content",
+            headers: {
+              "content-type": "video/mp4",
+              "content-range": "bytes 0-3/10",
+              "accept-ranges": "bytes",
+              "x-frame-options": "SAMEORIGIN",
+            },
+          });
+        },
+      },
+    };
+    const response = await worker.fetch(
+      new Request(`${PRODUCTION}/video/neutro.mp4`, {
+        headers: { Range: "bytes=0-3" },
+      }),
+      env as unknown as Parameters<typeof worker.fetch>[1],
+      executionContext(),
     );
-    assertNoHsts(local);
-    assertSimpleSecurityHeaders(local);
-    assertNoCspEnforce(local);
+
+    assert.equal(response.status, 206);
+    assert.equal(response.statusText, "Partial Content");
+    assert.equal(response.headers.get("content-range"), "bytes 0-3/10");
+    assert.equal(response.headers.get("accept-ranges"), "bytes");
+    assert.equal(response.headers.get("X-Frame-Options"), "DENY");
+    assertSimpleSecurityHeaders(response);
+    assertHstsProduction(response);
+    assertNoCsp(response);
+    assert.equal(await response.text(), "0123");
+  });
+
+  it("passes webSocket and cf into Response init when rebuilding", () => {
+    const upstream = new Response("body", { status: 200 });
+    Object.defineProperty(upstream, "webSocket", {
+      value: null,
+      configurable: true,
+    });
+    Object.defineProperty(upstream, "cf", {
+      value: { cacheStatus: "HIT", neutroProbe: "seo10" },
+      configurable: true,
+    });
+
+    const OriginalResponse = globalThis.Response;
+    const inits: ResponseInit[] = [];
+    globalThis.Response = class extends OriginalResponse {
+      constructor(body?: BodyInit | null, init?: ResponseInit) {
+        inits.push(init ?? {});
+        super(body, init);
+      }
+    } as typeof Response;
+
+    try {
+      const wrapped = withSecurityHeaders(upstream, "neutro.solutions");
+      assert.equal(wrapped.status, 200);
+      assert.equal(inits.length, 1);
+      assert.equal(inits[0]?.status, 200);
+      assert.equal(inits[0]?.webSocket, null);
+      assert.deepEqual(inits[0]?.cf, {
+        cacheStatus: "HIT",
+        neutroProbe: "seo10",
+      });
+      assert.equal(
+        new Headers(inits[0]?.headers).get("X-Frame-Options"),
+        "DENY",
+      );
+      assert.equal(
+        new Headers(inits[0]?.headers).get("Strict-Transport-Security"),
+        EXPECTED_HSTS,
+      );
+    } finally {
+      globalThis.Response = OriginalResponse;
+    }
   });
 
   it("never emits Content-Security-Policy enforce on any response type", async () => {
@@ -535,7 +674,7 @@ describe("SEO-10 security headers", () => {
 
     for (const run of cases) {
       const response = await run();
-      assertNoCspEnforce(response);
+      assert.equal(response.headers.get("Content-Security-Policy"), null);
       assertSimpleSecurityHeaders(response);
     }
   });
