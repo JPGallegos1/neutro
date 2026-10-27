@@ -9,6 +9,7 @@ interface Props {
   description?: string;
   canonical?: string;
   noindex?: boolean;
+  jsonLd?: boolean;
 }
 
 function publicPathname(pathname: string): string {
@@ -37,6 +38,7 @@ const {
   title = site.title,
   description = site.description,
   noindex = false,
+  jsonLd = true,
 } = Astro.props;
 
 const canonical = noindex ? undefined : pageCanonical(Astro.url, Astro.site);
@@ -97,7 +99,9 @@ const ogImageAlt =
         }
       })();
     </script>
-    <script type="application/ld+json" set:html={JSON.stringify(siteJsonLd)} />
+    {jsonLd && (
+      <script type="application/ld+json" set:html={JSON.stringify(siteJsonLd)} />
+    )}
     <slot name="head" />
   </head>
   <body class="min-h-screen bg-neutro-bg text-neutro-text">
