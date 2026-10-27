@@ -182,17 +182,25 @@ const related = relatedWorkProjects(workCase.slug);
     display: flex;
     flex-direction: column;
     max-width: 100%;
-    font-size: clamp(2.5rem, 18cqi, 6.5rem);
+    font-size: clamp(2.5rem, 18cqi, 3rem);
     font-weight: 700;
     line-height: 0.93;
     letter-spacing: -0.04em;
     text-transform: uppercase;
   }
 
+  @media (min-width: 1024px) {
+    .work-case__title {
+      font-size: clamp(3rem, 18cqi, 6.5rem);
+    }
+  }
+
   .work-case__title-line {
     display: block;
     max-width: 100%;
-    overflow-wrap: break-word;
+    overflow-wrap: anywhere;
+    word-break: normal;
+    hyphens: none;
   }
 
   .work-case__tag {
