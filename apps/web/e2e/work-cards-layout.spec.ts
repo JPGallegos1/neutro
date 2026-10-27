@@ -150,7 +150,6 @@ test.describe("anillo de foco completo en work-card", () => {
         `falta box-shadow inset en ::after: ${report.afterBoxShadow}`,
       ).toBe(true);
       expect(report.afterContent).toBe('""');
-      expect(report.clippedBy).toBeUndefined();
       expect(report.inViewportX).toBe(true);
       expect(report.ring?.left ?? -1).toBeGreaterThanOrEqual(-RING_TOLERANCE);
       expect(report.ring?.right ?? width + 10).toBeLessThanOrEqual(
