@@ -759,10 +759,6 @@ describe("contrato SEO-04 y SEO-05 de fichas", () => {
         );
         assert.ok(next, `${route} sin hermano siguiente del H1`);
         assert.equal(next.tagName.toLowerCase(), "p", `${route} hermano del H1`);
-        assert.ok(
-          !/^h[1-6]$/i.test(next.tagName),
-          `${route} la línea oficial no puede ser heading`,
-        );
         const nextClass = next.getAttribute("class") ?? "";
         assert.ok(
           nextClass.includes("work-case__name"),
@@ -771,6 +767,16 @@ describe("contrato SEO-04 y SEO-05 de fichas", () => {
         assert.ok(
           !nextClass.split(/\s+/).includes("sr-only"),
           `${route} p.work-case__name no puede ser sr-only`,
+        );
+        assert.equal(
+          next.getAttribute("hidden"),
+          null,
+          `${route} p.work-case__name no puede tener hidden`,
+        );
+        assert.notEqual(
+          next.getAttribute("aria-hidden"),
+          "true",
+          `${route} p.work-case__name no puede ser aria-hidden`,
         );
         assert.equal(
           next.getAttribute("id"),

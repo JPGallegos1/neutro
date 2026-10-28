@@ -33,7 +33,7 @@ const CASES = [
   },
 ] as const;
 
-const VIEWPORTS = [320, 360, 390, 768, 1024, 1440] as const;
+const VIEWPORTS = [320, 360, 390, 768, 1024, 1280, 1440] as const;
 const MOBILE_FLOOR_PX = 40;
 const MOBILE_MAX_PX = 48;
 const DESKTOP_FLOOR_PX = 48;
@@ -43,6 +43,7 @@ const FONT_TOLERANCE = 1;
 const OVERFLOW_TOLERANCE = 1;
 const LINE_HEIGHT = 0.93;
 const LETTER_SPACING_EM = -0.04;
+const LETTER_SPACING_TOLERANCE = 0.002;
 const STYLE_TOLERANCE = 0.005;
 const NAME_LINE_LETTER_SPACING_EM = -0.01;
 const NAME_LINE_LINE_HEIGHT = 1.3;
@@ -57,6 +58,7 @@ const ANCHORED_FONT_PX = {
   390: 48,
   768: 48,
   1024: 57.66,
+  1280: 75.07,
   1440: 85.95,
 } as const;
 
@@ -69,6 +71,7 @@ type H1Report = {
   letterSpacingEm: number;
   overflowWrap: string;
   wordBreak: string;
+  hyphens: string;
   midWordBreaks: { word: string; lines: number }[];
   lineCount: number;
   cqi: number;
@@ -96,10 +99,14 @@ type H1Report = {
     lineHeightPx: number;
     letterSpacingEm: number;
     textTransform: string;
+    wordBreak: string;
+    hyphens: string;
     color: string;
     mutedColor: string;
     marginTopPx: number;
     lineCount: number;
+    hidden: boolean;
+    ariaHidden: boolean;
   } | null;
   articleLabelledBy: string | null;
 };
@@ -133,6 +140,7 @@ async function measureH1(
       letterSpacingEm: 0,
       overflowWrap: "",
       wordBreak: "",
+      hyphens: "",
       midWordBreaks: [],
       lineCount: 0,
       cqi: 0,
@@ -184,10 +192,13 @@ async function measureH1(
         .map((r) => Math.round(r.top)),
     );
     const lineEls = [...title.querySelectorAll(".work-case__title-line")];
-    const wrapSample =
+    const lineStyle =
       lineEls[0] instanceof HTMLElement
-        ? getComputedStyle(lineEls[0]).overflowWrap
-        : style.overflowWrap;
+        ? getComputedStyle(lineEls[0])
+        : style;
+    const wrapSample = lineStyle.overflowWrap;
+    const titleWordBreak = style.wordBreak;
+    const titleHyphens = style.hyphens;
     const lineOverflows = lineEls.flatMap((el) => {
       if (!(el instanceof HTMLElement)) return [];
       if (el.scrollWidth <= el.clientWidth + 0.5) return [];
@@ -262,6 +273,39 @@ async function measureH1(
                 .map((r) => Math.round(r.top)),
             ),
           ];
+    const colorAlpha = (value: string): number => {
+      const rgba = value.match(
+        /^rgba?\(\s*[\d.]+\s*,\s*[\d.]+\s*,\s*[\d.]+\s*(?:,\s*([\d.]+))?\s*\)$/i,
+      );
+      if (!rgba) return 1;
+      return rgba[1] === undefined ? 1 : Number.parseFloat(rgba[1]);
+    };
+    const clipHides = (s: CSSStyleDeclaration): boolean => {
+      const clip = s.clip.replace(/\s+/g, "");
+      if (/^rect\(0px,0px,0px,0px\)$/i.test(clip)) return true;
+      const path = s.clipPath.replace(/\s+/g, "").toLowerCase();
+      if (path === "none" || path === "") return false;
+      return (
+        path.startsWith("inset(100%") ||
+        path.startsWith("circle(0") ||
+        path === "polygon(0px0px,0px0px,0px0px,0px0px)"
+      );
+    };
+    const officialVisible =
+      officialEl !== null &&
+      officialStyle !== null &&
+      officialRect !== undefined &&
+      !officialEl.hasAttribute("hidden") &&
+      officialEl.getAttribute("aria-hidden") !== "true" &&
+      officialStyle.display !== "none" &&
+      officialStyle.visibility !== "hidden" &&
+      Number.parseFloat(officialStyle.opacity || "1") > 0.01 &&
+      officialFontSize > 0 &&
+      officialRect.width > 0 &&
+      officialRect.height > 0 &&
+      colorAlpha(officialStyle.color) > 0 &&
+      !clipHides(officialStyle) &&
+      officialEl.getClientRects().length > 0;
     const officialLine =
       officialNodes.length === 0
         ? null
@@ -270,13 +314,7 @@ async function measureH1(
               .replace(/\s+/g, " ")
               .trim(),
             nextToH1: officialEl !== null,
-            visible:
-              officialEl !== null &&
-              officialStyle !== null &&
-              officialStyle.display !== "none" &&
-              officialStyle.visibility !== "hidden" &&
-              Number.parseFloat(officialStyle.opacity || "1") > 0.01 &&
-              officialEl.getClientRects().length > 0,
+            visible: officialVisible,
             srOnly: officialEl?.classList.contains("sr-only") ?? false,
             count: officialNodes.length,
             clientId: officialEl?.id ?? null,
@@ -298,12 +336,16 @@ async function measureH1(
                 ? officialLetterSpacingPx / officialFontSize
                 : 0,
             textTransform: officialStyle?.textTransform ?? "",
+            wordBreak: officialStyle?.wordBreak ?? "",
+            hyphens: officialStyle?.hyphens ?? "",
             color: officialStyle?.color ?? "",
             mutedColor,
             marginTopPx: officialStyle
               ? Number.parseFloat(officialStyle.marginTop)
               : 0,
             lineCount: officialLineTops.length,
+            hidden: officialEl?.hasAttribute("hidden") ?? false,
+            ariaHidden: officialEl?.getAttribute("aria-hidden") === "true",
           };
     return {
       text,
@@ -313,7 +355,8 @@ async function measureH1(
       lineHeightRatio: fontSize > 0 ? lineHeightPx / fontSize : 0,
       letterSpacingEm: fontSize > 0 ? letterSpacingPx / fontSize : 0,
       overflowWrap: wrapSample,
-      wordBreak: style.wordBreak,
+      wordBreak: titleWordBreak,
+      hyphens: titleHyphens,
       midWordBreaks,
       lineCount: Math.max(lineTops.size, lineEls.length),
       cqi: asideRect.width,
@@ -348,6 +391,8 @@ test.describe("H1 de fichas /trabajo — títulos cortos v34", () => {
           report.overflowWrap,
           "overflow-wrap anywhere/break-word permitiría partir palabras",
         ).toBe("normal");
+        expect(report.wordBreak).toBe("normal");
+        expect(report.hyphens).toBe("none");
         expect(report.fontWeight).toBe("700");
         expect(
           report.lineHeightRatio,
@@ -360,28 +405,32 @@ test.describe("H1 de fichas /trabajo — títulos cortos v34", () => {
         expect(
           report.letterSpacingEm,
           `letter-spacing em=${report.letterSpacingEm}; se exige ${LETTER_SPACING_EM}`,
-        ).toBeGreaterThanOrEqual(LETTER_SPACING_EM - STYLE_TOLERANCE);
+        ).toBeGreaterThanOrEqual(
+          LETTER_SPACING_EM - LETTER_SPACING_TOLERANCE,
+        );
         expect(
           report.letterSpacingEm,
           `letter-spacing em=${report.letterSpacingEm}; se exige ${LETTER_SPACING_EM}`,
-        ).toBeLessThanOrEqual(LETTER_SPACING_EM + STYLE_TOLERANCE);
+        ).toBeLessThanOrEqual(LETTER_SPACING_EM + LETTER_SPACING_TOLERANCE);
         expect(report.creativeWorkName).toBe(item.officialName);
         if (item.officialLine === null) {
           expect(report.officialLine).toBeNull();
           expect(report.articleLabelledBy).toBe("work-case-title");
         } else {
-          expect(report.officialLine).not.toBeNull();
-          expect(report.officialLine?.count).toBe(1);
-          expect(report.officialLine?.nextToH1).toBe(true);
-          expect(report.officialLine?.visible).toBe(true);
-          expect(report.officialLine?.srOnly).toBe(false);
-          expect(report.officialLine?.text).toBe(item.officialLine);
-          expect(report.officialLine?.clientId).toBe("work-case-client");
-          expect(report.officialLine?.inAside).toBe(true);
-          expect(report.officialLine?.overflow ?? 1).toBeLessThanOrEqual(
-            OVERFLOW_TOLERANCE,
-          );
-          expect(report.officialLine?.asideOverflow ?? 1).toBeLessThanOrEqual(
+          const official = report.officialLine;
+          expect(official).not.toBeNull();
+          if (!official) throw new Error("officialLine ausente");
+          expect(official.count).toBe(1);
+          expect(official.nextToH1).toBe(true);
+          expect(official.visible).toBe(true);
+          expect(official.srOnly).toBe(false);
+          expect(official.hidden).toBe(false);
+          expect(official.ariaHidden).toBe(false);
+          expect(official.text).toBe(item.officialLine);
+          expect(official.clientId).toBe("work-case-client");
+          expect(official.inAside).toBe(true);
+          expect(official.overflow).toBeLessThanOrEqual(OVERFLOW_TOLERANCE);
+          expect(official.asideOverflow).toBeLessThanOrEqual(
             OVERFLOW_TOLERANCE,
           );
           expect(report.articleLabelledBy).toBe(
@@ -392,55 +441,55 @@ test.describe("H1 de fichas /trabajo — títulos cortos v34", () => {
               ? NAME_LINE_FONT_MOBILE_PX
               : NAME_LINE_FONT_DESKTOP_PX;
           expect(
-            report.officialLine?.fontSize,
-            `name font=${report.officialLine?.fontSize}; se exige ${nameFont}`,
+            official.fontSize,
+            `name font=${official.fontSize}; se exige ${nameFont}`,
           ).toBeGreaterThanOrEqual(nameFont - FONT_TOLERANCE);
           expect(
-            report.officialLine?.fontSize,
-            `name font=${report.officialLine?.fontSize}; se exige ${nameFont}`,
+            official.fontSize,
+            `name font=${official.fontSize}; se exige ${nameFont}`,
           ).toBeLessThanOrEqual(nameFont + FONT_TOLERANCE);
-          expect(report.officialLine?.fontWeight).toBe(NAME_LINE_WEIGHT);
+          expect(official.fontWeight).toBe(NAME_LINE_WEIGHT);
           expect(
-            report.officialLine?.lineHeightRatio,
-            `name LH ratio=${report.officialLine?.lineHeightRatio}`,
+            official.lineHeightRatio,
+            `name LH ratio=${official.lineHeightRatio}`,
           ).toBeGreaterThanOrEqual(
             NAME_LINE_LINE_HEIGHT - STYLE_TOLERANCE,
           );
           expect(
-            report.officialLine?.lineHeightRatio,
-            `name LH ratio=${report.officialLine?.lineHeightRatio}`,
+            official.lineHeightRatio,
+            `name LH ratio=${official.lineHeightRatio}`,
           ).toBeLessThanOrEqual(NAME_LINE_LINE_HEIGHT + STYLE_TOLERANCE);
           expect(
-            report.officialLine?.lineHeightPx,
-            `name LH px=${report.officialLine?.lineHeightPx}`,
+            official.lineHeightPx,
+            `name LH px=${official.lineHeightPx}`,
           ).toBeGreaterThanOrEqual(
             nameFont * NAME_LINE_LINE_HEIGHT - FONT_TOLERANCE,
           );
           expect(
-            report.officialLine?.lineHeightPx,
-            `name LH px=${report.officialLine?.lineHeightPx}`,
+            official.lineHeightPx,
+            `name LH px=${official.lineHeightPx}`,
           ).toBeLessThanOrEqual(
             nameFont * NAME_LINE_LINE_HEIGHT + FONT_TOLERANCE,
           );
           expect(
-            report.officialLine?.letterSpacingEm,
-            `name tracking=${report.officialLine?.letterSpacingEm}`,
+            official.letterSpacingEm,
+            `name tracking=${official.letterSpacingEm}`,
           ).toBeGreaterThanOrEqual(
-            NAME_LINE_LETTER_SPACING_EM - STYLE_TOLERANCE,
+            NAME_LINE_LETTER_SPACING_EM - LETTER_SPACING_TOLERANCE,
           );
           expect(
-            report.officialLine?.letterSpacingEm,
-            `name tracking=${report.officialLine?.letterSpacingEm}`,
+            official.letterSpacingEm,
+            `name tracking=${official.letterSpacingEm}`,
           ).toBeLessThanOrEqual(
-            NAME_LINE_LETTER_SPACING_EM + STYLE_TOLERANCE,
+            NAME_LINE_LETTER_SPACING_EM + LETTER_SPACING_TOLERANCE,
           );
-          expect(report.officialLine?.textTransform).toBe("none");
-          expect(report.officialLine?.color).toBe(
-            report.officialLine?.mutedColor,
-          );
+          expect(official.textTransform).toBe("none");
+          expect(official.wordBreak).toBe("normal");
+          expect(official.hyphens).toBe("none");
+          expect(official.color).toBe(official.mutedColor);
           expect(
-            report.officialLine?.marginTopPx,
-            `name margin-top=${report.officialLine?.marginTopPx}`,
+            official.marginTopPx,
+            `name margin-top=${official.marginTopPx}`,
           ).toBeCloseTo(NAME_LINE_MARGIN_TOP_PX, 0);
         }
 
