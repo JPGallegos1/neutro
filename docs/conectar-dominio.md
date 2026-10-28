@@ -8,7 +8,7 @@ Estado registrado el **19 de octubre de 2026**.
 
 - Repositorio: [JPGallegos1/neutro](https://github.com/JPGallegos1/neutro), rama `main`.
 - Worker desplegado: **`neutro-web`**.
-- El Worker responde en su URL de `workers.dev` de la cuenta de Cloudflare.
+- URL pública de ejemplo: **https://neutro-web.example.workers.dev**.
 - Contenido actual: página estática de la web pública de Neutro.
 - La página principal y sus estilos respondieron con HTTP 200; las rutas inexistentes, con HTTP 404.
 - Configuración del despliegue: `apps/web/wrangler.jsonc`.
