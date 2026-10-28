@@ -768,9 +768,8 @@ describe("contrato SEO-04 y SEO-05 de fichas", () => {
           !nextClass.split(/\s+/).includes("sr-only"),
           `${route} p.work-case__name no puede ser sr-only`,
         );
-        assert.equal(
-          next.getAttribute("hidden"),
-          null,
+        assert.ok(
+          next.getAttribute("hidden") == null,
           `${route} p.work-case__name no puede tener hidden`,
         );
         assert.notEqual(
