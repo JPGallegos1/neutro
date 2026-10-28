@@ -54,9 +54,7 @@ const NAME_LINE_MARGIN_BOTTOM_DESKTOP_PX = 8;
 const NAME_LINE_FONT_MOBILE_PX = 16;
 const NAME_LINE_FONT_DESKTOP_PX = 20;
 const NAME_LINE_WEIGHT = "500";
-const SCC_NAME_TWO_LINE_MIN = 1024;
-const SCC_NAME_TWO_LINE_MAX = 1040;
-const SCC_LINE_PROBE_WIDTHS = [1024, 1030, 1040, 1041, 1440] as const;
+const SCC_LINE_ANCHOR_WIDTHS = [1024, 1440] as const;
 
 const ANCHORED_FONT_PX = {
   320: 48,
@@ -116,17 +114,19 @@ type H1Report = {
     boxGapFromH1: number;
     boxGapToTag: number;
     lineCount: number;
+    nowrapWidth: number;
+    availableWidth: number;
     hidden: boolean;
     ariaHidden: boolean;
   } | null;
   articleLabelledBy: string | null;
 };
 
-function expectedSccNameLineCount(width: number): number {
-  if (width >= SCC_NAME_TWO_LINE_MIN && width <= SCC_NAME_TWO_LINE_MAX) {
-    return 2;
-  }
-  return 1;
+function expectedNameLineCountFromWidths(
+  availableWidth: number,
+  nowrapWidth: number,
+): number {
+  return availableWidth >= nowrapWidth ? 1 : 2;
 }
 
 function expectedFontFromCqi(width: number, cqi: number): number {
@@ -146,6 +146,7 @@ async function measureH1(
 ): Promise<H1Report> {
   await page.setViewportSize({ width, height: 900 });
   await page.goto(`/trabajo/${slug}`, { waitUntil: "domcontentloaded" });
+  await page.evaluate(() => document.fonts.ready);
   return page.evaluate(() => {
     const title = document.querySelector(".work-case__title");
     const aside = document.querySelector(".work-case__aside");
@@ -295,6 +296,23 @@ async function measureH1(
               ),
             ];
           })();
+    let nowrapWidth = 0;
+    if (officialEl !== null) {
+      const probe = officialEl.cloneNode(true);
+      if (probe instanceof HTMLElement) {
+        probe.style.position = "absolute";
+        probe.style.visibility = "hidden";
+        probe.style.pointerEvents = "none";
+        probe.style.whiteSpace = "nowrap";
+        probe.style.width = "auto";
+        probe.style.maxWidth = "none";
+        probe.style.textWrap = "nowrap";
+        officialEl.parentElement?.appendChild(probe);
+        nowrapWidth = probe.getBoundingClientRect().width;
+        probe.remove();
+      }
+    }
+    const availableWidth = asideRect.width;
     const colorAlpha = (value: string): number => {
       const rgba = value.match(
         /^rgba?\(\s*[\d.]+\s*,\s*[\d.]+\s*,\s*[\d.]+\s*(?:,\s*([\d.]+))?\s*\)$/i,
@@ -384,6 +402,8 @@ async function measureH1(
                 ? tagRect.top - officialRect.bottom
                 : 0,
             lineCount: officialLineTops.length,
+            nowrapWidth,
+            availableWidth,
             hidden: officialEl?.hasAttribute("hidden") ?? false,
             ariaHidden: officialEl?.getAttribute("aria-hidden") === "true",
           };
@@ -552,11 +572,28 @@ test.describe("H1 de fichas /trabajo — títulos cortos v34", () => {
             official.boxGapToTag,
             `caja name→tag=${official.boxGapToTag}; se exige ${expectedTagGap}`,
           ).toBeLessThanOrEqual(expectedTagGap + BOX_GAP_TOLERANCE);
-          if (item.slug === "suplementacion-ciencia") {
+          const fromWidths = expectedNameLineCountFromWidths(
+            official.availableWidth,
+            official.nowrapWidth,
+          );
+          expect(
+            official.lineCount,
+            `lineCount=${official.lineCount}; available=${official.availableWidth} nowrap=${official.nowrapWidth} ⇒ ${fromWidths}`,
+          ).toBe(fromWidths);
+          if (item.slug === "afectiva" || item.slug === "capa-automotores") {
             expect(
               official.lineCount,
-              `SCC lineCount=${official.lineCount} a ${width}px`,
-            ).toBe(expectedSccNameLineCount(width));
+              `${item.slug} lineCount=${official.lineCount} a ${width}px`,
+            ).toBe(1);
+          }
+          if (
+            item.slug === "suplementacion-ciencia" &&
+            (width === 1024 || width === 1440)
+          ) {
+            expect(
+              official.lineCount,
+              `SCC ancla ${width}px lineCount=${official.lineCount}`,
+            ).toBe(width === 1024 ? 2 : 1);
           }
         }
 
@@ -631,16 +668,21 @@ test.describe("línea oficial work-case__name — color muted claro/oscuro", () 
   }
 });
 
-test.describe("SCC work-case__name — lineCount medido en dist", () => {
-  for (const width of SCC_LINE_PROBE_WIDTHS) {
-    test(`suplementacion-ciencia a ${width}px: ${expectedSccNameLineCount(width)} línea(s)`, async ({
+test.describe("SCC work-case__name — relación nowrap vs aside", () => {
+  for (const width of SCC_LINE_ANCHOR_WIDTHS) {
+    test(`suplementacion-ciencia a ${width}px: lineCount acorde al ancho`, async ({
       page,
     }) => {
       const report = await measureH1(page, "suplementacion-ciencia", width);
       const official = report.officialLine;
       expect(official).not.toBeNull();
       if (!official) throw new Error("officialLine ausente");
-      expect(official.lineCount).toBe(expectedSccNameLineCount(width));
+      const fromWidths = expectedNameLineCountFromWidths(
+        official.availableWidth,
+        official.nowrapWidth,
+      );
+      expect(official.lineCount).toBe(fromWidths);
+      expect(official.lineCount).toBe(width === 1024 ? 2 : 1);
       expect(official.asideOverflow).toBeLessThanOrEqual(OVERFLOW_TOLERANCE);
       expect(Math.abs(official.boxGapFromH1)).toBeLessThanOrEqual(
         BOX_GAP_TOLERANCE,
