@@ -49,6 +49,14 @@ const EXPECTED_OUTCOME_TITLES = {
 
 const FORBIDDEN_NAME_TOKENS = ["SCC", "LuxuryCars"] as const;
 
+const EXPECTED_H1_LINES = {
+  "conexion-laboral": ["Conexión", "Laboral"],
+  afectiva: ["Afectiva"],
+  "capa-automotores": ["Capa"],
+  "suplementacion-ciencia": ["SCC"],
+  luxurycars: ["Luxury", "Cars"],
+} as const;
+
 describe("workCases", () => {
   it("expone los cinco casos con slug, meta y URL externa", () => {
     assert.deepEqual(
@@ -91,6 +99,14 @@ describe("workCases", () => {
         assert.notEqual(workCase.shortTitle, token, workCase.slug);
         assert.ok(!workCase.titleLines.includes(token), workCase.slug);
       }
+    }
+  });
+
+  it("fija h1Lines cortos del diseño v34 por slug", () => {
+    for (const workCase of workCases) {
+      const expected =
+        EXPECTED_H1_LINES[workCase.slug as keyof typeof EXPECTED_H1_LINES];
+      assert.deepEqual(workCase.h1Lines, [...expected], workCase.slug);
     }
   });
 

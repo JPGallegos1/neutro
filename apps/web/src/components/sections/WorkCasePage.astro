@@ -16,7 +16,7 @@ const related = relatedWorkProjects(workCase.slug);
   <div class="landing-shell landing-gutter work-case__inner">
     <header class="work-case__aside">
       <h1 id="work-case-title" class="work-case__title">
-        {workCase.titleLines.map((line, index) => (
+        {workCase.h1Lines.map((line, index) => (
           <>
             {index > 0 ? " " : null}
             <span class="work-case__title-line">{line}</span>
@@ -198,7 +198,7 @@ const related = relatedWorkProjects(workCase.slug);
   .work-case__title-line {
     display: block;
     max-width: 100%;
-    overflow-wrap: anywhere;
+    overflow-wrap: normal;
     word-break: normal;
     hyphens: none;
   }

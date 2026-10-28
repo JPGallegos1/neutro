@@ -15,6 +15,7 @@ export type WorkCase = {
   projectId: string;
   shortTitle: string;
   titleLines: string[];
+  h1Lines: string[];
   clientName: string;
   seoTitle: string;
   outcomeTitle: string | null;
@@ -44,6 +45,7 @@ export const workCases: WorkCase[] = [
     projectId: "conexlaboral",
     shortTitle: "Conexión Laboral",
     titleLines: ["Conexión", "Laboral"],
+    h1Lines: ["Conexión", "Laboral"],
     clientName: "Conexión Laboral",
     seoTitle: "Conexión Laboral: landing de asesoría",
     outcomeTitle: "agendar una asesoría gratuita con una sola página",
@@ -87,6 +89,7 @@ export const workCases: WorkCase[] = [
     projectId: "afectiva",
     shortTitle: "Afectiva Comunicaciones",
     titleLines: ["Afectiva", "Comunicaciones"],
+    h1Lines: ["Afectiva"],
     clientName: "Afectiva Comunicaciones",
     seoTitle: "Afectiva Comunicaciones: sitio web",
     outcomeTitle: "un sitio propio para mostrar todo lo que hace la agencia",
@@ -132,6 +135,7 @@ export const workCases: WorkCase[] = [
     projectId: "capaautomotores",
     shortTitle: "Capa Automotores",
     titleLines: ["Capa", "Automotores"],
+    h1Lines: ["Capa"],
     clientName: "Capa Automotores",
     seoTitle: "Capa Automotores: catálogo con stock",
     outcomeTitle: "un catálogo propio con panel para manejar el stock",
@@ -174,6 +178,7 @@ export const workCases: WorkCase[] = [
     projectId: "suplementacionconciencia",
     shortTitle: "Suplementación con Ciencia",
     titleLines: ["Suplementación", "con Ciencia"],
+    h1Lines: ["SCC"],
     clientName: "Suplementación con Ciencia",
     seoTitle: "Suplementación con Ciencia: tienda online",
     outcomeTitle:
@@ -216,6 +221,7 @@ export const workCases: WorkCase[] = [
     projectId: "luxurycars",
     shortTitle: "Luxury Cars",
     titleLines: ["Luxury", "Cars"],
+    h1Lines: ["Luxury", "Cars"],
     clientName: "Luxury Cars",
     seoTitle: "Luxury Cars: plataforma de autos de lujo",
     outcomeTitle:
