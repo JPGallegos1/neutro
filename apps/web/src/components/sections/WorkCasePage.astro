@@ -10,19 +10,27 @@ interface Props {
 
 const { workCase } = Astro.props;
 const related = relatedWorkProjects(workCase.slug);
+const articleLabelledBy = workCase.h1OfficialLine
+  ? "work-case-title work-case-client"
+  : "work-case-title";
 ---
 
-<article class="work-case" aria-labelledby="work-case-title">
+<article class="work-case" aria-labelledby={articleLabelledBy}>
   <div class="landing-shell landing-gutter work-case__inner">
     <header class="work-case__aside">
       <h1 id="work-case-title" class="work-case__title">
-        {workCase.titleLines.map((line, index) => (
+        {workCase.h1Lines.map((line, index) => (
           <>
             {index > 0 ? " " : null}
             <span class="work-case__title-line">{line}</span>
           </>
         ))}
       </h1>
+      {workCase.h1OfficialLine ? (
+        <p id="work-case-client" class="work-case__name">
+          {workCase.h1OfficialLine}
+        </p>
+      ) : null}
       <p class="work-case__tag">{workCase.tag}</p>
       <a
         class="rounded-md bg-primary px-4 py-2 text-sm work-case__visit"
@@ -161,10 +169,11 @@ const related = relatedWorkProjects(workCase.slug);
   }
 
   .work-case__aside {
+    --work-aside-gap: 16px;
     display: flex;
     flex-direction: column;
     align-items: flex-start;
-    gap: 16px;
+    gap: var(--work-aside-gap);
     min-width: 0;
     container-type: inline-size;
     container-name: work-aside;
@@ -182,17 +191,49 @@ const related = relatedWorkProjects(workCase.slug);
     display: flex;
     flex-direction: column;
     max-width: 100%;
-    font-size: clamp(2.5rem, 18cqi, 6.5rem);
+    font-size: clamp(2.5rem, 18cqi, 3rem);
     font-weight: 700;
     line-height: 0.93;
     letter-spacing: -0.04em;
     text-transform: uppercase;
+    word-break: normal;
+    hyphens: none;
+  }
+
+  @media (min-width: 1024px) {
+    .work-case__title {
+      font-size: clamp(3rem, 18cqi, 6.5rem);
+    }
   }
 
   .work-case__title-line {
     display: block;
     max-width: 100%;
-    overflow-wrap: break-word;
+    overflow-wrap: normal;
+    word-break: normal;
+    hyphens: none;
+  }
+
+  .work-case__name {
+    margin: calc(-1 * var(--work-aside-gap)) 0 0;
+    max-width: 100%;
+    font-size: 16px;
+    font-weight: 500;
+    line-height: 1.3;
+    letter-spacing: -0.01em;
+    text-transform: none;
+    text-wrap: balance;
+    overflow-wrap: normal;
+    word-break: normal;
+    hyphens: none;
+    color: var(--neutro-text-muted);
+  }
+
+  @media (min-width: 1024px) {
+    .work-case__name {
+      margin: calc(-1 * var(--work-aside-gap)) 0 8px;
+      font-size: 20px;
+    }
   }
 
   .work-case__tag {

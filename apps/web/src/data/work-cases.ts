@@ -15,6 +15,8 @@ export type WorkCase = {
   projectId: string;
   shortTitle: string;
   titleLines: string[];
+  h1Lines: string[];
+  h1OfficialLine: string | null;
   clientName: string;
   seoTitle: string;
   outcomeTitle: string | null;
@@ -44,6 +46,8 @@ export const workCases: WorkCase[] = [
     projectId: "conexlaboral",
     shortTitle: "Conexión Laboral",
     titleLines: ["Conexión", "Laboral"],
+    h1Lines: ["Conexión", "Laboral"],
+    h1OfficialLine: null,
     clientName: "Conexión Laboral",
     seoTitle: "Conexión Laboral: landing de asesoría",
     outcomeTitle: "agendar una asesoría gratuita con una sola página",
@@ -87,6 +91,8 @@ export const workCases: WorkCase[] = [
     projectId: "afectiva",
     shortTitle: "Afectiva Comunicaciones",
     titleLines: ["Afectiva", "Comunicaciones"],
+    h1Lines: ["Afectiva"],
+    h1OfficialLine: "Afectiva Comunicaciones",
     clientName: "Afectiva Comunicaciones",
     seoTitle: "Afectiva Comunicaciones: sitio web",
     outcomeTitle: "un sitio propio para mostrar todo lo que hace la agencia",
@@ -132,6 +138,8 @@ export const workCases: WorkCase[] = [
     projectId: "capaautomotores",
     shortTitle: "Capa Automotores",
     titleLines: ["Capa", "Automotores"],
+    h1Lines: ["Capa"],
+    h1OfficialLine: "Capa Automotores",
     clientName: "Capa Automotores",
     seoTitle: "Capa Automotores: catálogo con stock",
     outcomeTitle: "un catálogo propio con panel para manejar el stock",
@@ -174,6 +182,8 @@ export const workCases: WorkCase[] = [
     projectId: "suplementacionconciencia",
     shortTitle: "Suplementación con Ciencia",
     titleLines: ["Suplementación", "con Ciencia"],
+    h1Lines: ["SCC"],
+    h1OfficialLine: "Suplementación con Ciencia (SCC)",
     clientName: "Suplementación con Ciencia",
     seoTitle: "Suplementación con Ciencia: tienda online",
     outcomeTitle:
@@ -216,6 +226,8 @@ export const workCases: WorkCase[] = [
     projectId: "luxurycars",
     shortTitle: "Luxury Cars",
     titleLines: ["Luxury", "Cars"],
+    h1Lines: ["Luxury", "Cars"],
+    h1OfficialLine: null,
     clientName: "Luxury Cars",
     seoTitle: "Luxury Cars: plataforma de autos de lujo",
     outcomeTitle:

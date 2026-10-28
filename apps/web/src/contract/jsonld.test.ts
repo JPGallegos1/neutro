@@ -32,6 +32,14 @@ const CASE_TITLES: Record<string, string> = {
     "Luxury Cars: plataforma de autos de lujo | Neutro Solutions",
 };
 
+const CASE_H1: Record<string, string> = {
+  "/trabajo/conexion-laboral": "Conexión Laboral",
+  "/trabajo/afectiva": "Afectiva",
+  "/trabajo/capa-automotores": "Capa",
+  "/trabajo/suplementacion-ciencia": "SCC",
+  "/trabajo/luxurycars": "Luxury Cars",
+};
+
 type JsonRecord = Record<string, unknown>;
 
 type ParsedBlock = {
@@ -333,7 +341,7 @@ describe("contrato JSON-LD (SEO-15)", () => {
     assert.deepEqual(problems, [], problems.join("\n"));
   });
 
-  it("alinea el CreativeWork de cada ficha con H1, tarjeta, ItemList y breadcrumb", () => {
+  it("alinea el CreativeWork de cada ficha con tarjeta, ItemList y breadcrumb; H1 usa título corto v34", () => {
     const pages = loadPages();
     const problems: string[] = [];
     const cases = casePages(pages);
@@ -447,7 +455,6 @@ describe("contrato JSON-LD (SEO-15)", () => {
       const name = stringField(creative, "name");
       const surfaces: Array<[string, string | undefined]> = [
         ["CreativeWork.name", name],
-        ["h1", h1],
         ["tarjeta", card],
         ["ItemList", listedName],
         ["breadcrumb[3]", crumbName],
@@ -462,6 +469,12 @@ describe("contrato JSON-LD (SEO-15)", () => {
           `${label} ${surfaces
             .map(([key, value]) => `${key}=${JSON.stringify(value ?? null)}`)
             .join(" ")}`,
+        );
+      }
+      const expectedH1 = CASE_H1[entry.page.route] ?? null;
+      if (h1 !== expectedH1) {
+        problems.push(
+          `${label} h1=${JSON.stringify(h1 ?? null)}; se exige el título corto ${JSON.stringify(expectedH1)} (CreativeWork.name sigue siendo el nombre oficial)`,
         );
       }
     }
