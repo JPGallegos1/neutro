@@ -395,6 +395,12 @@ const related = relatedWorkProjects(workCase.slug);
     list-style: none;
   }
 
+  @media (max-width: 1023px) {
+    .work-case__related-grid {
+      row-gap: 24px;
+    }
+  }
+
   @media (min-width: 1024px) {
     .work-case__related-grid {
       grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
