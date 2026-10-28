@@ -4,7 +4,7 @@
 
 Proposed (2026-10-27).
 
-Juan approved the draft on 2026-10-27 and asked for this file alone, as a pull request that stays unmerged. Merge waits for Juan’s explicit OK. Maya confirms that OK. The same gate is what [ADR 0006](0006-workers-builds-delivery.md) calls **Propuesto**. This status is not Accepted.
+Juan approved the draft on 2026-10-27 and asked for this file alone, as a pull request that stays unmerged. Merge waits for Juan’s explicit OK. Maya confirms that OK. Proposed here is the same state [ADR 0006](0006-workers-builds-delivery.md) calls Propuesto.
 
 This document does not create `apps/muestras`, a Worker, or DNS. No app code and no DNS until Juan’s explicit approval.
 
@@ -41,11 +41,11 @@ Numbering: this ADR is **0009**, the next free number. On `main`, `docs/adr/` ru
 
 - **Own bounded context.** A new app, `apps/muestras`, in this monorepo (pnpm + Turborepo), with its own Cloudflare Worker and the host `muestras.neutro.solutions`. The Muestras are that app. They are not a route of `apps/web`. The directory `apps/muestras` does not exist yet.
 - **Stack.** The same stack as `apps/web`: Astro with React islands and a static build, so the app can reuse `packages/typescript-config`, `packages/ui`, and the lint and CI rules. Sistemas demos are React islands that run only in the browser. `apps/web` already uses that stack and the Worker `neutro-web`. The muestras Worker does not exist yet.
-- **Data.** Every datum is fictional and versioned in the repo, in a typed Muestra registry with the same role as `apps/web/src/data/work-cases.ts`. Sistemas demos keep state only in memory or `localStorage`. The app makes no network call to a Neutro service or to a third party, submits no form, and sets no cookie. Analytics stays off by default ([ADR 0001](0001-analytics-off-by-default.md), _Analytics apagado por defecto, habilitado en producción por variables de build_).
+- **Data.** Every datum is fictional and versioned in the repo, in a typed Muestra registry with the same role as `apps/web/src/data/work-cases.ts`. Sistemas demos keep state only in memory or `localStorage`. The app makes no network call to a Neutro service or to a third party, submits no form, and sets no cookie. The `apps/muestras` build never defines `PUBLIC_POSTHOG_KEY` or `PUBLIC_ANALYTICS_ENABLED`, including in production, and there is no `/ingest` proxy. [ADR 0001](0001-analytics-off-by-default.md) is cited only as the off-by-default pattern.
 - **Indexing.** Every page sends `noindex` in a meta element and in the `X-Robots-Tag` response header. The app has no sitemap. `robots.txt` does not block these pages: a blocked crawl never reaches the `noindex`. When Juan decides to index one Rubro, that change is an explicit data change on that Muestra, recorded in an ADR or an amendment.
 - **Brand text «Muestra».** Every page shows a visible, stable «Muestra» and carries `data-muestra` in the HTML so a test can find it. Iris defines the look. The look is still open.
 - **Beside `/trabajo`.** `/trabajo` and the home page link to the subdomain with the button «¿Querés ver ejemplos?». A Muestra never enters the `ItemList`, the JSON-LD, or the Caso cards of `apps/web`.
-- **Dependencies.** One app does not import another app. Shared code lives in `packages/*` and is extracted only when a second real consumer exists. If `apps/muestras` needs brand tokens that today live in `apps/web`, those tokens move to `packages/ui` in an earlier, separate pull request. See Open.
+- **Dependencies.** One app does not import another app. Shared code lives in `packages/*` and is extracted only when a second real consumer exists. The `--neutro-*` colors already live in `packages/ui/src/styles/globals.css`. Only what still lives solely in `apps/web` would be extracted to `packages/*` (for example typography and spacing), in an earlier, separate pull request. That remainder is verified before the skeleton pull request. See Open.
 - **Delivery.** The app gets its own Worker, with Workers Builds and a preview per pull request, in the shape of [ADR 0006](0006-workers-builds-delivery.md). The title of that ADR is “Flujo de delivery de `neutro-web` con Workers Builds y Worker Previews”, and its status is Propuesto. It covers `neutro-web`. It does not configure this Worker, and it does not create `staging`. DNS for `muestras.neutro.solutions` and the deploy are Jack’s, with Juan’s OK. The Worker and the DNS record do not exist yet.
 - **Owner.** Neutro Implementer owns `apps/muestras` until a Templates bot exists. Hamilton is the architect.
 
@@ -53,15 +53,15 @@ Numbering: this ADR is **0009**, the next free number. On `main`, `docs/adr/` ru
 
 Seven Muestras, approved by Juan on 2026-10-27. Diseño and Tienda online wait for a later Tanda. The Spanish names are the labels of the demos.
 
-| Offer                 | Form                     | Rubro                                                                   | Muestra                                                                                 |
-| --------------------- | ------------------------ | ----------------------------------------------------------------------- | --------------------------------------------------------------------------------------- |
-| Web                   | Landing                  | Servicios profesionales (professional services, a studio or a practice) | Landing                                                                                 |
-| Web                   | Landing                  | Gastronomía (food service)                                              | Landing                                                                                 |
-| Web                   | Landing                  | Peluquería/estética (hair salon / aesthetics)                           | Landing with reservas y turnos (bookings and appointments)                              |
-| Sistemas              | Browser UI, no backend   | Gastronomía (food service)                                              | Gestión de pedidos (order management)                                                   |
-| Sistemas              | Browser UI, no backend   | Peluquería/estética (hair salon / aesthetics)                           | Ficha de clientes (client record; a salon record, not a Caso page)                      |
-| Sistemas              | Browser UI, no backend   | Servicios profesionales (professional services)                         | Caja y cobranzas (cash and collections)                                                 |
-| Automatización con IA | Browser demo, no backend | Peluquería/estética (hair salon / aesthetics)                           | Asistente por WhatsApp que agenda turnos (a WhatsApp assistant that books appointments) |
+| Offer                 | Form                     | Rubro                                                                   | Muestra                                                                                                                                                                                              |
+| --------------------- | ------------------------ | ----------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Web                   | Landing                  | Servicios profesionales (professional services, a studio or a practice) | Landing                                                                                                                                                                                              |
+| Web                   | Landing                  | Gastronomía (food service)                                              | Landing                                                                                                                                                                                              |
+| Web                   | Landing                  | Peluquería/estética (hair salon / aesthetics)                           | Landing with reservas y turnos (bookings and appointments)                                                                                                                                           |
+| Sistemas              | Browser UI, no backend   | Gastronomía (food service)                                              | Gestión de pedidos (order management)                                                                                                                                                                |
+| Sistemas              | Browser UI, no backend   | Peluquería/estética (hair salon / aesthetics)                           | Ficha de clientes (client record; a salon record, not a Caso page)                                                                                                                                   |
+| Sistemas              | Browser UI, no backend   | Servicios profesionales (professional services)                         | Caja y cobranzas (cash and collections)                                                                                                                                                              |
+| Automatización con IA | Browser demo, no backend | Peluquería/estética (hair salon / aesthetics)                           | Asistente por WhatsApp que agenda turnos (a WhatsApp assistant that books appointments). The assistant is a scripted conversation that runs in the browser, with no network calls and no real model. |
 
 ## Alternatives considered
 
@@ -121,7 +121,7 @@ Each step is verified before the next one. No durations.
 ## Open
 
 - The look of the brand text «Muestra». Iris defines it. Pending. Maya asks Iris.
-- Whether the brand tokens `apps/muestras` needs already live in `packages/ui`, or still have to be extracted from `apps/web`. To verify before step 3 of the plan. `packages/ui/src/styles/globals.css` exists and defines Neutro color tokens (`--neutro-*`). That file does not close the question, and it is not the «Muestra» brand.
+- The `--neutro-*` colors already live in `packages/ui/src/styles/globals.css`. Still to verify before step 3 of the plan: whether `apps/muestras` needs anything that still lives only in `apps/web` (for example typography and spacing). Only that remainder would be extracted to `packages/*`. Those tokens are not the «Muestra» brand.
 
 Resolved on 2026-10-27, and recorded above so they are not still open:
 
