@@ -40,7 +40,9 @@ const DESKTOP_FLOOR_PX = 48;
 const DESKTOP_MAX_PX = 104;
 const CQI_FACTOR = 0.18;
 const FONT_TOLERANCE = 1;
+const NAME_LINE_FONT_TOLERANCE = 0.1;
 const OVERFLOW_TOLERANCE = 1;
+const BOX_GAP_TOLERANCE = 0.5;
 const LINE_HEIGHT = 0.93;
 const LETTER_SPACING_EM = -0.04;
 const LETTER_SPACING_TOLERANCE = 0.002;
@@ -48,9 +50,13 @@ const STYLE_TOLERANCE = 0.005;
 const NAME_LINE_LETTER_SPACING_EM = -0.01;
 const NAME_LINE_LINE_HEIGHT = 1.3;
 const NAME_LINE_MARGIN_TOP_PX = -16;
+const NAME_LINE_MARGIN_BOTTOM_DESKTOP_PX = 8;
 const NAME_LINE_FONT_MOBILE_PX = 16;
 const NAME_LINE_FONT_DESKTOP_PX = 20;
 const NAME_LINE_WEIGHT = "500";
+const SCC_NAME_TWO_LINE_MIN = 1024;
+const SCC_NAME_TWO_LINE_MAX = 1040;
+const SCC_LINE_PROBE_WIDTHS = [1024, 1030, 1040, 1041, 1440] as const;
 
 const ANCHORED_FONT_PX = {
   320: 48,
@@ -99,17 +105,29 @@ type H1Report = {
     lineHeightPx: number;
     letterSpacingEm: number;
     textTransform: string;
+    overflowWrap: string;
+    textWrap: string;
     wordBreak: string;
     hyphens: string;
     color: string;
     mutedColor: string;
     marginTopPx: number;
+    marginBottomPx: number;
+    boxGapFromH1: number;
+    boxGapToTag: number;
     lineCount: number;
     hidden: boolean;
     ariaHidden: boolean;
   } | null;
   articleLabelledBy: string | null;
 };
+
+function expectedSccNameLineCount(width: number): number {
+  if (width >= SCC_NAME_TWO_LINE_MIN && width <= SCC_NAME_TWO_LINE_MAX) {
+    return 2;
+  }
+  return 1;
+}
 
 function expectedFontFromCqi(width: number, cqi: number): number {
   if (width < 1024) {
@@ -197,8 +215,8 @@ async function measureH1(
         ? getComputedStyle(lineEls[0])
         : style;
     const wrapSample = lineStyle.overflowWrap;
-    const titleWordBreak = style.wordBreak;
-    const titleHyphens = style.hyphens;
+    const titleWordBreak = lineStyle.wordBreak;
+    const titleHyphens = lineStyle.hyphens;
     const lineOverflows = lineEls.flatMap((el) => {
       if (!(el instanceof HTMLElement)) return [];
       if (el.scrollWidth <= el.clientWidth + 0.5) return [];
@@ -266,13 +284,17 @@ async function measureH1(
     const officialLineTops =
       officialEl === null
         ? []
-        : [
-            ...new Set(
-              [...officialEl.getClientRects()]
-                .filter((r) => r.height > 0.5)
-                .map((r) => Math.round(r.top)),
-            ),
-          ];
+        : (() => {
+            const range = document.createRange();
+            range.selectNodeContents(officialEl);
+            return [
+              ...new Set(
+                [...range.getClientRects()]
+                  .filter((r) => r.width > 0.5 && r.height > 0.5)
+                  .map((r) => Math.round(r.top)),
+              ),
+            ];
+          })();
     const colorAlpha = (value: string): number => {
       const rgba = value.match(
         /^rgba?\(\s*[\d.]+\s*,\s*[\d.]+\s*,\s*[\d.]+\s*(?:,\s*([\d.]+))?\s*\)$/i,
@@ -306,6 +328,11 @@ async function measureH1(
       colorAlpha(officialStyle.color) > 0 &&
       !clipHides(officialStyle) &&
       officialEl.getClientRects().length > 0;
+    const tagEl =
+      officialEl?.nextElementSibling instanceof HTMLElement
+        ? officialEl.nextElementSibling
+        : null;
+    const tagRect = tagEl?.getBoundingClientRect();
     const officialLine =
       officialNodes.length === 0
         ? null
@@ -336,6 +363,8 @@ async function measureH1(
                 ? officialLetterSpacingPx / officialFontSize
                 : 0,
             textTransform: officialStyle?.textTransform ?? "",
+            overflowWrap: officialStyle?.overflowWrap ?? "",
+            textWrap: officialStyle?.getPropertyValue("text-wrap") ?? "",
             wordBreak: officialStyle?.wordBreak ?? "",
             hyphens: officialStyle?.hyphens ?? "",
             color: officialStyle?.color ?? "",
@@ -343,6 +372,17 @@ async function measureH1(
             marginTopPx: officialStyle
               ? Number.parseFloat(officialStyle.marginTop)
               : 0,
+            marginBottomPx: officialStyle
+              ? Number.parseFloat(officialStyle.marginBottom)
+              : 0,
+            boxGapFromH1:
+              officialRect !== undefined
+                ? officialRect.top - titleRect.bottom
+                : 0,
+            boxGapToTag:
+              officialRect !== undefined && tagRect !== undefined
+                ? tagRect.top - officialRect.bottom
+                : 0,
             lineCount: officialLineTops.length,
             hidden: officialEl?.hasAttribute("hidden") ?? false,
             ariaHidden: officialEl?.getAttribute("aria-hidden") === "true",
@@ -440,14 +480,17 @@ test.describe("H1 de fichas /trabajo — títulos cortos v34", () => {
             width < 1024
               ? NAME_LINE_FONT_MOBILE_PX
               : NAME_LINE_FONT_DESKTOP_PX;
+          const expectedTagGap = width < 1024 ? 16 : 24;
+          const expectedMarginBottom =
+            width < 1024 ? 0 : NAME_LINE_MARGIN_BOTTOM_DESKTOP_PX;
           expect(
             official.fontSize,
             `name font=${official.fontSize}; se exige ${nameFont}`,
-          ).toBeGreaterThanOrEqual(nameFont - FONT_TOLERANCE);
+          ).toBeGreaterThanOrEqual(nameFont - NAME_LINE_FONT_TOLERANCE);
           expect(
             official.fontSize,
             `name font=${official.fontSize}; se exige ${nameFont}`,
-          ).toBeLessThanOrEqual(nameFont + FONT_TOLERANCE);
+          ).toBeLessThanOrEqual(nameFont + NAME_LINE_FONT_TOLERANCE);
           expect(official.fontWeight).toBe(NAME_LINE_WEIGHT);
           expect(
             official.lineHeightRatio,
@@ -484,6 +527,8 @@ test.describe("H1 de fichas /trabajo — títulos cortos v34", () => {
             NAME_LINE_LETTER_SPACING_EM + LETTER_SPACING_TOLERANCE,
           );
           expect(official.textTransform).toBe("none");
+          expect(official.overflowWrap).toBe("normal");
+          expect(official.textWrap).toBe("balance");
           expect(official.wordBreak).toBe("normal");
           expect(official.hyphens).toBe("none");
           expect(official.color).toBe(official.mutedColor);
@@ -491,6 +536,28 @@ test.describe("H1 de fichas /trabajo — títulos cortos v34", () => {
             official.marginTopPx,
             `name margin-top=${official.marginTopPx}`,
           ).toBeCloseTo(NAME_LINE_MARGIN_TOP_PX, 0);
+          expect(
+            official.marginBottomPx,
+            `name margin-bottom=${official.marginBottomPx}`,
+          ).toBeCloseTo(expectedMarginBottom, 0);
+          expect(
+            Math.abs(official.boxGapFromH1),
+            `caja H1→name=${official.boxGapFromH1}; se exige ≈0`,
+          ).toBeLessThanOrEqual(BOX_GAP_TOLERANCE);
+          expect(
+            official.boxGapToTag,
+            `caja name→tag=${official.boxGapToTag}; se exige ${expectedTagGap}`,
+          ).toBeGreaterThanOrEqual(expectedTagGap - BOX_GAP_TOLERANCE);
+          expect(
+            official.boxGapToTag,
+            `caja name→tag=${official.boxGapToTag}; se exige ${expectedTagGap}`,
+          ).toBeLessThanOrEqual(expectedTagGap + BOX_GAP_TOLERANCE);
+          if (item.slug === "suplementacion-ciencia") {
+            expect(
+              official.lineCount,
+              `SCC lineCount=${official.lineCount} a ${width}px`,
+            ).toBe(expectedSccNameLineCount(width));
+          }
         }
 
         expect(
@@ -560,6 +627,24 @@ test.describe("línea oficial work-case__name — color muted claro/oscuro", () 
         .locator("html")
         .evaluate((el) => el.classList.contains("dark"));
       expect(dark).toBe(theme === "dark");
+    });
+  }
+});
+
+test.describe("SCC work-case__name — lineCount medido en dist", () => {
+  for (const width of SCC_LINE_PROBE_WIDTHS) {
+    test(`suplementacion-ciencia a ${width}px: ${expectedSccNameLineCount(width)} línea(s)`, async ({
+      page,
+    }) => {
+      const report = await measureH1(page, "suplementacion-ciencia", width);
+      const official = report.officialLine;
+      expect(official).not.toBeNull();
+      if (!official) throw new Error("officialLine ausente");
+      expect(official.lineCount).toBe(expectedSccNameLineCount(width));
+      expect(official.asideOverflow).toBeLessThanOrEqual(OVERFLOW_TOLERANCE);
+      expect(Math.abs(official.boxGapFromH1)).toBeLessThanOrEqual(
+        BOX_GAP_TOLERANCE,
+      );
     });
   }
 });
