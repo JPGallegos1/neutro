@@ -281,9 +281,9 @@ async function measureH1(
       return rgba[1] === undefined ? 1 : Number.parseFloat(rgba[1]);
     };
     const clipHides = (s: CSSStyleDeclaration): boolean => {
-      const clip = s.clip.replace(/\s+/g, "");
+      const clip = s.getPropertyValue("clip").replace(/\s+/g, "");
       if (/^rect\(0px,0px,0px,0px\)$/i.test(clip)) return true;
-      const path = s.clipPath.replace(/\s+/g, "").toLowerCase();
+      const path = s.getPropertyValue("clip-path").replace(/\s+/g, "").toLowerCase();
       if (path === "none" || path === "") return false;
       return (
         path.startsWith("inset(100%") ||
