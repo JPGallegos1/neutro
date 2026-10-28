@@ -1,0 +1,51 @@
+name: gitleaks
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+
+concurrency:
+  group: gitleaks-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
+
+permissions:
+  contents: read
+
+jobs:
+  gitleaks:
+    name: gitleaks
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout sin credenciales (actions/checkout v4.4.0)
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          persist-credentials: false
+          fetch-depth: 0
+      - name: Instalar gitleaks 8.30.1
+        run: |
+          set -euo pipefail
+          version="8.30.1"
+          archive="gitleaks_${version}_linux_x64.tar.gz"
+          expected="551f6fc83ea457d62a0d98237cbad105af8d557003051f41f3e7ca7b3f2470eb"
+          work="${RUNNER_TEMP}/gitleaks"
+          mkdir -p "${work}"
+          curl --fail --silent --show-error --location --output "${work}/${archive}" \
+            "https://github.com/gitleaks/gitleaks/releases/download/v${version}/${archive}"
+          (
+            cd "${work}"
+            echo "${expected}  ${archive}" | sha256sum --check --strict
+            tar --extract --gzip --file "${archive}" gitleaks
+          )
+          echo "${work}" >> "${GITHUB_PATH}"
+          "${work}/gitleaks" version | grep -qx "${version}"
+      - name: Escanear el historial
+        run: gitleaks git --no-banner --no-color --redact --verbose --config .gitleaks.toml
+      - name: Setup Node (actions/setup-node v4.4.0)
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version-file: .node-version
+      - name: Rechazar .env y .dev.vars trackeados
+        run: node tools/ci/check-tracked-env.mjs
