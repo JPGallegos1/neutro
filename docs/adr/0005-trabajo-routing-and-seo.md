@@ -6,7 +6,7 @@ Accepted — Juan (26/10/2026). Design reference: Iris **v34**. Reviewers: Jake 
 
 Amendment SEO-15 (2026-10-27) — Juan’s OK, cited by Maya. Scope: JSON-LD for case pages and `/trabajo`, the case `<title>`s, **Más trabajo** (every other published case, 2 columns), the single manual order, and the rule of 4 plus **Cargar más**.
 
-Amendment SEO-15 (2026-10-28) — Juan’s OK, cited by Maya. The case `<h1>` is the short design title (`h1Lines`, Iris v34). When that text is not the official `name`, the official name is visible in the initial HTML, in a `<p>` immediately after the `</h1>` (`afectiva`, `capa-automotores`, `suplementacion-ciencia`).
+Amendment SEO-15 (2026-10-27) — Juan’s OK, cited by Maya. The case `<h1>` is the short design title (`h1Lines`, Iris v34). When that text is not the official `name`, the official name is visible in the initial HTML, in a `<p>` immediately after the `</h1>` (`afectiva`, `capa-automotores`, `suplementacion-ciencia`).
 
 Pagination follow-up (opción A): Juan (26/10/2026) — `/trabajo` is the only indexable index URL; no `?page=N`; all cases ship in the HTML and **Cargar más** only reveals with JS.
 
@@ -109,7 +109,7 @@ Reuse the landing **Card / Work** components and the landing Trabajo grid for ca
 
 In force. Juan’s OK, cited by Maya, on 2026-10-27. This amendment does not change the status above (Accepted). Opción A and the single index canonical `https://neutro.solutions/trabajo` stay. Scope: JSON-LD for case pages and `/trabajo`, the case `<title>`s, **Más trabajo** (every other published case, 2 columns), the single manual order, and the rule of 4 plus **Cargar más**.
 
-Follow-up (2026-10-28) — Juan’s OK, cited by Maya. It amends the case `<h1>` rule and the names table in this section. It does not change the status above (Accepted).
+Follow-up (2026-10-27) — Juan’s OK, cited by Maya. It amends the case `<h1>` rule and the names table in this section. It does not change the status above (Accepted).
 
 **Index (`/trabajo`)**
 
