@@ -24,6 +24,12 @@ jobs:
         with:
           persist-credentials: false
           fetch-depth: 0
+      - name: Setup Node (actions/setup-node v4.4.0)
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version-file: .node-version
+      - name: Rechazar .env y .dev.vars trackeados
+        run: node tools/ci/check-tracked-env.mjs
       - name: Instalar gitleaks 8.30.1
         run: |
           set -euo pipefail
@@ -43,9 +49,3 @@ jobs:
           "${work}/gitleaks" version | grep -qx "${version}"
       - name: Escanear el historial
         run: gitleaks git --no-banner --no-color --redact --verbose --config .gitleaks.toml
-      - name: Setup Node (actions/setup-node v4.4.0)
-        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
-        with:
-          node-version-file: .node-version
-      - name: Rechazar .env y .dev.vars trackeados
-        run: node tools/ci/check-tracked-env.mjs

@@ -6,7 +6,7 @@ useDefault = true
 [[allowlists]]
 description = "Claves phc_ de prueba en apps/web/worker/posthog.test.ts"
 condition = "AND"
-paths = ['''(^|/)apps/web/worker/posthog\.test\.ts$''']
+paths = ['''^apps/web/worker/posthog\.test\.ts$''']
 regexTarget = "secret"
 regexes = ['''^phc_[A-Za-z0-9_]+$''']
 
@@ -16,10 +16,3 @@ condition = "AND"
 paths = ['''(^|/)\.cursor/skills/verify-web/SKILL\.md$''']
 regexTarget = "line"
 regexes = ['''phc_probe_not_a_real_key''']
-
-[[allowlists]]
-description = "Hash de integridad de pnpm-lock.yaml que contiene eyJ"
-condition = "AND"
-paths = ['''(^|/)pnpm-lock\.yaml$''']
-regexTarget = "line"
-regexes = ['''integrity:[^\n]*eyJ''']
