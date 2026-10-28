@@ -273,6 +273,45 @@ const { title, description, canonical, heading } = Astro.props;
     vertical-align: top;
   }
 
+  @media (max-width: 767px) {
+    .legal-table th,
+    .legal-table td {
+      padding: 10px 10px 10px 0;
+      word-break: normal;
+    }
+
+    .legal-table--denunciar,
+    .legal-table--proveedores {
+      table-layout: fixed;
+    }
+
+    .legal-table--denunciar th,
+    .legal-table--denunciar td,
+    .legal-table--proveedores th,
+    .legal-table--proveedores td {
+      overflow-wrap: break-word;
+    }
+
+    .legal-table--denunciar th:last-child,
+    .legal-table--denunciar td:last-child {
+      width: 52%;
+    }
+
+    .legal-table--proveedores th:nth-child(2),
+    .legal-table--proveedores td:nth-child(2) {
+      width: 56%;
+    }
+  }
+
+  @media (max-width: 329px) {
+    .legal-table:not(.legal-table--denunciar):not(.legal-table--proveedores)
+      th,
+    .legal-table:not(.legal-table--denunciar):not(.legal-table--proveedores)
+      td {
+      overflow-wrap: anywhere;
+    }
+  }
+
   .legal-table th {
     font-family: var(--font-mono);
     font-size: 12px;
@@ -291,5 +330,15 @@ const { title, description, canonical, heading } = Astro.props;
   .legal-table th:last-child,
   .legal-table td:last-child {
     padding-right: 0;
+  }
+
+  @media (min-width: 768px) {
+    .legal-table wbr {
+      display: none;
+    }
+
+    .legal-table a[href^="mailto:"] {
+      white-space: nowrap;
+    }
   }
 </style>

@@ -159,4 +159,27 @@ const TitleTag = titleAs;
     text-decoration: underline;
     text-underline-offset: 4px;
   }
+
+  a.work-card__inner {
+    position: relative;
+    z-index: 0;
+  }
+
+  a.work-card__inner:focus-visible {
+    z-index: 1;
+    outline: none;
+  }
+
+  a.work-card__inner:focus-visible::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    z-index: 2;
+    pointer-events: none;
+    outline: 2px solid transparent;
+    outline-offset: -2px;
+    box-shadow:
+      inset 0 0 0 2px var(--neutro-bg),
+      inset 0 0 0 4px var(--landing-focus);
+  }
 </style>

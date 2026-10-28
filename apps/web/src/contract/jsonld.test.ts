@@ -471,10 +471,8 @@ describe("contrato JSON-LD (SEO-15)", () => {
             .join(" ")}`,
         );
       }
-      const expectedH1 = CASE_H1[entry.page.route];
-      if (expectedH1 === undefined) {
-        problems.push(`${label} sin H1 corto esperado para la ruta`);
-      } else if (h1 !== expectedH1) {
+      const expectedH1 = CASE_H1[entry.page.route] ?? null;
+      if (h1 !== expectedH1) {
         problems.push(
           `${label} h1=${JSON.stringify(h1 ?? null)}; se exige el título corto ${JSON.stringify(expectedH1)} (CreativeWork.name sigue siendo el nombre oficial)`,
         );
