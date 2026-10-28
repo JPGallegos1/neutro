@@ -5,26 +5,31 @@ const CASES = [
     slug: "conexion-laboral",
     h1: "CONEXIÓN LABORAL",
     officialName: "Conexión Laboral",
+    officialLine: null,
   },
   {
     slug: "afectiva",
     h1: "AFECTIVA",
     officialName: "Afectiva Comunicaciones",
+    officialLine: "Afectiva Comunicaciones",
   },
   {
     slug: "capa-automotores",
     h1: "CAPA",
     officialName: "Capa Automotores",
+    officialLine: "Capa Automotores",
   },
   {
     slug: "suplementacion-ciencia",
     h1: "SCC",
     officialName: "Suplementación con Ciencia",
+    officialLine: "Suplementación con Ciencia (SCC)",
   },
   {
     slug: "luxurycars",
     h1: "LUXURY CARS",
     officialName: "Luxury Cars",
+    officialLine: null,
   },
 ] as const;
 
@@ -69,6 +74,13 @@ type H1Report = {
   asideRight: number;
   lineOverflows: { text: string; scrollWidth: number; clientWidth: number }[];
   creativeWorkName: string | null;
+  officialLine: {
+    text: string;
+    nextToH1: boolean;
+    visible: boolean;
+    srOnly: boolean;
+    count: number;
+  } | null;
 };
 
 function expectedFontFromCqi(width: number, cqi: number): number {
@@ -111,6 +123,7 @@ async function measureH1(
       asideRight: 0,
       lineOverflows: [],
       creativeWorkName: null,
+      officialLine: null,
     };
     if (!(title instanceof HTMLElement) || !(aside instanceof HTMLElement)) {
       return empty;
@@ -191,6 +204,34 @@ async function measureH1(
         continue;
       }
     }
+    const officialNodes = [
+      ...document.querySelectorAll("p.work-case__official"),
+    ];
+    const next = title.nextElementSibling;
+    const officialEl =
+      next instanceof HTMLParagraphElement &&
+      next.classList.contains("work-case__official")
+        ? next
+        : null;
+    const officialStyle = officialEl ? getComputedStyle(officialEl) : null;
+    const officialLine =
+      officialNodes.length === 0
+        ? null
+        : {
+            text: (officialEl?.textContent ?? officialNodes[0]?.textContent ?? "")
+              .replace(/\s+/g, " ")
+              .trim(),
+            nextToH1: officialEl !== null,
+            visible:
+              officialEl !== null &&
+              officialStyle !== null &&
+              officialStyle.display !== "none" &&
+              officialStyle.visibility !== "hidden" &&
+              Number.parseFloat(officialStyle.opacity || "1") > 0.01 &&
+              officialEl.getClientRects().length > 0,
+            srOnly: officialEl?.classList.contains("sr-only") ?? false,
+            count: officialNodes.length,
+          };
     return {
       text,
       h1Count: document.querySelectorAll("h1").length,
@@ -211,6 +252,7 @@ async function measureH1(
       asideRight: asideRect.right,
       lineOverflows,
       creativeWorkName,
+      officialLine,
     };
   });
 }
@@ -250,6 +292,16 @@ test.describe("H1 de fichas /trabajo — títulos cortos v34", () => {
           `letter-spacing em=${report.letterSpacingEm}; se exige ${LETTER_SPACING_EM}`,
         ).toBeLessThanOrEqual(LETTER_SPACING_EM + STYLE_TOLERANCE);
         expect(report.creativeWorkName).toBe(item.officialName);
+        if (item.officialLine === null) {
+          expect(report.officialLine).toBeNull();
+        } else {
+          expect(report.officialLine).not.toBeNull();
+          expect(report.officialLine?.count).toBe(1);
+          expect(report.officialLine?.nextToH1).toBe(true);
+          expect(report.officialLine?.visible).toBe(true);
+          expect(report.officialLine?.srOnly).toBe(false);
+          expect(report.officialLine?.text).toBe(item.officialLine);
+        }
 
         expect(
           report.scrollWidth,

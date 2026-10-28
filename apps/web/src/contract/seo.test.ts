@@ -431,6 +431,14 @@ const JAKE_H1_SHORT = {
   luxurycars: "Luxury Cars",
 } as const;
 
+const JAKE_H1_OFFICIAL_LINE = {
+  "conexion-laboral": null,
+  afectiva: "Afectiva Comunicaciones",
+  "capa-automotores": "Capa Automotores",
+  "suplementacion-ciencia": "Suplementación con Ciencia (SCC)",
+  luxurycars: null,
+} as const;
+
 const JAKE_OFFICIAL_NAME_LIST = Object.values(JAKE_OFFICIAL_NAMES);
 
 type JakeCaseSlug = keyof typeof JAKE_DOCUMENT_TITLES;
@@ -704,6 +712,43 @@ describe("contrato SEO-04 y SEO-05 de fichas", () => {
         expectedH1,
         `${route} h1Lines no coincide con el H1 corto esperado`,
       );
+
+      const expectedOfficialLine = JAKE_H1_OFFICIAL_LINE[slug];
+      const next = h1.nextElementSibling;
+      if (expectedOfficialLine === null) {
+        assert.ok(
+          next === null ||
+            !((next.getAttribute("class") ?? "").includes("work-case__official")),
+          `${route} no debe tener p.work-case__official tras el H1`,
+        );
+        assert.equal(
+          page.document.querySelectorAll("p.work-case__official").length,
+          0,
+          `${route} no debe renderizar p.work-case__official`,
+        );
+      } else {
+        assert.ok(next, `${route} sin hermano siguiente del H1`);
+        assert.equal(next.tagName.toLowerCase(), "p", `${route} hermano del H1`);
+        const nextClass = next.getAttribute("class") ?? "";
+        assert.ok(
+          nextClass.includes("work-case__official"),
+          `${route} hermano del H1 class=${JSON.stringify(nextClass)}`,
+        );
+        assert.ok(
+          !nextClass.split(/\s+/).includes("sr-only"),
+          `${route} p.work-case__official no puede ser sr-only`,
+        );
+        assert.equal(
+          next.text.replace(/\s+/g, " ").trim(),
+          expectedOfficialLine,
+          `${route} línea oficial`,
+        );
+        assert.equal(
+          page.document.querySelectorAll("p.work-case__official").length,
+          1,
+          `${route} exactamente una línea oficial`,
+        );
+      }
 
       const card = trabajo.querySelector(`a[href="${route}"]`);
       assert.ok(card, `/trabajo sin tarjeta ${route}`);

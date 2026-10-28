@@ -23,6 +23,9 @@ const related = relatedWorkProjects(workCase.slug);
           </>
         ))}
       </h1>
+      {workCase.h1OfficialLine ? (
+        <p class="work-case__official">{workCase.h1OfficialLine}</p>
+      ) : null}
       <p class="work-case__tag">{workCase.tag}</p>
       <a
         class="rounded-md bg-primary px-4 py-2 text-sm work-case__visit"
@@ -201,6 +204,17 @@ const related = relatedWorkProjects(workCase.slug);
     overflow-wrap: normal;
     word-break: normal;
     hyphens: none;
+  }
+
+  .work-case__official {
+    margin: 0;
+    max-width: 100%;
+    color: var(--neutro-text-muted);
+    font-size: 0.875rem;
+    font-weight: 400;
+    line-height: 1.35;
+    letter-spacing: normal;
+    text-transform: none;
   }
 
   .work-case__tag {
