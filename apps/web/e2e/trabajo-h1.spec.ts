@@ -80,7 +80,12 @@ type H1Report = {
     visible: boolean;
     srOnly: boolean;
     count: number;
+    clientId: string | null;
+    inAside: boolean;
+    overflow: number;
+    asideOverflow: number;
   } | null;
+  articleLabelledBy: string | null;
 };
 
 function expectedFontFromCqi(width: number, cqi: number): number {
@@ -124,6 +129,7 @@ async function measureH1(
       lineOverflows: [],
       creativeWorkName: null,
       officialLine: null,
+      articleLabelledBy: null,
     };
     if (!(title instanceof HTMLElement) || !(aside instanceof HTMLElement)) {
       return empty;
@@ -204,6 +210,7 @@ async function measureH1(
         continue;
       }
     }
+    const article = document.querySelector("article.work-case");
     const officialNodes = [
       ...document.querySelectorAll("p.work-case__official"),
     ];
@@ -214,6 +221,7 @@ async function measureH1(
         ? next
         : null;
     const officialStyle = officialEl ? getComputedStyle(officialEl) : null;
+    const officialRect = officialEl?.getBoundingClientRect();
     const officialLine =
       officialNodes.length === 0
         ? null
@@ -231,6 +239,15 @@ async function measureH1(
               officialEl.getClientRects().length > 0,
             srOnly: officialEl?.classList.contains("sr-only") ?? false,
             count: officialNodes.length,
+            clientId: officialEl?.id ?? null,
+            inAside: officialEl !== null && aside.contains(officialEl),
+            overflow: officialEl
+              ? officialEl.scrollWidth - officialEl.clientWidth
+              : 0,
+            asideOverflow:
+              officialRect !== undefined
+                ? Math.max(0, officialRect.right - asideRect.right)
+                : 0,
           };
     return {
       text,
@@ -253,6 +270,7 @@ async function measureH1(
       lineOverflows,
       creativeWorkName,
       officialLine,
+      articleLabelledBy: article?.getAttribute("aria-labelledby") ?? null,
     };
   });
 }
@@ -294,6 +312,7 @@ test.describe("H1 de fichas /trabajo — títulos cortos v34", () => {
         expect(report.creativeWorkName).toBe(item.officialName);
         if (item.officialLine === null) {
           expect(report.officialLine).toBeNull();
+          expect(report.articleLabelledBy).toBe("work-case-title");
         } else {
           expect(report.officialLine).not.toBeNull();
           expect(report.officialLine?.count).toBe(1);
@@ -301,6 +320,17 @@ test.describe("H1 de fichas /trabajo — títulos cortos v34", () => {
           expect(report.officialLine?.visible).toBe(true);
           expect(report.officialLine?.srOnly).toBe(false);
           expect(report.officialLine?.text).toBe(item.officialLine);
+          expect(report.officialLine?.clientId).toBe("work-case-client");
+          expect(report.officialLine?.inAside).toBe(true);
+          expect(report.officialLine?.overflow ?? 1).toBeLessThanOrEqual(
+            OVERFLOW_TOLERANCE,
+          );
+          expect(report.officialLine?.asideOverflow ?? 1).toBeLessThanOrEqual(
+            OVERFLOW_TOLERANCE,
+          );
+          expect(report.articleLabelledBy).toBe(
+            "work-case-title work-case-client",
+          );
         }
 
         expect(

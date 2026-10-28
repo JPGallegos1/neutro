@@ -713,9 +713,29 @@ describe("contrato SEO-04 y SEO-05 de fichas", () => {
         `${route} h1Lines no coincide con el H1 corto esperado`,
       );
 
+      assert.equal(
+        page.document.querySelectorAll("h1").length,
+        1,
+        `${route} debe tener exactamente 1 h1 en toda la página`,
+      );
+      assert.equal(
+        h1.querySelectorAll("p.work-case__official").length,
+        0,
+        `${route} la línea oficial no puede estar dentro del H1`,
+      );
+
+      const article = page.document.querySelector("article.work-case");
+      assert.ok(article, `${route} sin article.work-case`);
+      const labelledBy = article.getAttribute("aria-labelledby") ?? "";
+
       const expectedOfficialLine = JAKE_H1_OFFICIAL_LINE[slug];
       const next = h1.nextElementSibling;
       if (expectedOfficialLine === null) {
+        assert.equal(
+          labelledBy,
+          "work-case-title",
+          `${route} aria-labelledby=${JSON.stringify(labelledBy)}`,
+        );
         assert.ok(
           next === null ||
             !((next.getAttribute("class") ?? "").includes("work-case__official")),
@@ -726,9 +746,23 @@ describe("contrato SEO-04 y SEO-05 de fichas", () => {
           0,
           `${route} no debe renderizar p.work-case__official`,
         );
+        assert.equal(
+          page.document.querySelectorAll("#work-case-client").length,
+          0,
+          `${route} no debe tener #work-case-client`,
+        );
       } else {
+        assert.equal(
+          labelledBy,
+          "work-case-title work-case-client",
+          `${route} aria-labelledby=${JSON.stringify(labelledBy)}`,
+        );
         assert.ok(next, `${route} sin hermano siguiente del H1`);
         assert.equal(next.tagName.toLowerCase(), "p", `${route} hermano del H1`);
+        assert.ok(
+          !/^h[1-6]$/i.test(next.tagName),
+          `${route} la línea oficial no puede ser heading`,
+        );
         const nextClass = next.getAttribute("class") ?? "";
         assert.ok(
           nextClass.includes("work-case__official"),
@@ -737,6 +771,11 @@ describe("contrato SEO-04 y SEO-05 de fichas", () => {
         assert.ok(
           !nextClass.split(/\s+/).includes("sr-only"),
           `${route} p.work-case__official no puede ser sr-only`,
+        );
+        assert.equal(
+          next.getAttribute("id"),
+          "work-case-client",
+          `${route} id de la línea oficial`,
         );
         assert.equal(
           next.text.replace(/\s+/g, " ").trim(),

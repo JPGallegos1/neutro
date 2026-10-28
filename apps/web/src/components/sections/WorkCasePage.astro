@@ -10,9 +10,12 @@ interface Props {
 
 const { workCase } = Astro.props;
 const related = relatedWorkProjects(workCase.slug);
+const articleLabelledBy = workCase.h1OfficialLine
+  ? "work-case-title work-case-client"
+  : "work-case-title";
 ---
 
-<article class="work-case" aria-labelledby="work-case-title">
+<article class="work-case" aria-labelledby={articleLabelledBy}>
   <div class="landing-shell landing-gutter work-case__inner">
     <header class="work-case__aside">
       <h1 id="work-case-title" class="work-case__title">
@@ -24,7 +27,9 @@ const related = relatedWorkProjects(workCase.slug);
         ))}
       </h1>
       {workCase.h1OfficialLine ? (
-        <p class="work-case__official">{workCase.h1OfficialLine}</p>
+        <p id="work-case-client" class="work-case__official">
+          {workCase.h1OfficialLine}
+        </p>
       ) : null}
       <p class="work-case__tag">{workCase.tag}</p>
       <a
