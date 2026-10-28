@@ -369,6 +369,71 @@ describe("install.mjs", () => {
     }
   });
 
+  it("preserva un core.hooksPath distinto y avisa en una línea", () => {
+    const cwd = initRepo();
+    const previous = "hooks-previos";
+    try {
+      git(cwd, ["config", "core.hooksPath", previous]);
+      const result = spawnSync(process.execPath, [installScript], {
+        cwd,
+        encoding: "utf8",
+        env: withoutCi(),
+      });
+      assert.equal(result.status, 0, result.stderr);
+      assert.equal(result.stdout, "");
+      assert.equal(localHooksPath(cwd), previous);
+      assert.equal(
+        result.stderr,
+        "No se instalaron los hooks de Neutro: el repo ya tiene otro core.hooksPath.\n",
+      );
+      assert.equal(result.stderr.includes(previous), false);
+    } finally {
+      rmSync(cwd, { recursive: true, force: true });
+    }
+  });
+
+  it("instala core.hooksPath si el repo no lo tiene", () => {
+    const cwd = initRepo();
+    try {
+      assert.equal(localHooksPath(cwd), "");
+      const result = spawnSync(process.execPath, [installScript], {
+        cwd,
+        encoding: "utf8",
+        env: withoutCi(),
+      });
+      assert.equal(result.status, 0, result.stderr);
+      assert.equal(result.stderr, "");
+      assert.equal(localHooksPath(cwd), HOOKS_PATH);
+    } finally {
+      rmSync(cwd, { recursive: true, force: true });
+    }
+  });
+
+  it("deja core.hooksPath igual si ya es tools/git-hooks", () => {
+    const cwd = initRepo();
+    try {
+      git(cwd, ["config", "core.hooksPath", HOOKS_PATH]);
+      const first = spawnSync(process.execPath, [installScript], {
+        cwd,
+        encoding: "utf8",
+        env: withoutCi(),
+      });
+      assert.equal(first.status, 0, first.stderr);
+      assert.equal(first.stderr, "");
+      assert.equal(localHooksPath(cwd), HOOKS_PATH);
+      const second = spawnSync(process.execPath, [installScript], {
+        cwd,
+        encoding: "utf8",
+        env: withoutCi(),
+      });
+      assert.equal(second.status, 0, second.stderr);
+      assert.equal(second.stderr, "");
+      assert.equal(localHooksPath(cwd), HOOKS_PATH);
+    } finally {
+      rmSync(cwd, { recursive: true, force: true });
+    }
+  });
+
   it("sale 0 si el directorio no es un repo", () => {
     const cwd = mkdtempSync(join(tmpdir(), "neutro-not-git-"));
     try {

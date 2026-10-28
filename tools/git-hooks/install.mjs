@@ -8,11 +8,26 @@ export function isContinuousIntegration(env = process.env) {
   return env.CI === "true" || env.CI === "1" || env.GITHUB_ACTIONS === "true";
 }
 
-function repoRoot() {
-  return execFileSync("git", ["rev-parse", "--show-toplevel"], {
+const OTHER_HOOKS_PATH_WARNING =
+  "No se instalaron los hooks de Neutro: el repo ya tiene otro core.hooksPath.";
+
+function gitOutput(args) {
+  return execFileSync("git", args, {
     encoding: "utf8",
     stdio: ["ignore", "pipe", "ignore"],
   }).trim();
+}
+
+function repoRoot() {
+  return gitOutput(["rev-parse", "--show-toplevel"]);
+}
+
+function configuredHooksPath() {
+  try {
+    return gitOutput(["config", "--local", "--get", "core.hooksPath"]);
+  } catch {
+    return "";
+  }
 }
 
 export function installGitHooks(env = process.env) {
@@ -30,6 +45,11 @@ export function installGitHooks(env = process.env) {
       return { installed: false };
     }
   } catch {
+    return { installed: false };
+  }
+  const current = configuredHooksPath();
+  if (current !== "" && current !== HOOKS_PATH) {
+    console.error(OTHER_HOOKS_PATH_WARNING);
     return { installed: false };
   }
   try {
