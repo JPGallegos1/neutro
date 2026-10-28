@@ -6,29 +6,22 @@ Estado registrado el **19 de octubre de 2026**.
 
 ## Estado actual
 
-- Repositorio: [JPGallegos1/neutro](https://github.com/JPGallegos1/neutro), privado, rama `main`.
+- Repositorio: [JPGallegos1/neutro](https://github.com/JPGallegos1/neutro), rama `main`.
 - Worker desplegado: **`neutro-web`**.
-- URL pública funcionando: **https://neutro-web.jpgallegos20.workers.dev**.
+- El Worker responde en su URL de `workers.dev` de la cuenta de Cloudflare.
 - Contenido actual: página estática de la web pública de Neutro.
 - La página principal y sus estilos respondieron con HTTP 200; las rutas inexistentes, con HTTP 404.
 - Configuración del despliegue: `apps/web/wrangler.jsonc`.
-- Pendiente: añadir o verificar la zona del dominio en Cloudflare, cambiar la delegación en Namecheap y conectar el dominio al Worker.
+- Pendiente: añadir o verificar la zona del dominio en Cloudflare, actualizar la delegación DNS en el registrador y conectar el dominio al Worker.
 
-En la consulta DNS realizada, `neutro.solutions` utilizaba estos nameservers de Namecheap:
-
-```text
-dns1.registrar-servers.com
-dns2.registrar-servers.com
-```
-
-El registro A del dominio resolvía a `192.64.119.232`. Es una referencia del estado anterior, no la dirección que debe configurarse para el Worker.
+Antes de la migración, el DNS del dominio lo administraba el registrador. Ese estado anterior no define la configuración del Worker: Cloudflare crea el registro y el certificado al conectar el Custom Domain.
 
 ## Resultado esperado
 
 - `https://neutro.solutions/` muestra la página pública de Neutro.
 - `https://www.neutro.solutions/` redirige a `https://neutro.solutions/`.
 - Cloudflare administra DNS, alojamiento y certificados HTTPS.
-- Namecheap sigue siendo el registrador donde se administra la compra y renovación del dominio.
+- El registrador del dominio sigue administrando la compra y renovación.
 
 ## 1. Añadir el dominio a Cloudflare
 
@@ -36,31 +29,30 @@ El registro A del dominio resolvía a `192.64.119.232`. Es una referencia del es
 2. Buscar si `neutro.solutions` ya existe entre los dominios de esa cuenta. Si existe, revisar su estado y continuar con su configuración actual.
 3. Si todavía no existe, seleccionar la opción para añadir un dominio e introducir **`neutro.solutions`**, sin `https://` ni rutas.
 4. Seleccionar el plan **Free**.
-5. Revisar los registros DNS detectados o importados. Si se utilizan correo u otros servicios, copiar también sus registros necesarios, como MX, TXT, SPF, DKIM y DMARC: el cambio de nameservers no los migra por sí solo.
-6. Anotar los **dos nameservers que Cloudflare asigne a esta zona**.
+5. Revisar los registros DNS detectados o importados. Si se utilizan correo u otros servicios, copiar también sus registros necesarios, como MX, TXT, SPF, DKIM y DMARC: el cambio de delegación DNS no los migra por sí solo.
+6. Anotar los **dos servidores DNS que Cloudflare asigne a esta zona**.
 
-Los nameservers asignados se obtienen del panel de Cloudflare. No usar los de otro dominio ni sustituirlos por ejemplos genéricos.
+Los servidores asignados se obtienen del panel de Cloudflare. No usar los de otro dominio ni sustituirlos por ejemplos genéricos.
 
 Si el dominio tiene DNSSEC activo en el proveedor actual, seguir el procedimiento de migración de Cloudflare para retirar el DS anterior en el registrador antes del cambio. DNSSEC se puede volver a activar con los datos de Cloudflare una vez completada la migración.
 
-## 2. Cambiar los nameservers en Namecheap
+## 2. Actualizar la delegación DNS en el registrador
 
-1. Iniciar sesión en [Namecheap](https://www.namecheap.com/myaccount/login.aspx).
-2. Abrir **Domain List**.
-3. Buscar **`neutro.solutions`** y pulsar **Manage**.
-4. En **Nameservers**, seleccionar **Custom DNS**.
-5. Reemplazar los nameservers actuales por los **dos asignados por Cloudflare** en el paso anterior.
-6. Guardar con la marca de verificación del panel.
+1. Iniciar sesión en el panel del registrador del dominio.
+2. Abrir la lista de dominios y buscar **`neutro.solutions`**.
+3. Entrar a la gestión DNS o de delegación del dominio.
+4. Activar la opción de DNS personalizado (o equivalente) y reemplazar los servidores actuales por los **dos asignados por Cloudflare** en el paso anterior.
+5. Guardar los cambios.
 
-Introducir únicamente los nombres de los servidores, sin `https://` ni direcciones IP. Este cambio corresponde al apartado **Nameservers**, no a crear registros NS dentro de **Advanced DNS**.
+Introducir únicamente los nombres de los servidores, sin `https://` ni direcciones IP. Este cambio corresponde a la delegación del dominio, no a crear registros NS dentro de la zona DNS avanzada del registrador.
 
 ## 3. Esperar a que Cloudflare active la zona
 
 1. Volver al dominio en Cloudflare.
-2. Solicitar una nueva comprobación de nameservers si el panel muestra esa opción.
+2. Solicitar una nueva comprobación de la delegación DNS si el panel muestra esa opción.
 3. Esperar a que el estado pase a **Active**.
 
-Namecheap indica que la propagación puede tardar hasta **24 horas**, y más en casos excepcionales. Puede completarse antes; el estado de Cloudflare y las consultas DNS permiten comprobar el avance.
+La propagación puede tardar hasta **24 horas**, y más en casos excepcionales. Puede completarse antes; el estado de Cloudflare y las consultas DNS permiten comprobar el avance.
 
 En PowerShell:
 
@@ -68,7 +60,7 @@ En PowerShell:
 Resolve-DnsName -Name "neutro.solutions" -Type NS -DnsOnly
 ```
 
-El resultado debe mostrar los nameservers asignados por Cloudflare.
+El resultado debe mostrar los servidores DNS asignados por Cloudflare.
 
 ## 4. Conectar el dominio al Worker
 
@@ -81,7 +73,7 @@ Con la zona activa:
 5. Introducir **`neutro.solutions`** y asociarlo al despliegue de producción.
 6. Confirmar la creación del dominio y esperar a que el certificado esté activo.
 
-Cloudflare crea el registro DNS y emite el certificado HTTPS automáticamente. Para este despliegue se utiliza un **Custom Domain** del Worker; no hace falta introducir la IP anterior ni crear manualmente un CNAME hacia `workers.dev`.
+Cloudflare crea el registro DNS y emite el certificado HTTPS automáticamente. Para este despliegue se utiliza un **Custom Domain** del Worker; no hace falta introducir una dirección IP de origen ni crear manualmente un CNAME hacia `workers.dev`.
 
 Si Cloudflare informa de un registro DNS existente incompatible, revisar el registro web importado para ese mismo hostname y reemplazarlo como parte de la conexión al Worker. Conservar los registros de los demás servicios.
 
@@ -96,7 +88,7 @@ Para que los siguientes despliegues mantengan el dominio como configuración del
 }
 ```
 
-`workers_dev: true` mantiene disponible la URL pública original además del dominio personalizado.
+`workers_dev: true` mantiene disponible la URL pública de `workers.dev` además del dominio personalizado.
 
 Desde la raíz del repositorio, validar y desplegar:
 
@@ -147,8 +139,7 @@ Confirmar también que el navegador acepta el certificado HTTPS y que los estilo
 
 ## Referencias oficiales
 
-- [Namecheap: cambiar los nameservers de un dominio](https://www.namecheap.com/support/knowledgebase/article.aspx/767/10/how-to-change-dns-for-a-domain/)
 - [Cloudflare: configuración DNS completa](https://developers.cloudflare.com/dns/zone-setups/full-setup/)
-- [Cloudflare: actualizar nameservers](https://developers.cloudflare.com/dns/nameservers/update-nameservers/)
+- [Cloudflare: actualizar la delegación DNS](https://developers.cloudflare.com/dns/nameservers/update-nameservers/)
 - [Cloudflare Workers: Custom Domains](https://developers.cloudflare.com/workers/configuration/routing/custom-domains/)
 - [Cloudflare: redirigir www al dominio raíz](https://developers.cloudflare.com/rules/url-forwarding/examples/redirect-www-to-root/)
