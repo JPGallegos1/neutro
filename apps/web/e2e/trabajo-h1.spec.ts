@@ -4,22 +4,27 @@ const CASES = [
   {
     slug: "conexion-laboral",
     h1: "CONEXIÓN LABORAL",
+    officialName: "Conexión Laboral",
   },
   {
     slug: "afectiva",
     h1: "AFECTIVA",
+    officialName: "Afectiva Comunicaciones",
   },
   {
     slug: "capa-automotores",
     h1: "CAPA",
+    officialName: "Capa Automotores",
   },
   {
     slug: "suplementacion-ciencia",
     h1: "SCC",
+    officialName: "Suplementación con Ciencia",
   },
   {
     slug: "luxurycars",
     h1: "LUXURY CARS",
+    officialName: "Luxury Cars",
   },
 ] as const;
 
@@ -31,6 +36,9 @@ const DESKTOP_MAX_PX = 104;
 const CQI_FACTOR = 0.18;
 const FONT_TOLERANCE = 1;
 const OVERFLOW_TOLERANCE = 1;
+const LINE_HEIGHT = 0.93;
+const LETTER_SPACING_EM = -0.04;
+const STYLE_TOLERANCE = 0.005;
 
 const ANCHORED_FONT_PX = {
   320: 48,
@@ -43,8 +51,11 @@ const ANCHORED_FONT_PX = {
 
 type H1Report = {
   text: string;
+  h1Count: number;
   fontSize: number;
   fontWeight: string;
+  lineHeightRatio: number;
+  letterSpacingEm: number;
   overflowWrap: string;
   wordBreak: string;
   midWordBreaks: { word: string; lines: number }[];
@@ -57,6 +68,7 @@ type H1Report = {
   asideLeft: number;
   asideRight: number;
   lineOverflows: { text: string; scrollWidth: number; clientWidth: number }[];
+  creativeWorkName: string | null;
 };
 
 function expectedFontFromCqi(width: number, cqi: number): number {
@@ -79,26 +91,34 @@ async function measureH1(
   return page.evaluate(() => {
     const title = document.querySelector(".work-case__title");
     const aside = document.querySelector(".work-case__aside");
+    const empty: H1Report = {
+      text: "",
+      h1Count: document.querySelectorAll("h1").length,
+      fontSize: 0,
+      fontWeight: "",
+      lineHeightRatio: 0,
+      letterSpacingEm: 0,
+      overflowWrap: "",
+      wordBreak: "",
+      midWordBreaks: [],
+      lineCount: 0,
+      cqi: 0,
+      scrollWidth: 0,
+      clientWidth: 0,
+      titleLeft: 0,
+      titleRight: 0,
+      asideLeft: 0,
+      asideRight: 0,
+      lineOverflows: [],
+      creativeWorkName: null,
+    };
     if (!(title instanceof HTMLElement) || !(aside instanceof HTMLElement)) {
-      return {
-        text: "",
-        fontSize: 0,
-        fontWeight: "",
-        overflowWrap: "",
-        wordBreak: "",
-        midWordBreaks: [],
-        lineCount: 0,
-        cqi: 0,
-        scrollWidth: 0,
-        clientWidth: 0,
-        titleLeft: 0,
-        titleRight: 0,
-        asideLeft: 0,
-        asideRight: 0,
-        lineOverflows: [],
-      };
+      return empty;
     }
     const style = getComputedStyle(title);
+    const fontSize = Number.parseFloat(style.fontSize);
+    const lineHeightPx = Number.parseFloat(style.lineHeight);
+    const letterSpacingPx = Number.parseFloat(style.letterSpacing);
     const text = (title.textContent ?? "").replace(/\s+/g, " ").trim();
     const midWordBreaks: { word: string; lines: number }[] = [];
     const walker = document.createTreeWalker(title, NodeFilter.SHOW_TEXT);
@@ -146,10 +166,38 @@ async function measureH1(
     });
     const titleRect = title.getBoundingClientRect();
     const asideRect = aside.getBoundingClientRect();
+    let creativeWorkName: string | null = null;
+    for (const script of document.querySelectorAll(
+      'script[type="application/ld+json"]',
+    )) {
+      try {
+        const data = JSON.parse(script.textContent ?? "");
+        const nodes = Array.isArray(data)
+          ? data
+          : Array.isArray(data?.["@graph"])
+            ? data["@graph"]
+            : [data];
+        for (const node of nodes) {
+          if (
+            node &&
+            typeof node === "object" &&
+            node["@type"] === "CreativeWork" &&
+            typeof node.name === "string"
+          ) {
+            creativeWorkName = node.name;
+          }
+        }
+      } catch {
+        continue;
+      }
+    }
     return {
       text,
-      fontSize: Number.parseFloat(style.fontSize),
+      h1Count: document.querySelectorAll("h1").length,
+      fontSize,
       fontWeight: style.fontWeight,
+      lineHeightRatio: fontSize > 0 ? lineHeightPx / fontSize : 0,
+      letterSpacingEm: fontSize > 0 ? letterSpacingPx / fontSize : 0,
       overflowWrap: wrapSample,
       wordBreak: style.wordBreak,
       midWordBreaks,
@@ -162,6 +210,7 @@ async function measureH1(
       asideLeft: asideRect.left,
       asideRight: asideRect.right,
       lineOverflows,
+      creativeWorkName,
     };
   });
 }
@@ -169,10 +218,11 @@ async function measureH1(
 test.describe("H1 de fichas /trabajo — títulos cortos v34", () => {
   for (const width of VIEWPORTS) {
     for (const item of CASES) {
-      test(`/trabajo/${item.slug} a ${width}px: texto corto, sin mid-word, tipografía anclada, sin desborde`, async ({
+      test(`/trabajo/${item.slug} a ${width}px: texto corto, tipografía v34, sin desborde`, async ({
         page,
       }) => {
         const report = await measureH1(page, item.slug, width);
+        expect(report.h1Count, `h1 count=${report.h1Count}`).toBe(1);
         expect(report.text.toLocaleUpperCase("es-AR")).toBe(item.h1);
         expect(
           report.midWordBreaks,
@@ -182,9 +232,24 @@ test.describe("H1 de fichas /trabajo — títulos cortos v34", () => {
           report.overflowWrap,
           "overflow-wrap anywhere/break-word permitiría partir palabras",
         ).toBe("normal");
-        expect(Number.parseInt(report.fontWeight, 10)).toBeGreaterThanOrEqual(
-          700,
-        );
+        expect(report.fontWeight).toBe("700");
+        expect(
+          report.lineHeightRatio,
+          `line-height ratio=${report.lineHeightRatio}; se exige ${LINE_HEIGHT}`,
+        ).toBeGreaterThanOrEqual(LINE_HEIGHT - STYLE_TOLERANCE);
+        expect(
+          report.lineHeightRatio,
+          `line-height ratio=${report.lineHeightRatio}; se exige ${LINE_HEIGHT}`,
+        ).toBeLessThanOrEqual(LINE_HEIGHT + STYLE_TOLERANCE);
+        expect(
+          report.letterSpacingEm,
+          `letter-spacing em=${report.letterSpacingEm}; se exige ${LETTER_SPACING_EM}`,
+        ).toBeGreaterThanOrEqual(LETTER_SPACING_EM - STYLE_TOLERANCE);
+        expect(
+          report.letterSpacingEm,
+          `letter-spacing em=${report.letterSpacingEm}; se exige ${LETTER_SPACING_EM}`,
+        ).toBeLessThanOrEqual(LETTER_SPACING_EM + STYLE_TOLERANCE);
+        expect(report.creativeWorkName).toBe(item.officialName);
 
         expect(
           report.scrollWidth,
