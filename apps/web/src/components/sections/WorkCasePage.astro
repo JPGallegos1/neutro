@@ -27,7 +27,7 @@ const articleLabelledBy = workCase.h1OfficialLine
         ))}
       </h1>
       {workCase.h1OfficialLine ? (
-        <p id="work-case-client" class="work-case__official">
+        <p id="work-case-client" class="work-case__name">
           {workCase.h1OfficialLine}
         </p>
       ) : null}
@@ -211,15 +211,24 @@ const articleLabelledBy = workCase.h1OfficialLine
     hyphens: none;
   }
 
-  .work-case__official {
-    margin: 0;
+  .work-case__name {
+    margin: -16px 0 0;
     max-width: 100%;
-    color: var(--neutro-text-muted);
-    font-size: 0.875rem;
-    font-weight: 400;
-    line-height: 1.35;
-    letter-spacing: normal;
+    font-size: 16px;
+    font-weight: 500;
+    line-height: 1.3;
+    letter-spacing: -0.01em;
     text-transform: none;
+    text-wrap: balance;
+    overflow-wrap: normal;
+    color: var(--neutro-text-muted);
+  }
+
+  @media (min-width: 1024px) {
+    .work-case__name {
+      margin: -16px 0 8px;
+      font-size: 20px;
+    }
   }
 
   .work-case__tag {

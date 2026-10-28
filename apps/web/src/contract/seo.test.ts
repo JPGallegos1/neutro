@@ -719,7 +719,7 @@ describe("contrato SEO-04 y SEO-05 de fichas", () => {
         `${route} debe tener exactamente 1 h1 en toda la página`,
       );
       assert.equal(
-        h1.querySelectorAll("p.work-case__official").length,
+        h1.querySelectorAll("p.work-case__name").length,
         0,
         `${route} la línea oficial no puede estar dentro del H1`,
       );
@@ -738,13 +738,13 @@ describe("contrato SEO-04 y SEO-05 de fichas", () => {
         );
         assert.ok(
           next === null ||
-            !((next.getAttribute("class") ?? "").includes("work-case__official")),
-          `${route} no debe tener p.work-case__official tras el H1`,
+            !((next.getAttribute("class") ?? "").includes("work-case__name")),
+          `${route} no debe tener p.work-case__name tras el H1`,
         );
         assert.equal(
-          page.document.querySelectorAll("p.work-case__official").length,
+          page.document.querySelectorAll("p.work-case__name").length,
           0,
-          `${route} no debe renderizar p.work-case__official`,
+          `${route} no debe renderizar p.work-case__name`,
         );
         assert.equal(
           page.document.querySelectorAll("#work-case-client").length,
@@ -765,12 +765,12 @@ describe("contrato SEO-04 y SEO-05 de fichas", () => {
         );
         const nextClass = next.getAttribute("class") ?? "";
         assert.ok(
-          nextClass.includes("work-case__official"),
+          nextClass.includes("work-case__name"),
           `${route} hermano del H1 class=${JSON.stringify(nextClass)}`,
         );
         assert.ok(
           !nextClass.split(/\s+/).includes("sr-only"),
-          `${route} p.work-case__official no puede ser sr-only`,
+          `${route} p.work-case__name no puede ser sr-only`,
         );
         assert.equal(
           next.getAttribute("id"),
@@ -783,7 +783,7 @@ describe("contrato SEO-04 y SEO-05 de fichas", () => {
           `${route} línea oficial`,
         );
         assert.equal(
-          page.document.querySelectorAll("p.work-case__official").length,
+          page.document.querySelectorAll("p.work-case__name").length,
           1,
           `${route} exactamente una línea oficial`,
         );

@@ -44,6 +44,12 @@ const OVERFLOW_TOLERANCE = 1;
 const LINE_HEIGHT = 0.93;
 const LETTER_SPACING_EM = -0.04;
 const STYLE_TOLERANCE = 0.005;
+const NAME_LINE_LETTER_SPACING_EM = -0.01;
+const NAME_LINE_LINE_HEIGHT = 1.3;
+const NAME_LINE_MARGIN_TOP_PX = -16;
+const NAME_LINE_FONT_MOBILE_PX = 16;
+const NAME_LINE_FONT_DESKTOP_PX = 20;
+const NAME_LINE_WEIGHT = "500";
 
 const ANCHORED_FONT_PX = {
   320: 48,
@@ -84,6 +90,16 @@ type H1Report = {
     inAside: boolean;
     overflow: number;
     asideOverflow: number;
+    fontSize: number;
+    fontWeight: string;
+    lineHeightRatio: number;
+    lineHeightPx: number;
+    letterSpacingEm: number;
+    textTransform: string;
+    color: string;
+    mutedColor: string;
+    marginTopPx: number;
+    lineCount: number;
   } | null;
   articleLabelledBy: string | null;
 };
@@ -212,16 +228,40 @@ async function measureH1(
     }
     const article = document.querySelector("article.work-case");
     const officialNodes = [
-      ...document.querySelectorAll("p.work-case__official"),
+      ...document.querySelectorAll("p.work-case__name"),
     ];
     const next = title.nextElementSibling;
     const officialEl =
       next instanceof HTMLParagraphElement &&
-      next.classList.contains("work-case__official")
+      next.classList.contains("work-case__name")
         ? next
         : null;
     const officialStyle = officialEl ? getComputedStyle(officialEl) : null;
     const officialRect = officialEl?.getBoundingClientRect();
+    const officialFontSize = officialStyle
+      ? Number.parseFloat(officialStyle.fontSize)
+      : 0;
+    const officialLineHeightPx = officialStyle
+      ? Number.parseFloat(officialStyle.lineHeight)
+      : 0;
+    const officialLetterSpacingPx = officialStyle
+      ? Number.parseFloat(officialStyle.letterSpacing)
+      : 0;
+    const mutedProbe = document.createElement("span");
+    mutedProbe.style.color = "var(--neutro-text-muted)";
+    document.body.appendChild(mutedProbe);
+    const mutedColor = getComputedStyle(mutedProbe).color;
+    mutedProbe.remove();
+    const officialLineTops =
+      officialEl === null
+        ? []
+        : [
+            ...new Set(
+              [...officialEl.getClientRects()]
+                .filter((r) => r.height > 0.5)
+                .map((r) => Math.round(r.top)),
+            ),
+          ];
     const officialLine =
       officialNodes.length === 0
         ? null
@@ -248,6 +288,22 @@ async function measureH1(
               officialRect !== undefined
                 ? Math.max(0, officialRect.right - asideRect.right)
                 : 0,
+            fontSize: officialFontSize,
+            fontWeight: officialStyle?.fontWeight ?? "",
+            lineHeightRatio:
+              officialFontSize > 0 ? officialLineHeightPx / officialFontSize : 0,
+            lineHeightPx: officialLineHeightPx,
+            letterSpacingEm:
+              officialFontSize > 0
+                ? officialLetterSpacingPx / officialFontSize
+                : 0,
+            textTransform: officialStyle?.textTransform ?? "",
+            color: officialStyle?.color ?? "",
+            mutedColor,
+            marginTopPx: officialStyle
+              ? Number.parseFloat(officialStyle.marginTop)
+              : 0,
+            lineCount: officialLineTops.length,
           };
     return {
       text,
@@ -331,6 +387,61 @@ test.describe("H1 de fichas /trabajo — títulos cortos v34", () => {
           expect(report.articleLabelledBy).toBe(
             "work-case-title work-case-client",
           );
+          const nameFont =
+            width < 1024
+              ? NAME_LINE_FONT_MOBILE_PX
+              : NAME_LINE_FONT_DESKTOP_PX;
+          expect(
+            report.officialLine?.fontSize,
+            `name font=${report.officialLine?.fontSize}; se exige ${nameFont}`,
+          ).toBeGreaterThanOrEqual(nameFont - FONT_TOLERANCE);
+          expect(
+            report.officialLine?.fontSize,
+            `name font=${report.officialLine?.fontSize}; se exige ${nameFont}`,
+          ).toBeLessThanOrEqual(nameFont + FONT_TOLERANCE);
+          expect(report.officialLine?.fontWeight).toBe(NAME_LINE_WEIGHT);
+          expect(
+            report.officialLine?.lineHeightRatio,
+            `name LH ratio=${report.officialLine?.lineHeightRatio}`,
+          ).toBeGreaterThanOrEqual(
+            NAME_LINE_LINE_HEIGHT - STYLE_TOLERANCE,
+          );
+          expect(
+            report.officialLine?.lineHeightRatio,
+            `name LH ratio=${report.officialLine?.lineHeightRatio}`,
+          ).toBeLessThanOrEqual(NAME_LINE_LINE_HEIGHT + STYLE_TOLERANCE);
+          expect(
+            report.officialLine?.lineHeightPx,
+            `name LH px=${report.officialLine?.lineHeightPx}`,
+          ).toBeGreaterThanOrEqual(
+            nameFont * NAME_LINE_LINE_HEIGHT - FONT_TOLERANCE,
+          );
+          expect(
+            report.officialLine?.lineHeightPx,
+            `name LH px=${report.officialLine?.lineHeightPx}`,
+          ).toBeLessThanOrEqual(
+            nameFont * NAME_LINE_LINE_HEIGHT + FONT_TOLERANCE,
+          );
+          expect(
+            report.officialLine?.letterSpacingEm,
+            `name tracking=${report.officialLine?.letterSpacingEm}`,
+          ).toBeGreaterThanOrEqual(
+            NAME_LINE_LETTER_SPACING_EM - STYLE_TOLERANCE,
+          );
+          expect(
+            report.officialLine?.letterSpacingEm,
+            `name tracking=${report.officialLine?.letterSpacingEm}`,
+          ).toBeLessThanOrEqual(
+            NAME_LINE_LETTER_SPACING_EM + STYLE_TOLERANCE,
+          );
+          expect(report.officialLine?.textTransform).toBe("none");
+          expect(report.officialLine?.color).toBe(
+            report.officialLine?.mutedColor,
+          );
+          expect(
+            report.officialLine?.marginTopPx,
+            `name margin-top=${report.officialLine?.marginTopPx}`,
+          ).toBeCloseTo(NAME_LINE_MARGIN_TOP_PX, 0);
         }
 
         expect(
@@ -371,5 +482,35 @@ test.describe("H1 de fichas /trabajo — títulos cortos v34", () => {
         ).toBeLessThanOrEqual(fromCqi + FONT_TOLERANCE);
       });
     }
+  }
+});
+
+test.describe("línea oficial work-case__name — color muted claro/oscuro", () => {
+  for (const theme of ["light", "dark"] as const) {
+    test(`afectiva a 390px color = --neutro-text-muted (${theme})`, async ({
+      page,
+    }) => {
+      await page.emulateMedia({ colorScheme: theme });
+      await page.addInitScript((value: string) => {
+        localStorage.setItem("neutro-theme", value);
+      }, theme);
+      const report = await measureH1(page, "afectiva", 390);
+      expect(report.officialLine).not.toBeNull();
+      expect(report.officialLine?.color).toBe(report.officialLine?.mutedColor);
+      expect(report.officialLine?.fontSize).toBeCloseTo(
+        NAME_LINE_FONT_MOBILE_PX,
+        0,
+      );
+      expect(report.officialLine?.fontWeight).toBe(NAME_LINE_WEIGHT);
+      expect(report.officialLine?.textTransform).toBe("none");
+      expect(report.officialLine?.marginTopPx).toBeCloseTo(
+        NAME_LINE_MARGIN_TOP_PX,
+        0,
+      );
+      const dark = await page
+        .locator("html")
+        .evaluate((el) => el.classList.contains("dark"));
+      expect(dark).toBe(theme === "dark");
+    });
   }
 });
