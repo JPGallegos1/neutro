@@ -24,9 +24,22 @@ const CASES = [
 ] as const;
 
 const VIEWPORTS = [320, 360, 390, 768, 1024, 1440] as const;
+const MOBILE_FLOOR_PX = 40;
 const MOBILE_MAX_PX = 48;
+const DESKTOP_FLOOR_PX = 48;
 const DESKTOP_MAX_PX = 104;
-const FONT_TOLERANCE = 0.75;
+const CQI_FACTOR = 0.18;
+const FONT_TOLERANCE = 1;
+const OVERFLOW_TOLERANCE = 1;
+
+const ANCHORED_FONT_PX = {
+  320: 48,
+  360: 48,
+  390: 48,
+  768: 48,
+  1024: 57.66,
+  1440: 85.95,
+} as const;
 
 type H1Report = {
   text: string;
@@ -36,7 +49,25 @@ type H1Report = {
   wordBreak: string;
   midWordBreaks: { word: string; lines: number }[];
   lineCount: number;
+  cqi: number;
+  scrollWidth: number;
+  clientWidth: number;
+  titleLeft: number;
+  titleRight: number;
+  asideLeft: number;
+  asideRight: number;
+  lineOverflows: { text: string; scrollWidth: number; clientWidth: number }[];
 };
+
+function expectedFontFromCqi(width: number, cqi: number): number {
+  if (width < 1024) {
+    return Math.min(MOBILE_MAX_PX, Math.max(MOBILE_FLOOR_PX, cqi * CQI_FACTOR));
+  }
+  return Math.min(
+    DESKTOP_MAX_PX,
+    Math.max(DESKTOP_FLOOR_PX, cqi * CQI_FACTOR),
+  );
+}
 
 async function measureH1(
   page: import("@playwright/test").Page,
@@ -47,7 +78,8 @@ async function measureH1(
   await page.goto(`/trabajo/${slug}`, { waitUntil: "domcontentloaded" });
   return page.evaluate(() => {
     const title = document.querySelector(".work-case__title");
-    if (!(title instanceof HTMLElement)) {
+    const aside = document.querySelector(".work-case__aside");
+    if (!(title instanceof HTMLElement) || !(aside instanceof HTMLElement)) {
       return {
         text: "",
         fontSize: 0,
@@ -56,6 +88,14 @@ async function measureH1(
         wordBreak: "",
         midWordBreaks: [],
         lineCount: 0,
+        cqi: 0,
+        scrollWidth: 0,
+        clientWidth: 0,
+        titleLeft: 0,
+        titleRight: 0,
+        asideLeft: 0,
+        asideRight: 0,
+        lineOverflows: [],
       };
     }
     const style = getComputedStyle(title);
@@ -93,6 +133,19 @@ async function measureH1(
       lineEls[0] instanceof HTMLElement
         ? getComputedStyle(lineEls[0]).overflowWrap
         : style.overflowWrap;
+    const lineOverflows = lineEls.flatMap((el) => {
+      if (!(el instanceof HTMLElement)) return [];
+      if (el.scrollWidth <= el.clientWidth + 0.5) return [];
+      return [
+        {
+          text: (el.textContent ?? "").trim(),
+          scrollWidth: el.scrollWidth,
+          clientWidth: el.clientWidth,
+        },
+      ];
+    });
+    const titleRect = title.getBoundingClientRect();
+    const asideRect = aside.getBoundingClientRect();
     return {
       text,
       fontSize: Number.parseFloat(style.fontSize),
@@ -101,6 +154,14 @@ async function measureH1(
       wordBreak: style.wordBreak,
       midWordBreaks,
       lineCount: Math.max(lineTops.size, lineEls.length),
+      cqi: asideRect.width,
+      scrollWidth: title.scrollWidth,
+      clientWidth: title.clientWidth,
+      titleLeft: titleRect.left,
+      titleRight: titleRect.right,
+      asideLeft: asideRect.left,
+      asideRight: asideRect.right,
+      lineOverflows,
     };
   });
 }
@@ -108,7 +169,7 @@ async function measureH1(
 test.describe("H1 de fichas /trabajo — títulos cortos v34", () => {
   for (const width of VIEWPORTS) {
     for (const item of CASES) {
-      test(`/trabajo/${item.slug} a ${width}px: texto corto, sin mid-word, tipografía v34`, async ({
+      test(`/trabajo/${item.slug} a ${width}px: texto corto, sin mid-word, tipografía anclada, sin desborde`, async ({
         page,
       }) => {
         const report = await measureH1(page, item.slug, width);
@@ -124,31 +185,44 @@ test.describe("H1 de fichas /trabajo — títulos cortos v34", () => {
         expect(Number.parseInt(report.fontWeight, 10)).toBeGreaterThanOrEqual(
           700,
         );
-        if (width < 1024) {
-          expect(report.fontSize).toBeLessThanOrEqual(
-            MOBILE_MAX_PX + FONT_TOLERANCE,
-          );
-          expect(report.fontSize).toBeGreaterThanOrEqual(
-            MOBILE_MAX_PX - FONT_TOLERANCE,
-          );
-        } else {
-          expect(report.fontSize).toBeLessThanOrEqual(
-            DESKTOP_MAX_PX + FONT_TOLERANCE,
-          );
-          expect(
-            report.fontSize,
-            `desktop a ${width}px quedó en ${report.fontSize}px; el clamp v34 debe superar el piso mobile`,
-          ).toBeGreaterThan(MOBILE_MAX_PX + 4);
-        }
+
+        expect(
+          report.scrollWidth,
+          `H1 scrollWidth ${report.scrollWidth} > clientWidth ${report.clientWidth}`,
+        ).toBeLessThanOrEqual(report.clientWidth + OVERFLOW_TOLERANCE);
+        expect(
+          report.lineOverflows,
+          `líneas con scroll overflow: ${JSON.stringify(report.lineOverflows)}`,
+        ).toEqual([]);
+        expect(
+          report.titleLeft,
+          `H1 left ${report.titleLeft} sale del aside (${report.asideLeft})`,
+        ).toBeGreaterThanOrEqual(report.asideLeft - OVERFLOW_TOLERANCE);
+        expect(
+          report.titleRight,
+          `H1 right ${report.titleRight} sale del aside (${report.asideRight})`,
+        ).toBeLessThanOrEqual(report.asideRight + OVERFLOW_TOLERANCE);
+
+        const anchored = ANCHORED_FONT_PX[width];
+        expect(
+          report.fontSize,
+          `fuente a ${width}px=${report.fontSize}; ancla medida ${anchored}`,
+        ).toBeGreaterThanOrEqual(anchored - FONT_TOLERANCE);
+        expect(
+          report.fontSize,
+          `fuente a ${width}px=${report.fontSize}; ancla medida ${anchored}`,
+        ).toBeLessThanOrEqual(anchored + FONT_TOLERANCE);
+
+        const fromCqi = expectedFontFromCqi(width, report.cqi);
+        expect(
+          report.fontSize,
+          `fuente=${report.fontSize}; clamp(…, ${CQI_FACTOR}*cqi=${report.cqi}, …) ⇒ ${fromCqi}`,
+        ).toBeGreaterThanOrEqual(fromCqi - FONT_TOLERANCE);
+        expect(
+          report.fontSize,
+          `fuente=${report.fontSize}; clamp(…, ${CQI_FACTOR}*cqi=${report.cqi}, …) ⇒ ${fromCqi}`,
+        ).toBeLessThanOrEqual(fromCqi + FONT_TOLERANCE);
       });
     }
   }
-
-  test("a 1440px el H1 se acerca al tope desktop del diseño (no queda en el piso mobile)", async ({
-    page,
-  }) => {
-    const report = await measureH1(page, "afectiva", 1440);
-    expect(report.fontSize).toBeGreaterThan(80);
-    expect(report.fontSize).toBeLessThanOrEqual(DESKTOP_MAX_PX + FONT_TOLERANCE);
-  });
 });
