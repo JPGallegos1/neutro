@@ -423,6 +423,14 @@ const JAKE_OFFICIAL_NAMES = {
   luxurycars: "Luxury Cars",
 } as const;
 
+const JAKE_H1_SHORT = {
+  "conexion-laboral": "Conexión Laboral",
+  afectiva: "Afectiva",
+  "capa-automotores": "Capa",
+  "suplementacion-ciencia": "SCC",
+  luxurycars: "Luxury Cars",
+} as const;
+
 const JAKE_OFFICIAL_NAME_LIST = Object.values(JAKE_OFFICIAL_NAMES);
 
 type JakeCaseSlug = keyof typeof JAKE_DOCUMENT_TITLES;
@@ -647,7 +655,7 @@ describe("contrato SEO-04 y SEO-05 de fichas", () => {
     assert.deepEqual(problems, [], problems.join("\n"));
   });
 
-  it("usa el nombre oficial en H1, tarjetas, ItemList y BreadcrumbList", () => {
+  it("usa H1 corto v34 y nombre oficial en tarjetas, ItemList y BreadcrumbList", () => {
     const problems: string[] = [];
     const trabajo = readDistPage("trabajo.html");
     const itemList = jsonLdGraphs(trabajo).find(
@@ -674,6 +682,7 @@ describe("contrato SEO-04 y SEO-05 de fichas", () => {
     for (const workCase of workCases) {
       const slug = workCase.slug as JakeCaseSlug;
       const expectedName = JAKE_OFFICIAL_NAMES[slug];
+      const expectedH1 = JAKE_H1_SHORT[slug];
       const route = `/trabajo/${workCase.slug}`;
       const page = readDistHtmlPages().find((item) => item.route === route);
       assert.ok(page, `falta dist para ${route}`);
@@ -687,12 +696,14 @@ describe("contrato SEO-04 y SEO-05 de fichas", () => {
       const h1Text = h1.text.replace(/\s+/g, " ").trim();
       assert.equal(
         h1Text,
-        expectedName,
-        `${route} H1=${JSON.stringify(h1Text)}; se exige ${expectedName}`,
+        expectedH1,
+        `${route} H1=${JSON.stringify(h1Text)}; se exige el corto ${expectedH1}`,
       );
-      for (const token of FORBIDDEN_STRUCTURED_NAMES) {
-        assert.notEqual(h1Text, token, `${route} H1 sigue siendo ${token}`);
-      }
+      assert.deepEqual(
+        workCase.h1Lines.join(" "),
+        expectedH1,
+        `${route} h1Lines no coincide con el H1 corto esperado`,
+      );
 
       const card = trabajo.querySelector(`a[href="${route}"]`);
       assert.ok(card, `/trabajo sin tarjeta ${route}`);
