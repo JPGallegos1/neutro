@@ -1,0 +1,18 @@
+title = "neutro"
+
+[extend]
+useDefault = true
+
+[[allowlists]]
+description = "Claves phc_ de prueba en apps/web/worker/posthog.test.ts"
+condition = "AND"
+paths = ['''^apps/web/worker/posthog\.test\.ts$''']
+regexTarget = "secret"
+regexes = ['''^phc_[A-Za-z0-9_]+$''']
+
+[[allowlists]]
+description = "Ejemplo phc_probe_not_a_real_key en .cursor/skills/verify-web/SKILL.md"
+condition = "AND"
+paths = ['''(^|/)\.cursor/skills/verify-web/SKILL\.md$''']
+regexTarget = "line"
+regexes = ['''phc_probe_not_a_real_key''']

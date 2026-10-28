@@ -4,7 +4,7 @@ import { describe, it } from "node:test";
 import worker, { isWorkersDevHost, withWorkersDevNoindex } from "./index.ts";
 import { isHstsHost, withSecurityHeaders } from "./security-headers.ts";
 
-const WORKERS_DEV = "https://neutro-web.jpgallegos20.workers.dev";
+const WORKERS_DEV = "https://neutro-web.example.workers.dev";
 const PRODUCTION = "https://neutro.solutions";
 const PRODUCTION_WWW = "https://www.neutro.solutions";
 const LOCALHOST = "http://localhost:8787";
@@ -67,7 +67,7 @@ async function fetchWorker(
 describe("isWorkersDevHost", () => {
   it("matches workers.dev and its subdomains only", () => {
     assert.equal(isWorkersDevHost("workers.dev"), true);
-    assert.equal(isWorkersDevHost("neutro-web.jpgallegos20.workers.dev"), true);
+    assert.equal(isWorkersDevHost("neutro-web.example.workers.dev"), true);
     assert.equal(isWorkersDevHost("neutro.solutions"), false);
     assert.equal(isWorkersDevHost("notworkers.dev"), false);
     assert.equal(isWorkersDevHost("workers.dev.example"), false);
@@ -522,7 +522,7 @@ describe("SEO-10 security headers", () => {
     assert.equal(isHstsHost("evilneutro.solutions"), false);
     assert.equal(isHstsHost("workers.dev"), false);
     assert.equal(isHstsHost("localhost"), false);
-    assert.equal(isHstsHost("neutro-web.jpgallegos20.workers.dev"), false);
+    assert.equal(isHstsHost("neutro-web.example.workers.dev"), false);
   });
 
   it("overwrites weaker upstream security headers with set", async () => {
@@ -661,7 +661,7 @@ describe("SEO-10 security headers", () => {
     try {
       const wrapped = withWorkersDevNoindex(
         upstream,
-        "neutro-web.jpgallegos20.workers.dev",
+        "neutro-web.example.workers.dev",
       );
       assert.equal(wrapped.status, 200);
       assert.equal(wrapped.headers.get("X-Robots-Tag"), "noindex");

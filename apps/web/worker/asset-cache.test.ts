@@ -12,7 +12,7 @@ import {
 import worker from "./index.ts";
 
 const PRODUCTION = "https://neutro.solutions";
-const WORKERS_DEV = "https://neutro-web.jpgallegos20.workers.dev";
+const WORKERS_DEV = "https://neutro-web.example.workers.dev";
 const IMMUTABLE = "public, max-age=31536000, immutable";
 const HOUR = "public, max-age=3600";
 const HTML_DEFAULT = "public, max-age=0, must-revalidate";
