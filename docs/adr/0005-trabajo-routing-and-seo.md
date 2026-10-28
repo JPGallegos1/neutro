@@ -6,6 +6,8 @@ Accepted — Juan (26/10/2026). Design reference: Iris **v34**. Reviewers: Jake 
 
 Amendment SEO-15 (2026-10-27) — Juan’s OK, cited by Maya. Scope: JSON-LD for case pages and `/trabajo`, the case `<title>`s, **Más trabajo** (every other published case, 2 columns), the single manual order, and the rule of 4 plus **Cargar más**.
 
+Amendment SEO-15 (2026-10-28) — Juan’s OK, cited by Maya. The case `<h1>` is the short design title (`h1Lines`, Iris v34). When that text is not the official `name`, the official name is visible in the initial HTML, in a `<p>` immediately after the `</h1>` (`afectiva`, `capa-automotores`, `suplementacion-ciencia`).
+
 Pagination follow-up (opción A): Juan (26/10/2026) — `/trabajo` is the only indexable index URL; no `?page=N`; all cases ship in the HTML and **Cargar más** only reveals with JS.
 
 ## Context
@@ -107,6 +109,8 @@ Reuse the landing **Card / Work** components and the landing Trabajo grid for ca
 
 In force. Juan’s OK, cited by Maya, on 2026-10-27. This amendment does not change the status above (Accepted). Opción A and the single index canonical `https://neutro.solutions/trabajo` stay. Scope: JSON-LD for case pages and `/trabajo`, the case `<title>`s, **Más trabajo** (every other published case, 2 columns), the single manual order, and the rule of 4 plus **Cargar más**.
 
+Follow-up (2026-10-28) — Juan’s OK, cited by Maya. It amends the case `<h1>` rule and the names table in this section. It does not change the status above (Accepted).
+
 **Index (`/trabajo`)**
 
 - Add a `BreadcrumbList` with exactly two items: `Inicio` → `https://neutro.solutions/`, `Trabajo` → `https://neutro.solutions/trabajo`. `CollectionPage` and `ItemList` stay as specified above.
@@ -118,24 +122,26 @@ On the case `CreativeWork` inside the page `@graph` (the layout still emits `htt
 - `creator` is `{ "@id": "https://neutro.solutions/#organization" }`. `publisher` keeps pointing at that same Organization.
 - `about` stays the client `Organization` and adds `url`: the client site, the same `href` as **Visitar sitio**. The `url` is an absolute `https` URL.
 - `headline` is the case SEO title without the suffix ` | Neutro Solutions`. It is not `outcomeTitle`. It does not contain `Neutro Solutions` and it is not longer than `<title>`.
-- `name` is the client’s official name. That same string is the case `<h1>` text, the matching card name on `/trabajo`, the `name` of that case in the `/trabajo` `ItemList`, and position 3 of the case `BreadcrumbList`.
+- `name` is the client’s official name. That same string is the matching card name on `/trabajo`, the `name` of that case in the `/trabajo` `ItemList`, position 3 of the case `BreadcrumbList`, and the value of the visible **Cliente** fact. The case `<h1>` is a short design title (Iris v34) and may be shorter than `name`; it is defined per slug in `h1Lines` and does not have to equal `name`. When the `<h1>` text is not equal to `name`, the full official name must appear as visible text in the initial HTML, in the case header, right after the `<h1>` (not inside it, not hidden, not injected by JS). `<title>`, `og:title`, `twitter:title`, `headline`, `about.name` and `BreadcrumbList` keep the official name.
 - Do not emit `datePublished` or `dateModified` on any JSON-LD node. There are no real dates; do not invent them.
 
-Official names, confirmed by Juan, including Capa Automotores (slugs stay immutable):
+Official names, confirmed by Juan, including Capa Automotores (slugs stay immutable). `<h1>` (v34) is the short design title. The visible line is the `<p>` immediately after `</h1>` when that title is not `name`; `none` means that `<p>` is absent.
 
-| Path                              | Official name              |
-| --------------------------------- | -------------------------- |
-| `/trabajo/conexion-laboral`       | Conexión Laboral           |
-| `/trabajo/afectiva`               | Afectiva Comunicaciones    |
-| `/trabajo/capa-automotores`       | Capa Automotores           |
-| `/trabajo/suplementacion-ciencia` | Suplementación con Ciencia |
-| `/trabajo/luxurycars`             | Luxury Cars                |
+| Path                              | Official name              | `<h1>` (v34)     | Visible line                     |
+| --------------------------------- | -------------------------- | ---------------- | -------------------------------- |
+| `/trabajo/conexion-laboral`       | Conexión Laboral           | Conexión Laboral | none                             |
+| `/trabajo/afectiva`               | Afectiva Comunicaciones    | Afectiva         | Afectiva Comunicaciones          |
+| `/trabajo/capa-automotores`       | Capa Automotores           | Capa             | Capa Automotores                 |
+| `/trabajo/suplementacion-ciencia` | Suplementación con Ciencia | SCC              | Suplementación con Ciencia (SCC) |
+| `/trabajo/luxurycars`             | Luxury Cars                | Luxury Cars      | none                             |
+
+**H1 type size.** Effective cap is 85.95px at ≥1440 (18cqi on a column of ~477.5px). The v34 CSS cap of 104px is not reached. Iris’s design criterion: accepted.
 
 **Case document title**
 
 - Each case `<title>` is the SEO title Jake fixed for that case. It is not built from `outcomeTitle`.
 - The string includes ` | Neutro Solutions`, is at most **60 characters** counting that suffix, and is the same in `<title>`, `og:title`, and `twitter:title`.
-- `outcomeTitle` stays for the visible H1 / headline, not for `<title>`.
+- The visible `<h1>` is `h1Lines`. `outcomeTitle` is a field on each case in `apps/web/src/data/work-cases.ts`. `apps/web/src/data/work-cases.test.ts` pins each value and checks that the document title does not include it. `outcomeTitle` is not rendered in `WorkCasePage.astro`, and it is not the `<h1>` or the `<title>`.
 
 - `/trabajo/conexion-laboral`: `Conexión Laboral: landing de asesoría | Neutro Solutions` (56)
 - `/trabajo/afectiva`: `Afectiva Comunicaciones: sitio web | Neutro Solutions` (53)
@@ -168,5 +174,5 @@ Official names, confirmed by Juan, including Capa Automotores (slugs stay immuta
 - Implementation PRs must satisfy the curl href and no-trailing-slash checks before claiming SEO readiness.
 - Design follows v34 (Iris / Juan): **En producción** ships; card/case chrome avoids 1px borders except `.work-index__more` `border-top` on `/trabajo`.
 - At **12** published cases, reopen `/trabajo` pagination and evaluate a CMS (code order + call performance).
-- `apps/web/src/contract/jsonld.test.ts` protects the JSON-LD contract in the SEO-15 amendment.
+- `apps/web/src/contract/jsonld.test.ts` protects the JSON-LD contract in the SEO-15 amendment. That file and `apps/web/src/contract/seo.test.ts` validate the short `<h1>` per slug. The official name visible next to the `<h1>` is a contract: the `<p>` immediately after `</h1>` for `afectiva`, `capa-automotores`, and `suplementacion-ciencia`, with no heading, in the static HTML.
 - `apps/web/src/contract/mas-trabajo.test.ts` protects **Más trabajo**: every other published case, in `work.ts` order. The count is that list minus the current case.
