@@ -20,6 +20,12 @@ Versión de Node: ver [`.node-version`](.node-version). Versión de pnpm: campo 
 
 No copies el contenido de un ADR al PR: linkealo.
 
+## Secretos
+
+- El hook `tools/git-hooks/pre-commit` corre en cada commit: `gitleaks git --pre-commit --staged --redact` y bloquea `.env`, `.env.*`, `.dev.vars` y `.dev.vars.*` que no terminen en `.example`.
+- `pnpm install` deja `core.hooksPath` en `tools/git-hooks` (`prepare`). Con `CI=true` no toca la config de git, así que el install de CI no exige gitleaks.
+- Si `gitleaks` no está en el PATH el commit falla e indica cómo instalar la 8.30.1. El hook no lo descarga.
+
 ## Pull requests
 
 - Títulos al estilo de los PR recientes: Conventional Commits con tipo y scope cuando aplica (`feat(web):`, `fix(web):`, `docs:`, `style:`), en español, cortos.
