@@ -5,7 +5,9 @@ import {
   existsSync,
   mkdtempSync,
   mkdirSync,
+  readdirSync,
   rmSync,
+  symlinkSync,
   writeFileSync,
 } from "node:fs";
 import { tmpdir } from "node:os";
@@ -74,6 +76,24 @@ function localHooksPath(cwd) {
 
 function nodePath() {
   return `${dirname(process.execPath)}:/usr/bin:/bin`;
+}
+
+function minimalCommandPath() {
+  const dir = mkdtempSync(join(tmpdir(), "neutro-hook-path-"));
+  const lookup = (name) =>
+    execFileSync("sh", ["-c", `command -v ${name}`], {
+      encoding: "utf8",
+    }).trim();
+  const targets = {
+    sh: lookup("sh"),
+    git: lookup("git"),
+    dirname: lookup("dirname"),
+    node: process.execPath,
+  };
+  for (const [name, target] of Object.entries(targets)) {
+    symlinkSync(target, join(dir, name));
+  }
+  return dir;
 }
 
 describe("isDisallowedEnvPath", () => {
@@ -154,23 +174,52 @@ describe("check-staged-env.mjs", () => {
 });
 
 describe("pre-commit", () => {
-  it("falla con instrucciones si gitleaks no está instalado", () => {
+  it("avisa y no bloquea si gitleaks no está instalado", () => {
     const cwd = initRepo();
+    const pathDir = minimalCommandPath();
     try {
+      assert.deepEqual(readdirSync(pathDir).sort(), [
+        "dirname",
+        "git",
+        "node",
+        "sh",
+      ]);
       writeFileSync(join(cwd, "ok.txt"), "ok");
       git(cwd, ["add", "ok.txt"]);
       const result = spawnSync("sh", [hookScript], {
         cwd,
         encoding: "utf8",
-        env: withoutCi({ PATH: nodePath() }),
+        env: withoutCi({ PATH: pathDir }),
       });
-      assert.equal(result.status, 1);
-      assert.match(result.stderr, /gitleaks no está instalado/);
-      assert.match(result.stderr, /8\.30\.1/);
-      assert.match(result.stderr, /brew install gitleaks/);
-      assert.match(result.stderr, /El hook no descarga el binario/);
+      assert.equal(result.status, 0, result.stderr);
+      assert.equal(result.stdout, "");
+      assert.equal(
+        result.stderr,
+        "gitleaks no está instalado; el commit sigue. Instalá la 8.30.1: macOS brew install gitleaks; Linux https://github.com/gitleaks/gitleaks/releases/tag/v8.30.1\n",
+      );
     } finally {
       rmSync(cwd, { recursive: true, force: true });
+      rmSync(pathDir, { recursive: true, force: true });
+    }
+  });
+
+  it("sigue bloqueando un .env staged aunque gitleaks no esté", () => {
+    const cwd = initRepo();
+    const pathDir = minimalCommandPath();
+    try {
+      writeFileSync(join(cwd, ".env"), "A=1\n");
+      git(cwd, ["add", ".env"]);
+      const result = spawnSync("sh", [hookScript], {
+        cwd,
+        encoding: "utf8",
+        env: withoutCi({ PATH: pathDir }),
+      });
+      assert.equal(result.status, 1);
+      assert.match(result.stderr, /No se puede commitear/);
+      assert.equal(result.stderr.includes("el commit sigue"), false);
+    } finally {
+      rmSync(cwd, { recursive: true, force: true });
+      rmSync(pathDir, { recursive: true, force: true });
     }
   });
 
@@ -275,6 +324,48 @@ describe("install.mjs", () => {
       assert.equal(localHooksPath(cwd), HOOKS_PATH);
     } finally {
       rmSync(cwd, { recursive: true, force: true });
+    }
+  });
+
+  it("no escribe la config si el cwd no es la raíz del repo", () => {
+    const cwd = initRepo();
+    const sub = join(cwd, "packages");
+    mkdirSync(sub);
+    try {
+      const result = spawnSync(process.execPath, [installScript], {
+        cwd: sub,
+        encoding: "utf8",
+        env: withoutCi(),
+      });
+      assert.equal(result.status, 0, result.stderr);
+      assert.equal(localHooksPath(cwd), "");
+    } finally {
+      rmSync(cwd, { recursive: true, force: true });
+    }
+  });
+
+  it("sale 0 si git config falla", () => {
+    const cwd = initRepo();
+    const bin = mkdtempSync(join(tmpdir(), "neutro-git-wrapper-"));
+    const realGit = execFileSync("sh", ["-c", "command -v git"], {
+      encoding: "utf8",
+    }).trim();
+    try {
+      writeFileSync(
+        join(bin, "git"),
+        `#!/bin/sh\nif [ "$1" = config ]; then\n  exit 1\nfi\nexec ${realGit} "$@"\n`,
+      );
+      chmodSync(join(bin, "git"), 0o755);
+      const result = spawnSync(process.execPath, [installScript], {
+        cwd,
+        encoding: "utf8",
+        env: withoutCi({ PATH: `${bin}:${process.env.PATH}` }),
+      });
+      assert.equal(result.status, 0, result.stderr);
+      assert.equal(localHooksPath(cwd), "");
+    } finally {
+      rmSync(cwd, { recursive: true, force: true });
+      rmSync(bin, { recursive: true, force: true });
     }
   });
 

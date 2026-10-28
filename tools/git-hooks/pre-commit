@@ -8,13 +8,8 @@ hook_dir=$(CDPATH= cd -- "$(dirname "$0")" && pwd)
 node "$hook_dir/check-staged-env.mjs"
 
 if ! command -v gitleaks >/dev/null 2>&1; then
-  printf '%s\n' \
-    "gitleaks no está instalado. El commit queda bloqueado." \
-    "Instalá gitleaks 8.30.1 y volvé a commitear:" \
-    "  macOS: brew install gitleaks" \
-    "  Linux: https://github.com/gitleaks/gitleaks/releases/tag/v8.30.1" \
-    "El hook no descarga el binario." >&2
-  exit 1
+  echo "gitleaks no está instalado; el commit sigue. Instalá la 8.30.1: macOS brew install gitleaks; Linux https://github.com/gitleaks/gitleaks/releases/tag/v8.30.1" >&2
+  exit 0
 fi
 
 exec gitleaks git --pre-commit --staged --redact --verbose --no-banner --no-color

@@ -8,18 +8,37 @@ export function isContinuousIntegration(env = process.env) {
   return env.CI === "true" || env.CI === "1" || env.GITHUB_ACTIONS === "true";
 }
 
+function repoRoot() {
+  return execFileSync("git", ["rev-parse", "--show-toplevel"], {
+    encoding: "utf8",
+    stdio: ["ignore", "pipe", "ignore"],
+  }).trim();
+}
+
 export function installGitHooks(env = process.env) {
   if (isContinuousIntegration(env)) {
     return { installed: false };
   }
+  let top;
   try {
-    execFileSync("git", ["rev-parse", "--git-dir"], { stdio: "ignore" });
+    top = repoRoot();
   } catch {
     return { installed: false };
   }
-  execFileSync("git", ["config", "core.hooksPath", HOOKS_PATH], {
-    stdio: "ignore",
-  });
+  try {
+    if (realpathSync(process.cwd()) !== realpathSync(top)) {
+      return { installed: false };
+    }
+  } catch {
+    return { installed: false };
+  }
+  try {
+    execFileSync("git", ["config", "core.hooksPath", HOOKS_PATH], {
+      stdio: "ignore",
+    });
+  } catch {
+    return { installed: false };
+  }
   return { installed: true };
 }
 
