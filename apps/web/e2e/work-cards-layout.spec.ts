@@ -142,10 +142,12 @@ async function focusRingReport(link: Locator) {
     const after = getComputedStyle(el, "::after");
     const boxShadow = after.boxShadow;
     const probe = document.createElement("span");
-    probe.style.cssText =
-      "position:absolute;visibility:hidden;background-color:var(--neutro-bg)";
+    probe.style.cssText = "position:absolute;visibility:hidden";
     document.body.appendChild(probe);
+    probe.style.backgroundColor = "var(--neutro-bg)";
     const neutroBg = getComputedStyle(probe).backgroundColor;
+    probe.style.backgroundColor = "var(--landing-focus)";
+    const landingFocus = getComputedStyle(probe).backgroundColor;
     probe.remove();
     const rect = el.getBoundingClientRect();
     const ring = {
@@ -165,6 +167,7 @@ async function focusRingReport(link: Locator) {
       afterOutlineColor: after.outlineColor,
       afterZIndex: after.zIndex,
       neutroBg,
+      landingFocus,
       ring,
       inViewportX:
         ring.left >= -0.5 && ring.right <= window.innerWidth + 0.5,
@@ -200,9 +203,7 @@ async function tabHastaNthCard(
 }
 
 function assertInsetRing(
-  report: Awaited<ReturnType<typeof focusRingReport>> & {
-    neutroBg?: string;
-  },
+  report: Awaited<ReturnType<typeof focusRingReport>>,
 ): void {
   expect(report, JSON.stringify(report)).not.toHaveProperty("error");
   const shadows = parseInsetShadows(String(report.afterBoxShadow ?? "none"));
@@ -211,28 +212,44 @@ function assertInsetRing(
     opaque.length,
     `anillo inset necesita ≥2 sombras opacas (banda fondo + color); hay ${opaque.length}: ${report.afterBoxShadow}`,
   ).toBeGreaterThanOrEqual(2);
-  const maxSpread = Math.max(...opaque.map((s) => s.spreadPx));
+  const neutroBg = String(
+    "neutroBg" in report ? report.neutroBg : "",
+  ).trim();
+  const landingFocus = String(
+    "landingFocus" in report ? report.landingFocus : "",
+  ).trim();
+  expect(neutroBg.length, "falta --neutro-bg resuelto").toBeGreaterThan(0);
   expect(
-    maxSpread,
-    `anillo inset demasiado fino (${maxSpread}px); mínimo ${MIN_RING_PX}px: ${report.afterBoxShadow}`,
+    landingFocus.length,
+    "falta --landing-focus resuelto",
+  ).toBeGreaterThan(0);
+  const bandShadows = opaque.filter((s) => colorsEqual(s.color, neutroBg));
+  const focusShadows = opaque.filter((s) =>
+    colorsEqual(s.color, landingFocus),
+  );
+  expect(
+    bandShadows.length,
+    `falta banda --neutro-bg (${neutroBg}): ${report.afterBoxShadow}`,
+  ).toBeGreaterThan(0);
+  expect(
+    focusShadows.length,
+    `falta anillo --landing-focus (${landingFocus}): ${report.afterBoxShadow}`,
+  ).toBeGreaterThan(0);
+  const bandSpread = Math.max(...bandShadows.map((s) => s.spreadPx));
+  const focusSpread = Math.max(...focusShadows.map((s) => s.spreadPx));
+  expect(
+    bandSpread,
+    `banda de fondo ${bandSpread}px; esperado ≥${MIN_RING_PX}px: ${report.afterBoxShadow}`,
   ).toBeGreaterThanOrEqual(MIN_RING_PX);
-  const distinct = new Set(opaque.map((s) => normalizeColor(s.color)));
   expect(
-    distinct.size,
-    `anillo inset sin dos colores distintos (banda vs foco): ${report.afterBoxShadow}`,
-  ).toBeGreaterThanOrEqual(2);
-  const neutroBg = String(report.neutroBg ?? "").trim();
-  if (neutroBg) {
-    const nonBg = opaque.filter((s) => !colorsEqual(s.color, neutroBg));
-    expect(
-      nonBg.length,
-      `falta banda de color distinta de --neutro-bg (${neutroBg}): ${report.afterBoxShadow}`,
-    ).toBeGreaterThan(0);
-    expect(
-      Math.max(...nonBg.map((s) => s.spreadPx)),
-      `banda de color < ${MIN_RING_PX}px: ${report.afterBoxShadow}`,
-    ).toBeGreaterThanOrEqual(MIN_RING_PX);
-  }
+    focusSpread,
+    `spread del foco (${focusSpread}px) debe superar la banda (${bandSpread}px): ${report.afterBoxShadow}`,
+  ).toBeGreaterThan(bandSpread);
+  const focusBandPx = focusSpread - bandSpread;
+  expect(
+    focusBandPx,
+    `grosor del anillo de foco ${focusBandPx}px; mínimo ${MIN_RING_PX}px: ${report.afterBoxShadow}`,
+  ).toBeGreaterThanOrEqual(MIN_RING_PX);
 }
 
 function assertForcedColorsIndicator(
