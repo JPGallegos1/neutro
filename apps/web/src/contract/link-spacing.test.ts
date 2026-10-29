@@ -10,6 +10,22 @@ const distDir = fileURLToPath(new URL("../../dist/", import.meta.url));
 
 const GLUED_BEFORE_ANCHOR = /([A-Za-zÁÉÍÓÚÜáéíóúüÑñ0-9)])<a\b/g;
 const LOOSE_AT = /@(?:\s*<a\b|\s+[a-z0-9][a-z0-9.-]*\.[a-z]{2,})/gi;
+const INLINE_CLOSE =
+  "a|abbr|b|bdi|cite|code|data|del|dfn|em|i|img|ins|kbd|label|mark|q|s|samp|small|span|strong|sub|sup|time|u|var";
+const SPACE_BEFORE_PUNCT = new RegExp(
+  `</(?:${INLINE_CLOSE})>(\\s+)([.,;:)!?»”…])`,
+  "gi",
+);
+const SPACE_AFTER_OPENER = new RegExp(
+  `([(\\u00ab])(\\s+)<(?:${INLINE_CLOSE})\\b`,
+  "gi",
+);
+const JSON_LD_SCRIPT =
+  /<script\b[^>]*\btype\s*=\s*(["'])application\/ld\+json\1[^>]*>[\s\S]*?<\/script>/gi;
+
+function withoutJsonLd(html: string): string {
+  return html.replace(JSON_LD_SCRIPT, "");
+}
 
 function readPageHtml(relativePath: string): string {
   return readFileSync(join(distDir, relativePath), "utf8");
@@ -78,6 +94,67 @@ function assertNoLooseAt(
   assert.deepEqual(problems, [], problems.join("\n"));
 }
 
+function punctuationSpacingProblems(
+  html: string,
+  relativePath: string,
+  route: string,
+): string[] {
+  const scanned = withoutJsonLd(html);
+  const problems: string[] = [];
+  SPACE_BEFORE_PUNCT.lastIndex = 0;
+  for (const match of scanned.matchAll(SPACE_BEFORE_PUNCT)) {
+    const at = match.index ?? 0;
+    const snippet = scanned
+      .slice(Math.max(0, at - 28), Math.min(scanned.length, at + 40))
+      .replace(/\s+/g, " ");
+    problems.push(
+      `dist/${relativePath} ruta ${route} espacio-antes-puntuacion=${JSON.stringify(match[2])} …${snippet}…`,
+    );
+  }
+  SPACE_AFTER_OPENER.lastIndex = 0;
+  for (const match of scanned.matchAll(SPACE_AFTER_OPENER)) {
+    const at = match.index ?? 0;
+    const opener = match[1] ?? "";
+    const snippet = scanned
+      .slice(Math.max(0, at - 20), Math.min(scanned.length, at + 48))
+      .replace(/\s+/g, " ");
+    problems.push(
+      `dist/${relativePath} ruta ${route} espacio-despues-de-apertura=${JSON.stringify(opener)} …${snippet}…`,
+    );
+  }
+  return problems;
+}
+
+function assertNoPunctuationSpacing(
+  html: string,
+  relativePath: string,
+  route: string,
+): void {
+  const problems = punctuationSpacingProblems(html, relativePath, route);
+  assert.deepEqual(problems, [], problems.join("\n"));
+}
+
+function withSpaceBeforePunctuation(html: string): string {
+  const needle = '<a href="/cookies"><strong>Política de cookies</strong></a>.';
+  const replacement =
+    '<a href="/cookies"><strong>Política de cookies</strong></a>\n.';
+  assert.ok(
+    html.includes(needle),
+    "no se encontró «Política de cookies</a>.» en privacidad para mutar",
+  );
+  return html.replace(needle, replacement);
+}
+
+function withSpaceAfterOpenParen(html: string): string {
+  const needle = "dominio (<code>neutro.solutions/ingest</code>)";
+  const replacement = "dominio (\n<code>neutro.solutions/ingest</code>)";
+  assert.ok(
+    html.includes(needle),
+    "no se encontró «dominio (<code>…» en cookies para mutar",
+  );
+  return html.replace(needle, replacement);
+}
+
 function withAtOutsideLink(html: string): string {
   const needle =
     '(siempre termina en\n<a href="https://neutro.solutions">@neutro.solutions</a>)';
@@ -131,4 +208,169 @@ describe("espacios antes de enlaces y mails en el dist", () => {
     assert.match(mutated, /@\s*<a\b/);
     assertNoGluedBeforeAnchor(html, "alerta-estafa.html", "/alerta-estafa");
   });
+
+  it("no deja espacio ni salto de línea antes de puntuación tras cierres inline ni tras ( o «", () => {
+    const problems: string[] = [];
+    for (const page of readDistHtmlPages()) {
+      const html = readPageHtml(page.relativePath);
+      problems.push(
+        ...punctuationSpacingProblems(html, page.relativePath, page.route),
+      );
+    }
+    assert.deepEqual(problems, [], problems.join("\n"));
+  });
+
+  it("falla si aparece espacio o salto antes de puntuación tras un cierre inline", () => {
+    const html = readPageHtml("privacidad.html");
+    assertNoPunctuationSpacing(html, "privacidad.html", "/privacidad");
+    const mutated = withSpaceBeforePunctuation(html);
+    assert.throws(
+      () =>
+        assertNoPunctuationSpacing(mutated, "privacidad.html", "/privacidad"),
+      /espacio-antes-puntuacion/,
+    );
+    assert.match(mutated, /<\/a>\s+\./);
+  });
+
+  it("falla si aparece espacio o salto entre ( o « y un cierre inline", () => {
+    const html = readPageHtml("cookies.html");
+    assertNoPunctuationSpacing(html, "cookies.html", "/cookies");
+    const mutatedParen = withSpaceAfterOpenParen(html);
+    assert.throws(
+      () =>
+        assertNoPunctuationSpacing(mutatedParen, "cookies.html", "/cookies"),
+      /espacio-despues-de-apertura/,
+    );
+    assert.match(mutatedParen, /\(\s+<code\b/);
+    const mutatedGuillemet = html.replace(
+      "dominio (<code>neutro.solutions/ingest</code>)",
+      "dominio «\n<code>neutro.solutions/ingest</code>»",
+    );
+    assert.throws(
+      () =>
+        assertNoPunctuationSpacing(
+          mutatedGuillemet,
+          "cookies.html",
+          "/cookies",
+        ),
+      /espacio-despues-de-apertura/,
+    );
+  });
+
+  it("falla si hay espacio antes de ! ? » ” … tras </em> o </span>", () => {
+    const base = "<p>texto</p>";
+    const mutatedEm = `${base}<em>hola</em>\n!`;
+    assert.throws(
+      () => assertNoPunctuationSpacing(mutatedEm, "mut.html", "/mut"),
+      /espacio-antes-puntuacion/,
+    );
+    const mutatedSpan = `${base}<span>hola</span>\n…`;
+    assert.throws(
+      () => assertNoPunctuationSpacing(mutatedSpan, "mut.html", "/mut"),
+      /espacio-antes-puntuacion/,
+    );
+  });
+
+  it("falla si aparece espacio o salto antes de puntuación tras </b>", () => {
+    const mutated = "<p>aviso</p><b>urgente</b>\n.";
+    assert.throws(
+      () => assertNoPunctuationSpacing(mutated, "mut.html", "/mut"),
+      /espacio-antes-puntuacion/,
+    );
+  });
+
+  it("ignora </span> seguido de espacio dentro de JSON-LD", () => {
+    const html =
+      '<script type="application/ld+json">{"name":"</span> …"}</script><p>ok</p>';
+    assertNoPunctuationSpacing(html, "mut.html", "/mut");
+  });
+
+  it("falla si hay espacio antes de puntuación tras </q> </s> </del> </ins> o </time>", () => {
+    for (const tag of ["q", "s", "del", "ins", "time"] as const) {
+      const mutated = `<p>x</p><${tag}>hola</${tag}>\n.`;
+      assert.throws(
+        () => assertNoPunctuationSpacing(mutated, "mut.html", "/mut"),
+        /espacio-antes-puntuacion/,
+      );
+    }
+  });
+
+  it("falla si hay espacio antes de puntuación tras cierres bdi data dfn var samp label img", () => {
+    for (const tag of [
+      "bdi",
+      "data",
+      "dfn",
+      "var",
+      "samp",
+      "label",
+      "img",
+    ] as const) {
+      const mutated = `<p>x</p><${tag}>hola</${tag}>\n.`;
+      assert.throws(
+        () => assertNoPunctuationSpacing(mutated, "mut.html", "/mut"),
+        /espacio-antes-puntuacion/,
+      );
+    }
+  });
+
+  it("falla si hay espacio tras ( o « antes de aperturas q s del ins time", () => {
+    for (const tag of ["q", "s", "del", "ins", "time"] as const) {
+      const mutatedParen = `<p>x</p>(\n<${tag}>hola</${tag}>)`;
+      assert.throws(
+        () => assertNoPunctuationSpacing(mutatedParen, "mut.html", "/mut"),
+        /espacio-despues-de-apertura/,
+      );
+      const mutatedGuillemet = `<p>x</p>«\n<${tag}>hola</${tag}>»`;
+      assert.throws(
+        () =>
+          assertNoPunctuationSpacing(mutatedGuillemet, "mut.html", "/mut"),
+        /espacio-despues-de-apertura/,
+      );
+    }
+  });
+
+  it("falla si hay espacio tras ( o « antes de aperturas bdi data dfn var samp label img em", () => {
+    for (const tag of [
+      "bdi",
+      "data",
+      "dfn",
+      "var",
+      "samp",
+      "label",
+      "img",
+      "em",
+    ] as const) {
+      const mutatedParen = `<p>x</p>(\n<${tag}>hola</${tag}>)`;
+      assert.throws(
+        () => assertNoPunctuationSpacing(mutatedParen, "mut.html", "/mut"),
+        /espacio-despues-de-apertura/,
+      );
+      const mutatedGuillemet = `<p>x</p>«\n<${tag}>hola</${tag}>»`;
+      assert.throws(
+        () =>
+          assertNoPunctuationSpacing(mutatedGuillemet, "mut.html", "/mut"),
+        /espacio-despues-de-apertura/,
+      );
+    }
+  });
+
+  it("detecta puntuación defectuosa pegada al JSON-LD sin perder la exclusión del bloque", () => {
+    const html =
+      '<script type="application/ld+json">{"name":"</span> …"}</script><b>aviso</b>\n.<p>ok</p>';
+    assert.throws(
+      () => assertNoPunctuationSpacing(html, "mut.html", "/mut"),
+      /espacio-antes-puntuacion/,
+    );
+    assertNoPunctuationSpacing(
+      '<script type="application/ld+json">{"name":"</span> …"}</script><p>ok</p>',
+      "mut.html",
+      "/mut",
+    );
+    assertNoPunctuationSpacing(
+      '<script type="application/ld+json">{"x":"( <q>…</q>)"}</script><p>ok</p>',
+      "mut.html",
+      "/mut",
+    );
+  });
 });
+

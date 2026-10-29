@@ -49,6 +49,22 @@ const EXPECTED_OUTCOME_TITLES = {
 
 const FORBIDDEN_NAME_TOKENS = ["SCC", "LuxuryCars"] as const;
 
+const EXPECTED_H1_LINES = {
+  "conexion-laboral": ["Conexión", "Laboral"],
+  afectiva: ["Afectiva"],
+  "capa-automotores": ["Capa"],
+  "suplementacion-ciencia": ["SCC"],
+  luxurycars: ["Luxury", "Cars"],
+} as const;
+
+const EXPECTED_H1_OFFICIAL_LINES = {
+  "conexion-laboral": null,
+  afectiva: "Afectiva Comunicaciones",
+  "capa-automotores": "Capa Automotores",
+  "suplementacion-ciencia": "Suplementación con Ciencia (SCC)",
+  luxurycars: null,
+} as const;
+
 describe("workCases", () => {
   it("expone los cinco casos con slug, meta y URL externa", () => {
     assert.deepEqual(
@@ -90,6 +106,37 @@ describe("workCases", () => {
         assert.notEqual(workCase.clientName, token, workCase.slug);
         assert.notEqual(workCase.shortTitle, token, workCase.slug);
         assert.ok(!workCase.titleLines.includes(token), workCase.slug);
+      }
+    }
+  });
+
+  it("fija h1Lines cortos del diseño v34 por slug", () => {
+    for (const workCase of workCases) {
+      const expected =
+        EXPECTED_H1_LINES[workCase.slug as keyof typeof EXPECTED_H1_LINES];
+      assert.deepEqual(workCase.h1Lines, [...expected], workCase.slug);
+    }
+  });
+
+  it("fija h1OfficialLine solo cuando el H1 corto difiere del nombre oficial", () => {
+    for (const workCase of workCases) {
+      const expected =
+        EXPECTED_H1_OFFICIAL_LINES[
+          workCase.slug as keyof typeof EXPECTED_H1_OFFICIAL_LINES
+        ];
+      assert.equal(workCase.h1OfficialLine, expected, workCase.slug);
+      const h1 = workCase.h1Lines.join(" ");
+      if (
+        h1.toLocaleLowerCase("es-AR") ===
+        workCase.clientName.toLocaleLowerCase("es-AR")
+      ) {
+        assert.equal(workCase.h1OfficialLine, null, workCase.slug);
+      } else {
+        assert.ok(workCase.h1OfficialLine, workCase.slug);
+        assert.ok(
+          workCase.h1OfficialLine.startsWith(workCase.clientName),
+          workCase.slug,
+        );
       }
     }
   });
