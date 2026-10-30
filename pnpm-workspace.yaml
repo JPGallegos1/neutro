@@ -22,3 +22,4 @@ minimumReleaseAgeExclude:
   - shadcn@4.22.1
   - workerd@1.20261019.1
   - wrangler@4.151.2
+  - lucide-react@1.65.0

@@ -1,0 +1,62 @@
+@import "tailwindcss";
+
+@custom-variant dark (&:is(.dark *));
+
+:root {
+  --radius: 0.625rem;
+  --neutro-bg: #0a0a0a;
+  --neutro-surface: #151514;
+  --neutro-text: #f6f6f4;
+  --neutro-text-muted: #b4b4af;
+  --neutro-border: #262624;
+  --neutro-accent-blue: #5c78ff;
+  --neutro-accent-orange: #e8590c;
+  --neutro-on-orange: #fff;
+  --neutro-on-blue: #fff;
+  --background: var(--neutro-bg);
+  --foreground: var(--neutro-text);
+  --muted-foreground: var(--neutro-text-muted);
+  --border: var(--neutro-border);
+  --primary: var(--neutro-accent-orange);
+  --primary-foreground: var(--neutro-on-orange);
+  --ring: var(--neutro-accent-blue);
+  --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
+  color-scheme: dark;
+}
+
+@theme inline {
+  --font-sans: "Geist Sans", ui-sans-serif, system-ui, sans-serif;
+  --color-neutro-bg: var(--neutro-bg);
+  --color-neutro-surface: var(--neutro-surface);
+  --color-neutro-text: var(--neutro-text);
+  --color-neutro-text-muted: var(--neutro-text-muted);
+  --color-neutro-border: var(--neutro-border);
+  --color-neutro-accent-blue: var(--neutro-accent-blue);
+  --color-neutro-accent-orange: var(--neutro-accent-orange);
+  --color-neutro-on-orange: var(--neutro-on-orange);
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-border: var(--border);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-ring: var(--ring);
+}
+
+@layer base {
+  * {
+    border-color: var(--border);
+  }
+
+  html,
+  body,
+  #root {
+    min-height: 100%;
+  }
+
+  body {
+    margin: 0;
+    background: var(--background);
+    color: var(--foreground);
+    font-family: var(--font-sans);
+  }
+}
