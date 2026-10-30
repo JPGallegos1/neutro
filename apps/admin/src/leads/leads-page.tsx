@@ -4,7 +4,7 @@ import {
   seedSelectLeadFromIdle,
   seedUpdateLeadRequestedFromIdle,
 } from "@/admin-machine";
-import { exportLeadsCsv } from "@/leads/export-csv";
+import { createLeadsCsvDownload } from "@/leads/export-csv";
 import { getGoogleLiveClient } from "@/leads/google-live";
 import { getLeadsClient, type LeadClientPatch } from "@/leads/leads-client";
 import {
@@ -90,12 +90,14 @@ export function LeadsPage({
   }
 
   function onExportCsv() {
-    const csv = exportLeadsCsv(visible);
-    const blob = new Blob([csv], { type: "text/csv;charset=utf-8" });
+    const { blob, filename } = createLeadsCsvDownload(
+      leads,
+      state.leadsStatusFilter,
+    );
     const url = URL.createObjectURL(blob);
     const anchor = document.createElement("a");
     anchor.href = url;
-    anchor.download = "leads.csv";
+    anchor.download = filename;
     anchor.click();
     URL.revokeObjectURL(url);
   }

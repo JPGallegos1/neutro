@@ -7,11 +7,14 @@ import { createComercio } from "@/comercio";
 import {
   FORBIDDEN_GOOGLE_PLACES_CSV_COLUMNS,
   LEAD_CSV_MIN_COLUMNS,
+  blobFromLeadsCsv,
+  createLeadsCsvDownload,
   csvHasForbiddenGooglePlacesColumns,
   escapeCsv,
   exportLeadsCsv,
   leadCsvFitnessViolations,
   leadToCsvRow,
+  leadsForCsvExport,
 } from "@/leads/export-csv";
 import {
   createFixtureGoogleLiveClient,
@@ -173,19 +176,74 @@ describe("Export CSV Leads + fitness Google (#93)", () => {
     assert.equal(src.split("escapeCsv(row[col])").length - 1, 1);
   });
 
+  it("MEDIO3: leadsForCsvExport respeta filtro; todos ≠ anular status", () => {
+    const items = [
+      lead("a", { status: "nuevo" }),
+      lead("b", { status: "contactado" }),
+      lead("c", { status: "interesado" }),
+    ];
+    const onlyContactado = leadsForCsvExport(items, "contactado");
+    assert.equal(onlyContactado.length, 1);
+    assert.equal(onlyContactado[0]?.status, "contactado");
+    assert.equal(leadsForCsvExport(items, "todos").length, 3);
+    assert.notDeepEqual(
+      leadsForCsvExport(items, "contactado").map((l) => l.id),
+      leadsForCsvExport(items, "todos").map((l) => l.id),
+    );
+    const csv = exportLeadsCsv(leadsForCsvExport(items, "contactado"));
+    assert.match(csv, /contactado/);
+    assert.doesNotMatch(csv, /interesado|lead_osm_a|lead_osm_c/);
+    const src = readFileSync(join(srcRoot, "leads/export-csv.ts"), "utf8");
+    assert.match(src, /function leadsForCsvExport[\s\S]*return filterLeadsByStatus\(leads,\s*filter\)/);
+    assert.doesNotMatch(src, /function leadsForCsvExport[\s\S]*return leads\s*;/);
+    const page = readFileSync(join(srcRoot, "leads/leads-page.tsx"), "utf8");
+    assert.match(
+      page,
+      /createLeadsCsvDownload\(\s*leads,\s*state\.leadsStatusFilter/,
+    );
+    assert.equal(page.split("createLeadsCsvDownload(").length - 1, 1);
+  });
+
+  it("MEDIO4: Blob solo [csv] con fitness; Google en body → fail", () => {
+    const ok = exportLeadsCsv([lead("a")]);
+    assert.deepEqual(leadCsvFitnessViolations(ok), []);
+    const blob = blobFromLeadsCsv(ok);
+    assert.equal(blob.type, "text/csv;charset=utf-8");
+    const poisoned = `${LEAD_CSV_MIN_COLUMNS.join(",")},displayName,rating\nx,osm,x,nuevo,,,1,0,Google,4.2`;
+    assert.throws(() => blobFromLeadsCsv(poisoned), /csv_fitness_failed/);
+    const download = createLeadsCsvDownload(
+      [lead("a"), lead("b", { status: "contactado" })],
+      "contactado",
+    );
+    assert.equal(download.filename, "leads.csv");
+    assert.equal(download.blob.type, "text/csv;charset=utf-8");
+    const src = readFileSync(join(srcRoot, "leads/export-csv.ts"), "utf8");
+    assert.match(src, /new Blob\(\[csv\],\s*\{/);
+    assert.match(src, /leadCsvFitnessViolations\(csv\)/);
+    assert.equal(src.split("new Blob(").length - 1, 1);
+    assert.doesNotMatch(src, /new Blob\(\[[^\]]*(displayName|rating|formattedAddress)/);
+    assert.doesNotMatch(src, /new Blob\(\[csv\s*\+|new Blob\(\[csv\s*,/);
+    const page = readFileSync(join(srcRoot, "leads/leads-page.tsx"), "utf8");
+    assert.doesNotMatch(page, /new Blob\(/);
+    const exportFn = /function onExportCsv\([\s\S]*?\n  \}/.exec(page)?.[0] ?? "";
+    assert.match(exportFn, /createLeadsCsvDownload/);
+    assert.doesNotMatch(exportFn, /displayName|rating|formattedAddress/);
+  });
+
   it("UI Leads: onClick + download click cableados", () => {
     const page = readFileSync(join(srcRoot, "leads/leads-page.tsx"), "utf8");
     assert.match(page, /data-admin-leads-export/);
     assert.match(page, /Exportar CSV/);
-    assert.match(page, /exportLeadsCsv\(visible\)/);
     assert.match(page, /onClick=\{onExportCsv\}/);
     assert.match(page, /function onExportCsv\(/);
     assert.match(page, /anchor\.click\(\)/);
-    assert.match(page, /anchor\.download\s*=\s*"leads\.csv"/);
+    assert.match(page, /anchor\.download\s*=\s*filename/);
     assert.match(page, /URL\.createObjectURL\(blob\)/);
-    assert.doesNotMatch(page, /exportLeadsCsv\([^\)]*googleLive|exportLeadsCsv\([^\)]*displayName/);
+    assert.match(
+      page,
+      /createLeadsCsvDownload\(\s*leads,\s*state\.leadsStatusFilter/,
+    );
     assert.doesNotMatch(page, /\buseState\b|\buseEffect\b/);
-    assert.equal(page.split("exportLeadsCsv(").length - 1, 1);
     assert.equal(page.split("onClick={onExportCsv}").length - 1, 1);
     assert.equal(page.split("anchor.click()").length - 1, 1);
   });

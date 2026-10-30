@@ -1,4 +1,8 @@
-import type { Lead } from "@/leads/lead";
+import {
+  filterLeadsByStatus,
+  type Lead,
+  type LeadStatusFilter,
+} from "@/leads/lead";
 
 export const LEAD_CSV_MIN_COLUMNS = [
   "id",
@@ -75,4 +79,26 @@ export function leadCsvFitnessViolations(csv: string): string[] {
     }
   }
   return violations;
+}
+
+export function leadsForCsvExport(
+  leads: Lead[],
+  filter: LeadStatusFilter,
+): Lead[] {
+  return filterLeadsByStatus(leads, filter);
+}
+
+export function blobFromLeadsCsv(csv: string): Blob {
+  if (leadCsvFitnessViolations(csv).length > 0) {
+    throw new Error("csv_fitness_failed");
+  }
+  return new Blob([csv], { type: "text/csv;charset=utf-8" });
+}
+
+export function createLeadsCsvDownload(
+  leads: Lead[],
+  filter: LeadStatusFilter,
+): { blob: Blob; filename: string } {
+  const csv = exportLeadsCsv(leadsForCsvExport(leads, filter));
+  return { blob: blobFromLeadsCsv(csv), filename: "leads.csv" };
 }
