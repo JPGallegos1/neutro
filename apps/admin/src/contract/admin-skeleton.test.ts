@@ -124,15 +124,28 @@ describe("shell Admin (sidebar + rutas)", () => {
   });
 });
 
+function badgeSpan(shell: string): { attribute: string; text: string } {
+  const open = /<span\b([^>]*\bdata-admin-badge=(["'])([^"']*)\2[^>]*)>/.exec(
+    shell,
+  );
+  assert.ok(open, "falta span con data-admin-badge");
+  const start = open.index + open[0].length;
+  const end = shell.indexOf("</span>", start);
+  assert.ok(end > start, "falta cierre del span del badge");
+  return {
+    attribute: open[3] ?? "",
+    text: shell.slice(start, end).trim(),
+  };
+}
+
 describe("borde interno", () => {
   it("declara noindex, badge interno y pie Access", () => {
     const html = readFileSync(join(adminRoot, "index.html"), "utf8");
     const shell = readFileSync(join(srcRoot, "admin-shell.tsx"), "utf8");
     assert.match(html, /name="robots"[^>]*content="noindex,\s*nofollow"/);
-    assert.match(
-      shell,
-      /data-admin-badge="interno"[\s\S]*?>\s*Interno\s*</,
-    );
+    const badge = badgeSpan(shell);
+    assert.equal(badge.attribute, "interno");
+    assert.equal(badge.text, "Interno");
     assert.match(shell, /data-admin-access-footer/);
     assert.match(shell, /Acceso vía \{state\.accessLabel\}/);
   });
