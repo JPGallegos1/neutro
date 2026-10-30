@@ -270,12 +270,13 @@ describe("Guardar como Lead — machine + UI", () => {
     assert.equal(same.leads.length, 1);
   });
 
-  it("conserva leads tras save si el loader rehidrata con snapshot viejo", () => {
+  it("anti-clobber: stale/equal no pisa; revision mayor sí actualiza", () => {
     const list = searchComerciosFromFixtures();
     const saved = [
       createLeadFromComercio(list[0]!, { now: NOW }),
       createLeadFromComercio(list[1]!, { now: NOW }),
     ];
+    const refreshed = [createLeadFromComercio(list[0]!, { now: NOW })];
     let state = adminReducer(ADMIN_INITIAL_STATE, {
       type: "leadsHydrated",
       leads: [],
@@ -285,7 +286,7 @@ describe("Guardar como Lead — machine + UI", () => {
     const duringSave = adminReducer(state, {
       type: "leadsHydrated",
       leads: [],
-      revision: 100,
+      revision: 200,
     });
     assert.equal(duringSave, state);
     assert.equal(duringSave.leadsStatus, "saving");
@@ -302,12 +303,38 @@ describe("Guardar como Lead — machine + UI", () => {
       leads: [],
       revision: 100,
     });
+    assert.equal(stale, state);
     assert.equal(stale.leads.length, 2);
     assert.equal(stale.leadKeys.size, 2);
     assert.equal(stale.leadsRevision, 101);
     assert.equal(stale.leadKeys.has(leadKey(saved[0]!)), true);
-    assert.equal(stale.leadKeys.has(leadKey(saved[1]!)), true);
-    assert.notEqual(stale.leads.length, 0);
+    const equal = adminReducer(state, {
+      type: "leadsHydrated",
+      leads: [],
+      revision: 101,
+    });
+    assert.equal(equal, state);
+    assert.equal(equal.leads.length, 2);
+    const fresh = adminReducer(state, {
+      type: "leadsHydrated",
+      leads: refreshed,
+      revision: 102,
+    });
+    assert.notEqual(fresh, state);
+    assert.equal(fresh.leadsRevision, 102);
+    assert.equal(fresh.leads.length, 1);
+    assert.equal(fresh.leadKeys.size, 1);
+    assert.equal(fresh.leadKeys.has(leadKey(refreshed[0]!)), true);
+    assert.equal(fresh.leadKeys.has(leadKey(saved[1]!)), false);
+    const machine = readFileSync(join(srcRoot, "admin-machine.ts"), "utf8");
+    assert.match(
+      machine,
+      /case "leadsHydrated":[\s\S]*?event\.revision <= state\.leadsRevision/,
+    );
+    assert.doesNotMatch(
+      machine,
+      /case "leadsHydrated":[\s\S]*?state\.leadsRevision !== event\.revision/,
+    );
   });
 
   it("UI: botón Guardar como Lead, disabled sin selección, loader leads", () => {

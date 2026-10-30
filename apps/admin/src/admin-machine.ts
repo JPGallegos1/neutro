@@ -297,13 +297,7 @@ export function adminReducer(state: AdminState, event: AdminEvent): AdminState {
       }
       if (
         state.leadsStatus === "ready" &&
-        state.leadsRevision !== event.revision
-      ) {
-        return state;
-      }
-      if (
-        state.leadsRevision === event.revision &&
-        state.leadsStatus === "ready"
+        event.revision <= state.leadsRevision
       ) {
         return state;
       }
