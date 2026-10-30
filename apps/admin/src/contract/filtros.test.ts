@@ -130,8 +130,17 @@ describe("Filtros de Comercios", () => {
     const page = readFileSync(join(srcRoot, "comercios-page.tsx"), "utf8");
     assert.match(
       page,
-      /const filteredComercios = filterComercios\(\s*all,\s*state\.filters,\s*state\.leadKeys,?\s*\)/,
+      /const filteredComercios = filterComercios\(\s*all,\s*state\.filters,\s*state\.leadKeys,?\s*\);/,
     );
+    assert.doesNotMatch(
+      page,
+      /const filteredComercios = filterComercios\([^;]*\)\s*&&\s*all/,
+    );
+    assert.doesNotMatch(
+      page,
+      /const filteredComercios = filterComercios\([^;]*\)\s*\|\|\s*all/,
+    );
+    assert.doesNotMatch(page, /const filteredComercios = all\b/);
     assert.match(
       page,
       /<ComerciosMap\s+[\s\S]*?comercios=\{filteredComercios\}/,
@@ -330,14 +339,28 @@ describe("Selección múltiple de Comercios", () => {
     const page = readFileSync(join(srcRoot, "comercios-page.tsx"), "utf8");
     const map = readFileSync(join(srcRoot, "comercios-map.tsx"), "utf8");
     assert.match(page, /selectedKeys=\{state\.selectedComercioKeys\}/);
+    assert.match(
+      page,
+      /const selected = state\.selectedComercioKeys\.has\(key\);/,
+    );
+    assert.doesNotMatch(page, /const selected = false\b/);
+    assert.doesNotMatch(page, /const selected = true\b/);
     assert.match(page, /aria-pressed=\{selected\}/);
     assert.match(
       page,
-      /data-admin-selection-count[\s\S]*\{visibleSelectedCount\} seleccionados/,
+      /const visibleSelectedCount = countVisibleSelected\(\s*state\.selectedComercioKeys,\s*filteredComercios,?\s*\);/,
+    );
+    assert.doesNotMatch(
+      page,
+      /const visibleSelectedCount = countVisibleSelected\([^;]*\)\s*(\|\||&&)/,
+    );
+    assert.doesNotMatch(
+      page,
+      /const visibleSelectedCount = state\.selectedComercioKeys\.size/,
     );
     assert.match(
       page,
-      /countVisibleSelected\(\s*state\.selectedComercioKeys,\s*filteredComercios,?\s*\)/,
+      /data-admin-selection-count[\s\S]*\{visibleSelectedCount\} seleccionados/,
     );
     assert.doesNotMatch(
       page,
@@ -348,12 +371,15 @@ describe("Selección múltiple de Comercios", () => {
       /data-admin-selection-count[\s\S]*>\s*0 seleccionados/,
     );
     assert.match(map, /selectedKeys/);
-    assert.match(map, /pinKindFor\(\s*key,\s*selectedKeys/);
+    assert.match(map, /pinKindFor\(\s*key,\s*selectedKeys,\s*leadKeys\s*\)/);
+    assert.doesNotMatch(map, /pinKindFor\(\s*key,\s*selectedKeys\.size\s*\?/);
+    assert.doesNotMatch(map, /pinKindFor\(\s*key,\s*new Set\(\)/);
     const a = "osm:a";
     const b = "osm:b";
     assert.equal(pinKindFor(a, new Set([a, b]), new Set()), "seleccionado");
     assert.equal(pinKindFor(b, new Set([a, b]), new Set()), "seleccionado");
     assert.equal(pinKindFor("osm:c", new Set([a, b]), new Set()), "comercio");
+    assert.equal(pinKindFor(a, new Set(), new Set()), "comercio");
   });
 
   it("contador cuenta solo selección visible bajo filtros (no ocultos)", () => {
