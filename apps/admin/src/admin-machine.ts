@@ -8,9 +8,7 @@ import {
 } from "@/search-area";
 
 export const ADMIN_SECTIONS = ["comercios", "leads", "areas"] as const;
-
 export type AdminSection = (typeof ADMIN_SECTIONS)[number];
-
 export type AreasStatus = "idle" | "ready" | "saving" | "error";
 
 export type AdminState = {
@@ -27,11 +25,7 @@ export type AdminState = {
 export type AdminEvent =
   | { type: "navigate"; section: AdminSection }
   | { type: "setAccessLabel"; label: string }
-  | {
-      type: "areasHydrated";
-      areas: SearchArea[];
-      revision: number;
-    }
+  | { type: "areasHydrated"; areas: SearchArea[]; revision: number }
   | { type: "selectArea"; id: string }
   | { type: "resetDraft" }
   | { type: "draftName"; name: string }
@@ -61,11 +55,13 @@ export const ADMIN_INITIAL_STATE: AdminState = {
 export function adminReducer(state: AdminState, event: AdminEvent): AdminState {
   switch (event.type) {
     case "navigate":
-      if (state.section === event.section) return state;
-      return { ...state, section: event.section };
+      return state.section === event.section
+        ? state
+        : { ...state, section: event.section };
     case "setAccessLabel":
-      if (state.accessLabel === event.label) return state;
-      return { ...state, accessLabel: event.label };
+      return state.accessLabel === event.label
+        ? state
+        : { ...state, accessLabel: event.label };
     case "areasHydrated":
       if (
         state.areasRevision === event.revision &&
@@ -81,7 +77,7 @@ export function adminReducer(state: AdminState, event: AdminEvent): AdminState {
         areasError: null,
         selectedAreaId:
           state.selectedAreaId &&
-          event.areas.some((area) => area.id === state.selectedAreaId)
+          event.areas.some((a) => a.id === state.selectedAreaId)
             ? state.selectedAreaId
             : (event.areas[0]?.id ?? null),
       };
@@ -115,10 +111,7 @@ export function adminReducer(state: AdminState, event: AdminEvent): AdminState {
         draft: { ...state.draft, centerLng: event.centerLng },
       };
     case "draftRadiusKm":
-      return {
-        ...state,
-        draft: { ...state.draft, radiusKm: event.radiusKm },
-      };
+      return { ...state, draft: { ...state.draft, radiusKm: event.radiusKm } };
     case "draftShape":
       return { ...state, draft: { ...state.draft, shape: event.shape } };
     case "draftPolygonText":
@@ -129,11 +122,9 @@ export function adminReducer(state: AdminState, event: AdminEvent): AdminState {
     case "saveAreaRequested":
       return { ...state, areasStatus: "saving", areasError: null };
     case "saveAreaSucceeded": {
-      const exists = state.areas.some((area) => area.id === event.area.id);
+      const exists = state.areas.some((a) => a.id === event.area.id);
       const areas = exists
-        ? state.areas.map((area) =>
-            area.id === event.area.id ? event.area : area,
-          )
+        ? state.areas.map((a) => (a.id === event.area.id ? event.area : a))
         : [...state.areas, event.area];
       return {
         ...state,
@@ -146,11 +137,7 @@ export function adminReducer(state: AdminState, event: AdminEvent): AdminState {
       };
     }
     case "saveAreaFailed":
-      return {
-        ...state,
-        areasStatus: "ready",
-        areasError: event.error,
-      };
+      return { ...state, areasStatus: "ready", areasError: event.error };
   }
 }
 

@@ -12,12 +12,9 @@ import {
   type AdminState,
 } from "@/admin-machine";
 
-type AdminContextValue = {
-  state: AdminState;
-  dispatch: Dispatch<AdminEvent>;
-};
+type Value = { state: AdminState; dispatch: Dispatch<AdminEvent> };
 
-const AdminContext = createContext<AdminContextValue | null>(null);
+const AdminContext = createContext<Value | null>(null);
 
 export function AdminProvider({
   children,
@@ -34,10 +31,8 @@ export function AdminProvider({
   );
 }
 
-export function useAdmin(): AdminContextValue {
+export function useAdmin(): Value {
   const value = useContext(AdminContext);
-  if (!value) {
-    throw new Error("AdminProvider requerido");
-  }
+  if (!value) throw new Error("AdminProvider requerido");
   return value;
 }

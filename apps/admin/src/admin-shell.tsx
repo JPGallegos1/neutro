@@ -28,7 +28,7 @@ import {
   setAreasClient,
 } from "@/areas-client";
 import { AreasPage } from "@/areas-page";
-import { createMemorySearchAreaRepository } from "@/memory-search-area-repository";
+import { createMemorySearchAreaRepository } from "@/search-area";
 import "@/styles.css";
 
 function cn(...inputs: ClassValue[]) {

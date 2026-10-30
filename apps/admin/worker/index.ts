@@ -12,7 +12,7 @@ export type AdminWorkerEnv = {
   ASSETS: { fetch: (request: Request) => Promise<Response> };
 };
 
-function json(data: unknown, status = 200): Response {
+function json(data: unknown, status = 200) {
   return new Response(JSON.stringify(data), {
     status,
     headers: {
@@ -25,13 +25,9 @@ function json(data: unknown, status = 200): Response {
 export default {
   async fetch(request: Request, env: AdminWorkerEnv): Promise<Response> {
     const url = new URL(request.url);
-
     if (url.pathname === "/api/areas" && request.method === "GET") {
-      const repo = createD1SearchAreaRepository(env.DB);
-      const areas = await repo.list();
-      return json({ areas });
+      return json({ areas: await createD1SearchAreaRepository(env.DB).list() });
     }
-
     if (url.pathname === "/api/areas" && request.method === "POST") {
       let body: CreateSearchAreaInput;
       try {
@@ -40,12 +36,9 @@ export default {
         return json({ error: "invalid_json" }, 400);
       }
       const validated = createSearchArea(body);
-      if (!validated.ok) {
-        return json({ error: validated.error }, 400);
-      }
-      const repo = createD1SearchAreaRepository(env.DB);
+      if (!validated.ok) return json({ error: validated.error }, 400);
       try {
-        const area = await repo.create({
+        const area = await createD1SearchAreaRepository(env.DB).create({
           name: validated.value.name,
           center: validated.value.center,
           radiusKm: validated.value.radiusKm,
@@ -59,13 +52,12 @@ export default {
         return json({ error: "persist_failed" }, 500);
       }
     }
-
-    const assetResponse = await env.ASSETS.fetch(request);
-    const headers = new Headers(assetResponse.headers);
+    const asset = await env.ASSETS.fetch(request);
+    const headers = new Headers(asset.headers);
     headers.set("x-robots-tag", "noindex, nofollow");
-    return new Response(assetResponse.body, {
-      status: assetResponse.status,
-      statusText: assetResponse.statusText,
+    return new Response(asset.body, {
+      status: asset.status,
+      statusText: asset.statusText,
       headers,
     });
   },

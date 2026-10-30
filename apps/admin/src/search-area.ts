@@ -1,16 +1,8 @@
 export const SEARCH_AREA_RADIUS_MIN_KM = 0.5;
 export const SEARCH_AREA_RADIUS_MAX_KM = 10;
+export const ROSARIO_CENTER = { lat: -32.9442, lng: -60.6505 } as const;
 
-export const ROSARIO_CENTER = {
-  lat: -32.9442,
-  lng: -60.6505,
-} as const;
-
-export type LatLng = {
-  lat: number;
-  lng: number;
-};
-
+export type LatLng = { lat: number; lng: number };
 export type SearchAreaShape = "circle" | "polygon";
 
 export type SearchArea = {
@@ -51,7 +43,14 @@ export type SearchAreaValidationError =
   | "polygon_invalid";
 
 export type SearchAreaResult<T> =
-  { ok: true; value: T } | { ok: false; error: SearchAreaValidationError };
+  | { ok: true; value: T }
+  | { ok: false; error: SearchAreaValidationError };
+
+export type SearchAreaRepository = {
+  list(): Promise<SearchArea[]>;
+  create(input: CreateSearchAreaInput): Promise<SearchArea>;
+  getById(id: string): Promise<SearchArea | null>;
+};
 
 export function createRosarioDefaultDraft(): SearchAreaDraft {
   return {
@@ -70,7 +69,7 @@ export function createRosarioDefaultArea(
   return {
     id: "area_rosario_centro_3km",
     name: "Rosario centro · 3 km",
-    center: { lat: ROSARIO_CENTER.lat, lng: ROSARIO_CENTER.lng },
+    center: { ...ROSARIO_CENTER },
     radiusKm: 3,
     shape: "circle",
     polygon: null,
@@ -79,15 +78,9 @@ export function createRosarioDefaultArea(
   };
 }
 
-function isFiniteNumber(value: number): boolean {
-  return Number.isFinite(value);
-}
-
-function parsePolygonText(text: string): SearchAreaResult<LatLng[]> {
+function parsePolygon(text: string): SearchAreaResult<LatLng[]> {
   const trimmed = text.trim();
-  if (trimmed.length === 0) {
-    return { ok: false, error: "polygon_required" };
-  }
+  if (!trimmed) return { ok: false, error: "polygon_required" };
   try {
     const parsed: unknown = JSON.parse(trimmed);
     if (!Array.isArray(parsed) || parsed.length < 3) {
@@ -95,20 +88,19 @@ function parsePolygonText(text: string): SearchAreaResult<LatLng[]> {
     }
     const points: LatLng[] = [];
     for (const item of parsed) {
+      if (!item || typeof item !== "object") {
+        return { ok: false, error: "polygon_invalid" };
+      }
+      const lat = Number((item as { lat?: unknown }).lat);
+      const lng = Number((item as { lng?: unknown }).lng);
       if (
-        item === null ||
-        typeof item !== "object" ||
-        !("lat" in item) ||
-        !("lng" in item)
+        !Number.isFinite(lat) ||
+        !Number.isFinite(lng) ||
+        lat < -90 ||
+        lat > 90 ||
+        lng < -180 ||
+        lng > 180
       ) {
-        return { ok: false, error: "polygon_invalid" };
-      }
-      const lat = Number((item as { lat: unknown }).lat);
-      const lng = Number((item as { lng: unknown }).lng);
-      if (!isFiniteNumber(lat) || !isFiniteNumber(lng)) {
-        return { ok: false, error: "polygon_invalid" };
-      }
-      if (lat < -90 || lat > 90 || lng < -180 || lng > 180) {
         return { ok: false, error: "polygon_invalid" };
       }
       points.push({ lat, lng });
@@ -119,73 +111,19 @@ function parsePolygonText(text: string): SearchAreaResult<LatLng[]> {
   }
 }
 
-export function draftToCreateInput(
-  draft: SearchAreaDraft,
-): SearchAreaResult<CreateSearchAreaInput> {
-  const name = draft.name.trim();
-  if (name.length === 0) {
-    return { ok: false, error: "name_required" };
-  }
-  const centerLat = Number(draft.centerLat);
-  const centerLng = Number(draft.centerLng);
-  if (
-    !isFiniteNumber(centerLat) ||
-    !isFiniteNumber(centerLng) ||
-    centerLat < -90 ||
-    centerLat > 90 ||
-    centerLng < -180 ||
-    centerLng > 180
-  ) {
-    return { ok: false, error: "center_invalid" };
-  }
-  const radiusKm = Number(draft.radiusKm);
-  if (
-    !isFiniteNumber(radiusKm) ||
-    radiusKm < SEARCH_AREA_RADIUS_MIN_KM ||
-    radiusKm > SEARCH_AREA_RADIUS_MAX_KM
-  ) {
-    return { ok: false, error: "radius_out_of_bounds" };
-  }
-  if (draft.shape === "circle") {
-    return {
-      ok: true,
-      value: {
-        name,
-        center: { lat: centerLat, lng: centerLng },
-        radiusKm,
-        shape: "circle",
-        polygon: null,
-      },
-    };
-  }
-  const polygon = parsePolygonText(draft.polygonText);
-  if (!polygon.ok) return polygon;
-  return {
-    ok: true,
-    value: {
-      name,
-      center: { lat: centerLat, lng: centerLng },
-      radiusKm,
-      shape: "polygon",
-      polygon: polygon.value,
-    },
-  };
-}
-
 export function createSearchArea(
   input: CreateSearchAreaInput,
 ): SearchAreaResult<SearchArea> {
   const name = input.name.trim();
-  if (name.length === 0) {
-    return { ok: false, error: "name_required" };
-  }
+  if (!name) return { ok: false, error: "name_required" };
+  const { lat, lng } = input.center;
   if (
-    !isFiniteNumber(input.center.lat) ||
-    !isFiniteNumber(input.center.lng) ||
-    input.center.lat < -90 ||
-    input.center.lat > 90 ||
-    input.center.lng < -180 ||
-    input.center.lng > 180
+    !Number.isFinite(lat) ||
+    !Number.isFinite(lng) ||
+    lat < -90 ||
+    lat > 90 ||
+    lng < -180 ||
+    lng > 180
   ) {
     return { ok: false, error: "center_invalid" };
   }
@@ -195,20 +133,19 @@ export function createSearchArea(
   ) {
     return { ok: false, error: "radius_out_of_bounds" };
   }
-  if (input.shape === "polygon") {
-    const polygon = input.polygon ?? null;
-    if (polygon === null || polygon.length < 3) {
-      return { ok: false, error: "polygon_required" };
-    }
+  if (
+    input.shape === "polygon" &&
+    (!input.polygon || input.polygon.length < 3)
+  ) {
+    return { ok: false, error: "polygon_required" };
   }
   const now = input.now ?? new Date().toISOString();
-  const id = input.id ?? `area_${crypto.randomUUID()}`;
   return {
     ok: true,
     value: {
-      id,
+      id: input.id ?? `area_${crypto.randomUUID()}`,
       name,
-      center: { lat: input.center.lat, lng: input.center.lng },
+      center: { lat, lng },
       radiusKm: input.radiusKm,
       shape: input.shape,
       polygon: input.shape === "polygon" ? (input.polygon ?? null) : null,
@@ -216,6 +153,27 @@ export function createSearchArea(
       updatedAt: now,
     },
   };
+}
+
+export function draftToCreateInput(
+  draft: SearchAreaDraft,
+): SearchAreaResult<CreateSearchAreaInput> {
+  let polygon: LatLng[] | null = null;
+  if (draft.shape === "polygon") {
+    const parsed = parsePolygon(draft.polygonText);
+    if (!parsed.ok) return parsed;
+    polygon = parsed.value;
+  }
+  const input: CreateSearchAreaInput = {
+    name: draft.name,
+    center: { lat: Number(draft.centerLat), lng: Number(draft.centerLng) },
+    radiusKm: Number(draft.radiusKm),
+    shape: draft.shape,
+    polygon,
+  };
+  const validated = createSearchArea({ ...input, id: "draft_tmp" });
+  if (!validated.ok) return validated;
+  return { ok: true, value: input };
 }
 
 export function areaToDraft(area: SearchArea): SearchAreaDraft {
@@ -226,5 +184,32 @@ export function areaToDraft(area: SearchArea): SearchAreaDraft {
     radiusKm: String(area.radiusKm),
     shape: area.shape,
     polygonText: area.polygon ? JSON.stringify(area.polygon) : "",
+  };
+}
+
+export function createMemorySearchAreaRepository(options?: {
+  seedRosario?: boolean;
+  now?: string;
+}): SearchAreaRepository {
+  const areas = new Map<string, SearchArea>();
+  if (options?.seedRosario !== false) {
+    const seed = createRosarioDefaultArea(options?.now);
+    areas.set(seed.id, seed);
+  }
+  return {
+    async list() {
+      return [...areas.values()].sort((a, b) =>
+        a.createdAt.localeCompare(b.createdAt),
+      );
+    },
+    async create(input) {
+      const result = createSearchArea(input);
+      if (!result.ok) throw new Error(result.error);
+      areas.set(result.value.id, result.value);
+      return result.value;
+    },
+    async getById(id) {
+      return areas.get(id) ?? null;
+    },
   };
 }
