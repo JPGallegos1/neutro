@@ -20,6 +20,8 @@ import {
 
 describe("Área de búsqueda", () => {
   it("default Rosario · 3 km, bounds y polígono", () => {
+    assert.equal(SEARCH_AREA_RADIUS_MIN_KM, 0.5);
+    assert.equal(SEARCH_AREA_RADIUS_MAX_KM, 10);
     const draft = createRosarioDefaultDraft();
     assert.equal(draft.name, "Rosario centro · 3 km");
     assert.equal(draft.radiusKm, "3");
@@ -28,7 +30,7 @@ describe("Área de búsqueda", () => {
       createSearchArea({
         name: "x",
         center: { lat: -32.94, lng: -60.65 },
-        radiusKm: SEARCH_AREA_RADIUS_MIN_KM - 0.1,
+        radiusKm: 0.4,
         shape: "circle",
       }).ok,
       false,
@@ -37,7 +39,7 @@ describe("Área de búsqueda", () => {
       createSearchArea({
         name: "x",
         center: { lat: -32.94, lng: -60.65 },
-        radiusKm: SEARCH_AREA_RADIUS_MAX_KM + 0.1,
+        radiusKm: 10.1,
         shape: "circle",
       }).ok,
       false,

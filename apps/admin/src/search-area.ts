@@ -43,8 +43,7 @@ export type SearchAreaValidationError =
   | "polygon_invalid";
 
 export type SearchAreaResult<T> =
-  | { ok: true; value: T }
-  | { ok: false; error: SearchAreaValidationError };
+  { ok: true; value: T } | { ok: false; error: SearchAreaValidationError };
 
 export type SearchAreaRepository = {
   list(): Promise<SearchArea[]>;

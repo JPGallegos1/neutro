@@ -85,7 +85,9 @@ export function AreasPage({
                   }`}
                   onClick={() => dispatch({ type: "selectArea", id: area.id })}
                 >
-                  <span className="font-medium text-neutro-text">{area.name}</span>
+                  <span className="font-medium text-neutro-text">
+                    {area.name}
+                  </span>
                   <span className="block text-xs">
                     {area.radiusKm} km · {area.shape}
                   </span>
@@ -110,7 +112,9 @@ export function AreasPage({
             className={field}
             aria-label="Nombre"
             value={state.draft.name}
-            onChange={(e) => dispatch({ type: "draftName", name: e.target.value })}
+            onChange={(e) =>
+              dispatch({ type: "draftName", name: e.target.value })
+            }
             required
           />
           <div className="grid gap-3 sm:grid-cols-2">
