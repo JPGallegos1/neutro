@@ -1,3 +1,4 @@
+import type { Comercio } from "@/comercio";
 import {
   areaToDraft,
   createRosarioDefaultDraft,
@@ -10,6 +11,7 @@ import {
 export const ADMIN_SECTIONS = ["comercios", "leads", "areas"] as const;
 export type AdminSection = (typeof ADMIN_SECTIONS)[number];
 export type AreasStatus = "idle" | "ready" | "saving" | "error";
+export type ComerciosStatus = "idle" | "ready" | "searching" | "error";
 
 export type AdminState = {
   section: AdminSection;
@@ -20,6 +22,11 @@ export type AdminState = {
   areasError: SearchAreaValidationError | "persist_failed" | null;
   selectedAreaId: string | null;
   draft: SearchAreaDraft;
+  comercios: Comercio[];
+  comerciosRevision: number;
+  comerciosStatus: ComerciosStatus;
+  selectedComercioKey: string | null;
+  leadKeys: ReadonlySet<string>;
 };
 
 export type AdminEvent =
@@ -39,7 +46,20 @@ export type AdminEvent =
   | {
       type: "saveAreaFailed";
       error: SearchAreaValidationError | "persist_failed";
-    };
+    }
+  | {
+      type: "comerciosHydrated";
+      comercios: Comercio[];
+      revision: number;
+    }
+  | { type: "selectComercio"; key: string }
+  | { type: "comerciosSearchRequested" }
+  | {
+      type: "comerciosSearchSucceeded";
+      comercios: Comercio[];
+      revision: number;
+    }
+  | { type: "comerciosSearchFailed" };
 
 export const ADMIN_INITIAL_STATE: AdminState = {
   section: "comercios",
@@ -50,6 +70,11 @@ export const ADMIN_INITIAL_STATE: AdminState = {
   areasError: null,
   selectedAreaId: null,
   draft: createRosarioDefaultDraft(),
+  comercios: [],
+  comerciosRevision: 0,
+  comerciosStatus: "idle",
+  selectedComercioKey: null,
+  leadKeys: new Set(),
 };
 
 export function adminReducer(state: AdminState, event: AdminEvent): AdminState {
@@ -138,6 +163,44 @@ export function adminReducer(state: AdminState, event: AdminEvent): AdminState {
     }
     case "saveAreaFailed":
       return { ...state, areasStatus: "ready", areasError: event.error };
+    case "comerciosHydrated":
+      if (
+        state.comerciosRevision === event.revision &&
+        state.comerciosStatus === "ready"
+      ) {
+        return state;
+      }
+      return {
+        ...state,
+        comercios: event.comercios,
+        comerciosRevision: event.revision,
+        comerciosStatus: "ready",
+        selectedComercioKey:
+          state.selectedComercioKey &&
+          event.comercios.some(
+            (c) => `${c.source}:${c.externalId}` === state.selectedComercioKey,
+          )
+            ? state.selectedComercioKey
+            : event.comercios[0]
+              ? `${event.comercios[0].source}:${event.comercios[0].externalId}`
+              : null,
+      };
+    case "selectComercio":
+      return { ...state, selectedComercioKey: event.key };
+    case "comerciosSearchRequested":
+      return { ...state, comerciosStatus: "searching" };
+    case "comerciosSearchSucceeded":
+      return {
+        ...state,
+        comercios: event.comercios,
+        comerciosRevision: event.revision,
+        comerciosStatus: "ready",
+        selectedComercioKey: event.comercios[0]
+          ? `${event.comercios[0].source}:${event.comercios[0].externalId}`
+          : null,
+      };
+    case "comerciosSearchFailed":
+      return { ...state, comerciosStatus: "error" };
   }
 }
 

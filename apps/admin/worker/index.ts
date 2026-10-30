@@ -1,3 +1,4 @@
+import { searchComerciosFromFixtures } from "../src/comercio";
 import {
   createD1SearchAreaRepository,
   type D1DatabaseLike,
@@ -10,6 +11,7 @@ import {
 export type AdminWorkerEnv = {
   DB: D1DatabaseLike;
   ASSETS: { fetch: (request: Request) => Promise<Response> };
+  FOURSQUARE_API_KEY?: string;
 };
 
 function json(data: unknown, status = 200) {
@@ -25,6 +27,17 @@ function json(data: unknown, status = 200) {
 export default {
   async fetch(request: Request, env: AdminWorkerEnv): Promise<Response> {
     const url = new URL(request.url);
+    if (url.pathname === "/api/comercios" && request.method === "GET") {
+      const lat = Number(url.searchParams.get("lat"));
+      const lng = Number(url.searchParams.get("lng"));
+      const radiusKm = Number(url.searchParams.get("radiusKm") ?? "3");
+      if (!Number.isFinite(lat) || !Number.isFinite(lng)) {
+        return json({ error: "invalid_query" }, 400);
+      }
+      void radiusKm;
+      void env.FOURSQUARE_API_KEY;
+      return json({ comercios: searchComerciosFromFixtures() });
+    }
     if (url.pathname === "/api/areas" && request.method === "GET") {
       return json({ areas: await createD1SearchAreaRepository(env.DB).list() });
     }
