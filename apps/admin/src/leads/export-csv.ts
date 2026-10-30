@@ -88,17 +88,25 @@ export function leadsForCsvExport(
   return filterLeadsByStatus(leads, filter);
 }
 
-export function blobFromLeadsCsv(csv: string): Blob {
+export function assertFitLeadsCsv(csv: string): string {
   if (leadCsvFitnessViolations(csv).length > 0) {
     throw new Error("csv_fitness_failed");
   }
-  return new Blob([csv], { type: "text/csv;charset=utf-8" });
+  return csv;
+}
+
+export function blobFromLeadsCsv(csv: string): Blob {
+  return new Blob([assertFitLeadsCsv(csv)], {
+    type: "text/csv;charset=utf-8",
+  });
 }
 
 export function createLeadsCsvDownload(
   leads: Lead[],
   filter: LeadStatusFilter,
 ): { blob: Blob; filename: string } {
-  const csv = exportLeadsCsv(leadsForCsvExport(leads, filter));
-  return { blob: blobFromLeadsCsv(csv), filename: "leads.csv" };
+  return {
+    blob: blobFromLeadsCsv(exportLeadsCsv(leadsForCsvExport(leads, filter))),
+    filename: "leads.csv",
+  };
 }
