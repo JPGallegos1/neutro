@@ -11,16 +11,32 @@ import {
 } from "@/comercio";
 import { getComerciosClient } from "@/comercios-client";
 import { ComerciosMap } from "@/comercios-map";
+import { getLeadsClient } from "@/leads/leads-client";
+import type { Lead } from "@/leads/lead";
 import { ROSARIO_CENTER } from "@/search-area";
 
 export function ComerciosPage({
   loadedComercios,
   loadedRevision,
+  loadedLeads,
+  loadedLeadsRevision,
 }: {
   loadedComercios: Comercio[];
   loadedRevision: number;
+  loadedLeads: Lead[];
+  loadedLeadsRevision: number;
 }) {
   const { state, dispatch } = useAdmin();
+  if (
+    state.leadsRevision !== loadedLeadsRevision ||
+    state.leadsStatus === "idle"
+  ) {
+    dispatch({
+      type: "leadsHydrated",
+      leads: loadedLeads,
+      revision: loadedLeadsRevision,
+    });
+  }
   const all =
     state.comerciosStatus === "idle" ? loadedComercios : state.comercios;
   const filteredComercios = filterComercios(all, state.filters, state.leadKeys);
@@ -55,6 +71,24 @@ export function ComerciosPage({
     }
   }
 
+  async function onGuardar() {
+    const selected = all.filter((item) =>
+      state.selectedComercioKeys.has(comercioKey(item)),
+    );
+    if (selected.length === 0) return;
+    dispatch({ type: "saveLeadsRequested" });
+    try {
+      const leads = await getLeadsClient().save(selected);
+      dispatch({
+        type: "saveLeadsSucceeded",
+        leads,
+        revision: Math.max(state.leadsRevision, loadedLeadsRevision) + 1,
+      });
+    } catch {
+      dispatch({ type: "saveLeadsFailed" });
+    }
+  }
+
   function onSelect(key: string) {
     if (state.comerciosStatus === "idle") {
       dispatch({
@@ -80,16 +114,31 @@ export function ComerciosPage({
             Foursquare Open Places + OSM · identidad source + external_id
           </p>
         </div>
-        <button
-          type="button"
-          className="rounded-md bg-neutro-accent-orange px-3 py-2 text-sm font-medium text-neutro-on-orange"
-          onClick={onBuscar}
-          disabled={state.comerciosStatus === "searching"}
-        >
-          {state.comerciosStatus === "searching"
-            ? "Buscando…"
-            : "Buscar en el Área"}
-        </button>
+        <div className="flex flex-wrap items-center gap-2">
+          <button
+            type="button"
+            data-admin-guardar-leads
+            className="rounded-md bg-neutro-accent-orange px-3 py-2 text-sm font-medium text-neutro-on-orange disabled:opacity-40"
+            onClick={onGuardar}
+            disabled={
+              visibleSelectedCount === 0 || state.leadsStatus === "saving"
+            }
+          >
+            {state.leadsStatus === "saving"
+              ? "Guardando…"
+              : "Guardar como Lead"}
+          </button>
+          <button
+            type="button"
+            className="rounded-md bg-neutro-surface px-3 py-2 text-sm font-medium text-neutro-text"
+            onClick={onBuscar}
+            disabled={state.comerciosStatus === "searching"}
+          >
+            {state.comerciosStatus === "searching"
+              ? "Buscando…"
+              : "Buscar en el Área"}
+          </button>
+        </div>
       </header>
       <div
         className="flex flex-wrap items-center gap-3 text-sm"

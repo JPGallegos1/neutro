@@ -35,6 +35,13 @@ import {
   setComerciosClient,
 } from "@/comercios-client";
 import { ComerciosPage } from "@/comercios-page";
+import {
+  createHttpLeadsClient,
+  createRepoLeadsClient,
+  getLeadsClient,
+  setLeadsClient,
+} from "@/leads/leads-client";
+import { createMemoryLeadRepository } from "@/leads/lead";
 import { createMemorySearchAreaRepository } from "@/search-area";
 import "@/styles.css";
 
@@ -175,12 +182,23 @@ const comerciosRoute = createRoute({
       .list()
       .catch(() => []);
     const area = areas[0];
-    const comercios = await getComerciosClient().search({
-      lat: area?.center.lat ?? -32.9442,
-      lng: area?.center.lng ?? -60.6505,
-      radiusKm: area?.radiusKm ?? 3,
-    });
-    return { comercios, revision: Date.now() };
+    const [comercios, leads] = await Promise.all([
+      getComerciosClient().search({
+        lat: area?.center.lat ?? -32.9442,
+        lng: area?.center.lng ?? -60.6505,
+        radiusKm: area?.radiusKm ?? 3,
+      }),
+      getLeadsClient()
+        .list()
+        .catch(() => []),
+    ]);
+    const now = Date.now();
+    return {
+      comercios,
+      revision: now,
+      leads,
+      leadsRevision: now,
+    };
   },
   component: function ComerciosRouteView() {
     const data = comerciosRoute.useLoaderData();
@@ -188,6 +206,8 @@ const comerciosRoute = createRoute({
       <ComerciosPage
         loadedComercios={data.comercios}
         loadedRevision={data.revision}
+        loadedLeads={data.leads}
+        loadedLeadsRevision={data.leadsRevision}
       />
     );
   },
@@ -267,6 +287,11 @@ if (rootElement && rootElement.dataset.adminMounted !== "1") {
     import.meta.env.PROD
       ? createHttpComerciosClient()
       : createFixtureComerciosClient(),
+  );
+  setLeadsClient(
+    import.meta.env.PROD
+      ? createHttpLeadsClient()
+      : createRepoLeadsClient(createMemoryLeadRepository()),
   );
   rootElement.dataset.adminMounted = "1";
   createRoot(rootElement).render(
