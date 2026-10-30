@@ -176,10 +176,10 @@ describe("Export CSV Leads + fitness Google (#93)", () => {
     assert.equal(src.split("escapeCsv(row[col])").length - 1, 1);
   });
 
-  it("MEDIO3: leadsForCsvExport respeta filtro; todos ≠ anular status", () => {
+  it("MEDIO3: leadsForCsvExport + createLeadsCsvDownload filtran", async () => {
     const items = [
       lead("a", { status: "nuevo" }),
-      lead("b", { status: "contactado" }),
+      lead("b", { status: "contactado", notes: "Solo este" }),
       lead("c", { status: "interesado" }),
     ];
     const onlyContactado = leadsForCsvExport(items, "contactado");
@@ -193,9 +193,22 @@ describe("Export CSV Leads + fitness Google (#93)", () => {
     const csv = exportLeadsCsv(leadsForCsvExport(items, "contactado"));
     assert.match(csv, /contactado/);
     assert.doesNotMatch(csv, /interesado|lead_osm_a|lead_osm_c/);
+    const download = createLeadsCsvDownload(items, "contactado");
+    const blobText = await download.blob.text();
+    const dataLines = blobText.trimEnd().split("\n").slice(1);
+    assert.equal(dataLines.length, 1);
+    assert.match(dataLines[0]!, /contactado/);
+    assert.match(dataLines[0]!, /Solo este/);
+    assert.doesNotMatch(blobText, /interesado|lead_osm_a|lead_osm_c|\bnuevo\b/);
     const src = readFileSync(join(srcRoot, "leads/export-csv.ts"), "utf8");
     assert.match(src, /function leadsForCsvExport[\s\S]*return filterLeadsByStatus\(leads,\s*filter\)/);
     assert.doesNotMatch(src, /function leadsForCsvExport[\s\S]*return leads\s*;/);
+    assert.match(src, /exportLeadsCsv\(leadsForCsvExport\(leads,\s*filter\)\)/);
+    assert.equal(src.split("exportLeadsCsv(leadsForCsvExport(leads, filter))").length - 1, 1);
+    assert.doesNotMatch(
+      src,
+      /createLeadsCsvDownload[\s\S]*exportLeadsCsv\(leads\)/,
+    );
     const page = readFileSync(join(srcRoot, "leads/leads-page.tsx"), "utf8");
     assert.match(
       page,
