@@ -36,15 +36,8 @@ const NOW = "2026-10-30T15:00:00.000Z";
 
 function comercio(id: string) {
   return createComercio({
-    source: "osm",
-    externalId: id,
-    name: `Comercio ${id}`,
-    lat: -32.9442,
-    lng: -60.6505,
-    website: null,
-    address: `Calle ${id} 100`,
-    socialUrls: [],
-    rubro: "cafe",
+    source: "osm", externalId: id, name: `Comercio ${id}`, lat: -32.9442, lng: -60.6505,
+    website: null, address: `Calle ${id} 100`, socialUrls: [], rubro: "cafe",
   })!;
 }
 
@@ -98,9 +91,8 @@ function fakeLeadDb() {
         const ex = places.get(key);
         places.set(key, {
           id: ex?.id ?? bound[0], source: bound[1], external_id: bound[2], name: bound[3],
-          lat: bound[4], lng: bound[5], website: bound[6], address: bound[7],
-          social_urls_json: bound[8], rubro: bound[9], attribution: bound[10],
-          created_at: ex?.created_at ?? bound[11], updated_at: bound[12],
+          lat: bound[4], lng: bound[5], website: bound[6], address: bound[7], social_urls_json: bound[8],
+          rubro: bound[9], attribution: bound[10], created_at: ex?.created_at ?? bound[11], updated_at: bound[12],
         });
       } else if (lastSql.includes("INSERT INTO leads")) {
         if (![...leads.values()].some((l) => l.place_id === bound[1])) {
@@ -146,8 +138,7 @@ const envOf = (db: D1DatabaseLike): AdminWorkerEnv => ({
 describe("Vista Leads", () => {
   it("dominio + Access + Maps/WhatsApp", () => {
     const list = [lead("a"), lead("b", "contactado"), lead("c", "interesado"), lead("d", "descartado"), lead("e")];
-    assert.equal(filterLeadsByStatus(list, "todos").length, 5);
-    assert.equal(filterLeadsByStatus(list, "nuevo").length, 2);
+    assert.deepEqual([filterLeadsByStatus(list, "todos").length, filterLeadsByStatus(list, "nuevo").length], [5, 2]);
     assert.deepEqual([...LEAD_STATUSES], ["nuevo", "contactado", "interesado", "descartado"]);
     const next = updateLeadFields(
       lead("x"),
@@ -234,8 +225,10 @@ describe("Vista Leads", () => {
       lead: updateLeadFields(items[0]!, { status: "contactado", notes: "nota vieja" }),
       revision: Date.now(),
     });
-    assert.equal(ns.leads.find((l) => l.id === items[0]!.id)?.notes, "borrador nuevo");
-    assert.equal(ns.leads.find((l) => l.id === items[0]!.id)?.status, "contactado");
+    assert.deepEqual(
+      [ns.leads.find((l) => l.id === items[0]!.id)?.notes, ns.leads.find((l) => l.id === items[0]!.id)?.status],
+      ["borrador nuevo", "contactado"],
+    );
     ns = adminReducer(ns, { type: "leadNotesChanged", id: items[0]!.id, notes: "más nuevo" });
     const stale = adminReducer(ns, {
       type: "updateLeadSucceeded",
@@ -252,12 +245,12 @@ describe("Vista Leads", () => {
       }),
       stale,
     );
-    const machine = readFileSync(join(srcRoot, "admin-machine.ts"), "utf8");
-    assert.match(machine, /case "updateLeadSucceeded":[\s\S]*committedNotes !== current/);
+    assert.match(
+      readFileSync(join(srcRoot, "admin-machine.ts"), "utf8"),
+      /case "updateLeadSucceeded":[\s\S]*committedNotes !== current/,
+    );
     const page = readFileSync(join(srcRoot, "leads/leads-page.tsx"), "utf8");
-    const shell = readFileSync(join(srcRoot, "admin-shell.tsx"), "utf8");
-    const clientSrc = readFileSync(join(srcRoot, "leads/leads-client.ts"), "utf8");
-    assert.match(shell, /LeadsPage/);
+    assert.match(readFileSync(join(srcRoot, "admin-shell.tsx"), "utf8"), /LeadsPage/);
     for (const t of [
       "data-admin-leads-page", "data-admin-leads-list", "data-admin-leads-count",
       "data-admin-leads-filter", "data-admin-lead-ficha", "data-admin-lead-status",
@@ -269,20 +262,36 @@ describe("Vista Leads", () => {
     }
     assert.doesNotMatch(page, /body\.assignee\s*=|getAccessMeClient|assignee:\s*me\.email/);
     assert.match(page, /body\.assignAccessUser\s*=\s*true/);
-    assert.match(clientSrc, /assignee:\s*_drop[\s\S]*JSON\.stringify\(safe\)/);
+    assert.match(
+      readFileSync(join(srcRoot, "leads/leads-client.ts"), "utf8"),
+      /assignee:\s*_drop[\s\S]*JSON\.stringify\(safe\)/,
+    );
     assert.doesNotMatch(page, /\buseState\b|\buseEffect\b|type:\s*"leadsHydrated"/);
-    const fn = (name: string) => {
+    assert.doesNotMatch(
+      page.replace(/async function[\s\S]*?\n  \}/g, "").replace(/function on[A-Z][\s\S]*?\n  \}/g, ""),
+      /dispatch\(\{\s*type:\s*"leadsHydrated"/,
+    );
+  });
+
+  it("MEDIO3: cada seed idle solo — onSelect / persist / onNotes", () => {
+    const page = readFileSync(join(srcRoot, "leads/leads-page.tsx"), "utf8");
+    const bodyOf = (name: string) => {
       const m = new RegExp(`(?:async )?function ${name}\\([\\s\\S]*?\\n  \\}`).exec(page);
       assert.ok(m, `falta ${name}`);
       return m[0]!;
     };
-    assert.match(fn("onSelect"), /type:\s*"selectLead"[\s\S]*seed:\s*\{\s*leads:\s*loadedLeads/);
-    assert.match(fn("persist"), /type:\s*"updateLeadRequested"[\s\S]*seed:\s*\{\s*leads:\s*loadedLeads/);
-    assert.match(fn("onNotes"), /type:\s*"selectLead"[\s\S]*seed:\s*\{\s*leads:\s*loadedLeads/);
-    const renderish = page
-      .replace(/async function[\s\S]*?\n  \}/g, "")
-      .replace(/function on[A-Z][\s\S]*?\n  \}/g, "");
-    assert.doesNotMatch(renderish, /dispatch\(\{\s*type:\s*"leadsHydrated"/);
+    const seed = /seed:\s*\{\s*leads:\s*loadedLeads,\s*revision:\s*loadedLeadsRevision\s*\}/;
+    for (const [name, type] of [
+      ["onSelect", "selectLead"],
+      ["persist", "updateLeadRequested"],
+      ["onNotes", "selectLead"],
+    ] as const) {
+      const body = bodyOf(name);
+      assert.match(body, new RegExp(`type:\\s*"${type}"`));
+      assert.match(body, seed);
+      assert.match(body, /leadsStatus === "idle"/);
+      assert.equal((body.match(/seed:\s*\{/g) ?? []).length, 1, name);
+    }
   });
 
   it("API: PATCH, /api/me, google-live; 404/400", async () => {
@@ -315,32 +324,28 @@ describe("Vista Leads", () => {
     );
     assert.equal(patched.status, 200);
     const body = (await patched.json()) as { lead: Lead };
-    assert.equal(body.lead.status, "contactado");
-    assert.equal(body.lead.assignee, "neutrosolutions26@gmail.com");
-    assert.equal([...places.values()][0]!.name, placeName);
-    const forgedOnly = await worker.fetch(
-      new Request(`https://admin.test/api/leads/${leads[0]!.id}`, {
-        method: "PATCH",
-        headers: { "content-type": "application/json" },
-        body: JSON.stringify({ assignee: "forged@evil.test" }),
-      }),
-      env,
+    assert.deepEqual([body.lead.status, body.lead.assignee, [...places.values()][0]!.name], [
+      "contactado", "neutrosolutions26@gmail.com", placeName,
+    ]);
+    const forge = (payload: object) =>
+      worker.fetch(
+        new Request(`https://admin.test/api/leads/${leads[0]!.id}`, {
+          method: "PATCH",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify(payload),
+        }),
+        env,
+      );
+    assert.equal((await forge({ assignee: "forged@evil.test" })).status, 400);
+    const forgedNotes = await forge({ notes: "ok", assignee: "forged@evil.test" });
+    assert.equal(forgedNotes.status, 400);
+    assert.deepEqual(await forgedNotes.json(), { error: "assignee_via_access_only" });
+    assert.equal(
+      ((await (await worker.fetch(new Request("https://admin.test/api/leads"), env)).json()) as {
+        leads: Lead[];
+      }).leads[0]?.assignee,
+      "neutrosolutions26@gmail.com",
     );
-    assert.equal(forgedOnly.status, 400);
-    const forgedWithNotes = await worker.fetch(
-      new Request(`https://admin.test/api/leads/${leads[0]!.id}`, {
-        method: "PATCH",
-        headers: { "content-type": "application/json" },
-        body: JSON.stringify({ notes: "ok", assignee: "forged@evil.test" }),
-      }),
-      env,
-    );
-    assert.equal(forgedWithNotes.status, 400);
-    assert.deepEqual(await forgedWithNotes.json(), { error: "assignee_via_access_only" });
-    const listed = ((await (
-      await worker.fetch(new Request("https://admin.test/api/leads"), env)
-    ).json()) as { leads: Lead[] }).leads[0];
-    assert.equal(listed?.assignee, "neutrosolutions26@gmail.com");
     const workerSrc = readFileSync(join(srcRoot, "../worker/index.ts"), "utf8");
     assert.match(workerSrc, /"assignee" in body[\s\S]*assignee_via_access_only/);
     assert.match(workerSrc, /assignAccessUser[\s\S]*resolveAccessEmail/);
@@ -348,14 +353,9 @@ describe("Vista Leads", () => {
     await createD1LeadRepository(db).saveFromComercios([comercio("live")]);
     const before = structuredClone([...places.values()]);
     assert.deepEqual(
-      await (
-        await worker.fetch(
-          new Request("https://admin.test/api/me", {
-            headers: { "Cf-Access-Authenticated-User-Email": "ops@neutro.solutions" },
-          }),
-          env,
-        )
-      ).json(),
+      await (await worker.fetch(new Request("https://admin.test/api/me", {
+        headers: { "Cf-Access-Authenticated-User-Email": "ops@neutro.solutions" },
+      }), env)).json(),
       { email: "ops@neutro.solutions" },
     );
     const live = await worker.fetch(
@@ -367,16 +367,11 @@ describe("Vista Leads", () => {
     assert.deepEqual([...places.values()], before);
     const emptyStmt = { bind() { return this; }, async all() { return { results: [] }; }, async first() { return null; }, async run() { return {}; } };
     const empty = envOf({ prepare: () => emptyStmt });
-    const patch = (path: string, body: string) =>
-      worker.fetch(
-        new Request(`https://admin.test/api/leads/${path}`, {
-          method: "PATCH",
-          headers: { "content-type": "application/json" },
-          body,
-        }),
-        empty,
-      );
-    assert.equal((await patch("nope", JSON.stringify({ notes: "x" }))).status, 404);
-    assert.equal((await patch("x", "{")).status, 400);
+    const bad = (path: string, body: string) =>
+      worker.fetch(new Request(`https://admin.test/api/leads/${path}`, {
+        method: "PATCH", headers: { "content-type": "application/json" }, body,
+      }), empty);
+    assert.equal((await bad("nope", JSON.stringify({ notes: "x" }))).status, 404);
+    assert.equal((await bad("x", "{")).status, 400);
   });
 });
