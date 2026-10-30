@@ -16,10 +16,7 @@ export const ADMIN_INITIAL_STATE: AdminState = {
   accessLabel: "Cloudflare Access",
 };
 
-export function adminReducer(
-  state: AdminState,
-  event: AdminEvent,
-): AdminState {
+export function adminReducer(state: AdminState, event: AdminEvent): AdminState {
   switch (event.type) {
     case "navigate":
       if (state.section === event.section) return state;

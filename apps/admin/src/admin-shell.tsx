@@ -34,8 +34,7 @@ const navItem = cva(
     variants: {
       active: {
         true: "bg-neutro-bg text-neutro-text",
-        false:
-          "text-neutro-text-muted [@media(hover:hover)]:hover:opacity-90",
+        false: "text-neutro-text-muted [@media(hover:hover)]:hover:opacity-90",
       },
     },
     defaultVariants: { active: false },
@@ -116,7 +115,9 @@ function ShellChrome({ children }: { children: ReactNode }) {
         <div className="mt-auto flex flex-col gap-3 px-2">
           <span
             data-admin-badge="interno"
-            className={cn(badgeVariants({ tone: "interno" } satisfies BadgeProps))}
+            className={cn(
+              badgeVariants({ tone: "interno" } satisfies BadgeProps),
+            )}
           >
             Interno
           </span>

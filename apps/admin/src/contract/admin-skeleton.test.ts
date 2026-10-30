@@ -3,15 +3,12 @@ import { readFileSync, readdirSync, statSync } from "node:fs";
 import { dirname, join, relative } from "node:path";
 import { fileURLToPath } from "node:url";
 import { describe, it } from "vitest";
-import {
-  ADMIN_INITIAL_STATE,
-  adminReducer,
-  pathForSection,
-  sectionFromPathname,
-} from "@/admin-machine";
 
 const adminRoot = join(dirname(fileURLToPath(import.meta.url)), "../..");
 const srcRoot = join(adminRoot, "src");
+
+const FORBIDDEN_IMPORT =
+  /(?:from|import)\s*["'][^"']*(?:apps\/(?:web|muestras)|@neutro\/(?:web|muestras)|(?:\.\.\/)+web\/|(?:\.\.\/)+muestras\/)[^"']*["']/;
 
 function listFiles(dir: string): string[] {
   const entries = readdirSync(dir);
@@ -37,15 +34,23 @@ function readSrc(): { path: string; text: string }[] {
   }));
 }
 
+function isolationHits(): string[] {
+  return readSrc().flatMap((file) => {
+    if (file.path.includes("contract/")) return [];
+    const lines = file.text.split("\n");
+    const hits: string[] = [];
+    for (let i = 0; i < lines.length; i++) {
+      const line = lines[i] ?? "";
+      if (!FORBIDDEN_IMPORT.test(line)) continue;
+      hits.push(`${file.path}:${i + 1} importa web o muestras`);
+    }
+    return hits;
+  });
+}
+
 describe("aislamiento de apps", () => {
   it("falla si apps/admin importa apps/web o apps/muestras", () => {
-    const forbidden =
-      /from\s+["'][^"']*apps\/(web|muestras)[^"']*["']|from\s+["']@neutro\/(web|muestras)["']|["']\.\.\/\.\.\/web\/|["']\.\.\/\.\.\/muestras\//;
-    const hits = readSrc().flatMap((file) => {
-      if (!forbidden.test(file.text)) return [];
-      return [`${file.path} importa web o muestras`];
-    });
-    assert.deepEqual(hits, []);
+    assert.deepEqual(isolationHits(), []);
   });
 
   it("no declara dependencia de @neutro/web ni @neutro/muestras", () => {
@@ -83,10 +88,26 @@ describe("shell Admin (sidebar + rutas)", () => {
     assert.match(shell, /\{item\.label\}/);
   });
 
-  it("resuelve secciones del reducer de forma predecible", () => {
+  it("redirige / hacia /comercios", () => {
+    const shell = readFileSync(join(srcRoot, "admin-shell.tsx"), "utf8");
+    assert.match(shell, /path:\s*"\/"/);
+    assert.match(shell, /redirect\(\{\s*to:\s*"\/comercios"\s*\}\)/);
+  });
+
+  it("resuelve secciones del reducer de forma predecible", async () => {
+    assert.deepEqual(isolationHits(), []);
+    const {
+      ADMIN_INITIAL_STATE,
+      adminReducer,
+      pathForSection,
+      sectionFromPathname,
+    } = await import("@/admin-machine");
     assert.equal(sectionFromPathname("/comercios"), "comercios");
     assert.equal(sectionFromPathname("/leads"), "leads");
     assert.equal(sectionFromPathname("/areas"), "areas");
+    assert.equal(sectionFromPathname("/"), "comercios");
+    assert.equal(sectionFromPathname("/desconocido"), "comercios");
+    assert.equal(sectionFromPathname("/foo/bar"), "comercios");
     assert.equal(pathForSection("leads"), "/leads");
     const next = adminReducer(ADMIN_INITIAL_STATE, {
       type: "navigate",
@@ -94,6 +115,12 @@ describe("shell Admin (sidebar + rutas)", () => {
     });
     assert.equal(next.section, "areas");
     assert.equal(next.accessLabel, ADMIN_INITIAL_STATE.accessLabel);
+    const labeled = adminReducer(ADMIN_INITIAL_STATE, {
+      type: "setAccessLabel",
+      label: "usuario@neutro.solutions",
+    });
+    assert.equal(labeled.accessLabel, "usuario@neutro.solutions");
+    assert.equal(labeled.section, ADMIN_INITIAL_STATE.section);
   });
 });
 
@@ -101,13 +128,13 @@ describe("borde interno", () => {
   it("declara noindex, badge interno y pie Access", () => {
     const html = readFileSync(join(adminRoot, "index.html"), "utf8");
     const shell = readFileSync(join(srcRoot, "admin-shell.tsx"), "utf8");
-    const machine = readFileSync(join(srcRoot, "admin-machine.ts"), "utf8");
     assert.match(html, /name="robots"[^>]*content="noindex,\s*nofollow"/);
-    assert.match(shell, /data-admin-badge="interno"/);
-    assert.match(shell, /\bInterno\b/);
+    assert.match(
+      shell,
+      /data-admin-badge="interno"[\s\S]*?>\s*Interno\s*</,
+    );
     assert.match(shell, /data-admin-access-footer/);
-    assert.match(shell, /Acceso vía/);
-    assert.match(machine, /Cloudflare Access/);
+    assert.match(shell, /Acceso vía \{state\.accessLabel\}/);
   });
 
   it("prohíbe useState y useEffect en el código de apps/admin", () => {
