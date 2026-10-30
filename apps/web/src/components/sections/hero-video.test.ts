@@ -17,12 +17,77 @@ function extract(tag: "script" | "style"): string {
   return body;
 }
 
+function astroTemplate(): string {
+  const chunks = source.split(/^---\s*$/m);
+  const template = chunks.length >= 3 ? chunks.slice(2).join("---") : source;
+  return template
+    .replace(/<script>[\s\S]*?<\/script>/g, "")
+    .replace(/<style>[\s\S]*?<\/style>/g, "");
+}
+
+function openingTag(html: string, re: RegExp, label: string): string {
+  const match = html.match(re);
+  if (!match?.[0]) throw new Error(`missing ${label}`);
+  return match[0];
+}
+
+function heroMediaOpening(): string {
+  return openingTag(
+    astroTemplate(),
+    /<div\b(?=[^>]*\bclass="hero__media")[^>]*>/,
+    'div.hero__media',
+  );
+}
+
+function heroVideoOpening(): string {
+  return openingTag(astroTemplate(), /<video\b[\s\S]*?>/, "video");
+}
+
+function parseAttributes(tag: string): Record<string, string> {
+  const attrs: Record<string, string> = {};
+  const body = tag.replace(/^<\/?[a-zA-Z][\w:-]*/, "").replace(/\/?>$/, "");
+  const token =
+    /([:@a-zA-Z_][\w:.-]*)(?:\s*=\s*(?:"([^"]*)"|'([^']*)'|\{([^}]*)\}|([^\s"'=<>`]+)))?/g;
+  let match: RegExpExecArray | null;
+  while ((match = token.exec(body)) !== null) {
+    const name = match[1];
+    if (!name) continue;
+    const raw = match[2] ?? match[3] ?? match[4] ?? match[5];
+    attrs[name] = raw === undefined ? "" : raw;
+  }
+  return attrs;
+}
+
+function resolvePoster(attrs: Record<string, string>): Record<string, string> {
+  const next = { ...attrs };
+  if (next.poster !== "posterSrc") return next;
+  const match = source.match(/const\s+posterSrc\s*=\s*["']([^"']+)["']/);
+  if (!match?.[1]) throw new Error("missing posterSrc");
+  next.poster = match[1];
+  return next;
+}
+
+function listedSources(): Array<{ src: string; type: string }> {
+  const block = source.match(
+    /const\s+sources\s*=\s*\[([\s\S]*?)\]\s*as\s+const/,
+  )?.[1];
+  if (!block) throw new Error("missing sources");
+  const entries = [
+    ...block.matchAll(/\{\s*src:\s*"([^"]+)"\s*,\s*type:\s*"([^"]+)"\s*\}/g),
+  ];
+  if (entries.length < 1) throw new Error("expected sources entries");
+  return entries.map((entry) => ({
+    src: entry[1]!,
+    type: entry[2]!,
+  }));
+}
+
 const css = extract("style");
 const scriptSource = extract("script");
 
 describe("hero video contract", () => {
   it("defaults to a muted looping inline video without controls", () => {
-    const videoTag = source.match(/<video[\s\S]*?>/)?.[0] ?? "";
+    const videoTag = heroVideoOpening();
     assert.match(videoTag, /\sautoplay(?:\s|>)/);
     assert.match(videoTag, /\smuted(?:\s|>)/);
     assert.match(videoTag, /\sloop(?:\s|>)/);
@@ -30,15 +95,16 @@ describe("hero video contract", () => {
     assert.match(videoTag, /poster=\{posterSrc\}/);
     assert.match(videoTag, /aria-hidden="true"/);
     assert.doesNotMatch(videoTag, /\scontrols(?:\s|=|>)/);
-    assert.doesNotMatch(source, /<button/);
+    assert.doesNotMatch(astroTemplate(), /<button/);
     assert.doesNotMatch(source, /from "@lucide\/astro"/);
   });
 
   it("lists webm before mp4 among video sources", () => {
-    const mp4 = source.indexOf('"/video/neutro.mp4"');
-    const webm = source.indexOf('"/video/neutro.webm"');
-    assert.ok(mp4 >= 0, "expected mp4 source path");
+    const entries = listedSources();
+    const webm = entries.findIndex((entry) => entry.src.endsWith(".webm"));
+    const mp4 = entries.findIndex((entry) => entry.src.endsWith(".mp4"));
     assert.ok(webm >= 0, "expected webm source path");
+    assert.ok(mp4 >= 0, "expected mp4 source path");
     assert.ok(webm < mp4, "webm must come before mp4");
   });
 
@@ -63,7 +129,7 @@ describe("hero video contract", () => {
   });
 
   it("keeps preload none on the video element markup", () => {
-    const videoTag = source.match(/<video[\s\S]*?>/)?.[0] ?? "";
+    const videoTag = heroVideoOpening();
     assert.match(videoTag, /\spreload="none"(?:\s|>)/);
     assert.doesNotMatch(videoTag, /\spreload="auto"(?:\s|>)/);
   });
@@ -78,13 +144,19 @@ describe("hero video contract", () => {
     }
   });
 
+  it("wires data-video-root and data-video on the real hero markup tags", () => {
+    const mediaOpening = heroMediaOpening();
+    assert.match(mediaOpening, /\bdata-video-root(?:\s|\/|>)/);
+    const videoOpening = heroVideoOpening();
+    assert.match(videoOpening, /\bdata-video(?:\s|\/|>|=)/);
+  });
+
   it("keeps the video inside the black hero without a framed box", () => {
-    assert.match(source, /data-video-root/);
-    assert.match(source, /class="hero__media"/);
+    assert.match(heroMediaOpening(), /\bclass="hero__media"/);
     assert.match(css, /\.hero\s*\{[^}]*--neutro-bg:\s*#0a0a0a/);
     assert.match(css, /\.hero__media\s*\{[^}]*aspect-ratio:\s*16\s*\/\s*9/);
     assert.doesNotMatch(css, /\.hero__media\s*\{[^}]*border\s*:/);
-    assert.doesNotMatch(source, /video-section/);
+    assert.doesNotMatch(astroTemplate(), /video-section/);
   });
 });
 
@@ -241,21 +313,22 @@ class FakeObserver {
 }
 
 function buildTree() {
+  const mediaAttrs = parseAttributes(heroMediaOpening());
+  const videoAttrs = resolvePoster(parseAttributes(heroVideoOpening()));
   const section = new El("section");
-  const frame = new El("div", { "data-video-root": "" });
-  const video = new El("video", {
-    "data-video": "",
-    autoplay: "",
-    muted: "",
-    loop: "",
-    playsinline: "",
-    preload: "none",
-    poster: "/video/neutro-poster.jpg",
-  });
-  const webm = new El("source", { "data-src": "/video/neutro.webm" });
-  const mp4 = new El("source", { "data-src": "/video/neutro.mp4" });
-  video.append(webm);
-  video.append(mp4);
+  const frame = new El("div", mediaAttrs);
+  const video = new El("video", videoAttrs);
+  const sourceEls = listedSources().map(
+    (entry) => new El("source", { "data-src": entry.src, type: entry.type }),
+  );
+  for (const el of sourceEls) video.append(el);
+  const webm = sourceEls.find((el) =>
+    (el.getAttribute("data-src") ?? "").endsWith(".webm"),
+  );
+  const mp4 = sourceEls.find((el) =>
+    (el.getAttribute("data-src") ?? "").endsWith(".mp4"),
+  );
+  if (!webm || !mp4) throw new Error("expected webm and mp4 sources in markup");
   frame.append(video);
   section.append(frame);
   return { section, frame, video, webm, mp4 };
