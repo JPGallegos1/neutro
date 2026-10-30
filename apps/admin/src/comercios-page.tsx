@@ -13,10 +13,19 @@ export function ComerciosPage({
   loadedRevision: number;
 }) {
   const { state, dispatch } = useAdmin();
-  if (
-    state.comerciosRevision !== loadedRevision ||
-    state.comerciosStatus === "idle"
-  ) {
+  const comercios =
+    state.comerciosStatus === "idle" ? loadedComercios : state.comercios;
+  const selectedKey =
+    state.selectedComercioKey ??
+    (comercios[0] ? comercioKey(comercios[0]) : null);
+
+  const center = state.selectedAreaId
+    ? (state.areas.find((a) => a.id === state.selectedAreaId)?.center ??
+      ROSARIO_CENTER)
+    : ROSARIO_CENTER;
+
+  function hydrateFromLoader() {
+    if (state.comerciosStatus !== "idle") return;
     dispatch({
       type: "comerciosHydrated",
       comercios: loadedComercios,
@@ -24,30 +33,30 @@ export function ComerciosPage({
     });
   }
 
-  const center = state.selectedAreaId
-    ? (state.areas.find((a) => a.id === state.selectedAreaId)?.center ??
-      ROSARIO_CENTER)
-    : ROSARIO_CENTER;
-
   async function onBuscar() {
     dispatch({ type: "comerciosSearchRequested" });
     try {
       const area =
         state.areas.find((a) => a.id === state.selectedAreaId) ??
         (await getAreasClient().list())[0];
-      const comercios = await getComerciosClient().search({
+      const found = await getComerciosClient().search({
         lat: area?.center.lat ?? ROSARIO_CENTER.lat,
         lng: area?.center.lng ?? ROSARIO_CENTER.lng,
         radiusKm: area?.radiusKm ?? 3,
       });
       dispatch({
         type: "comerciosSearchSucceeded",
-        comercios,
-        revision: state.comerciosRevision + 1,
+        comercios: found,
+        revision: Math.max(state.comerciosRevision, loadedRevision) + 1,
       });
     } catch {
       dispatch({ type: "comerciosSearchFailed" });
     }
+  }
+
+  function onSelect(key: string) {
+    hydrateFromLoader();
+    dispatch({ type: "selectComercio", key });
   }
 
   return (
@@ -76,19 +85,19 @@ export function ComerciosPage({
       </header>
       <div className="grid gap-6 lg:grid-cols-[320px_minmax(0,1fr)]">
         <ComerciosMap
-          comercios={state.comercios}
-          selectedKey={state.selectedComercioKey}
+          comercios={comercios}
+          selectedKey={selectedKey}
           leadKeys={state.leadKeys}
           center={center}
-          onSelect={(key) => dispatch({ type: "selectComercio", key })}
+          onSelect={onSelect}
         />
         <ul
           className="flex max-h-[28rem] flex-col gap-2 overflow-auto"
           data-admin-comercios-list
         >
-          {state.comercios.map((c) => {
+          {comercios.map((c) => {
             const key = comercioKey(c);
-            const selected = state.selectedComercioKey === key;
+            const selected = selectedKey === key;
             return (
               <li key={key}>
                 <button
@@ -99,7 +108,7 @@ export function ComerciosPage({
                       ? "bg-neutro-surface"
                       : "bg-neutro-bg text-neutro-text-muted"
                   }`}
-                  onClick={() => dispatch({ type: "selectComercio", key })}
+                  onClick={() => onSelect(key)}
                 >
                   <span className="font-medium text-neutro-text">{c.name}</span>
                   <span className="block text-xs">

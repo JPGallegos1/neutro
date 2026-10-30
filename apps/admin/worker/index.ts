@@ -28,10 +28,19 @@ export default {
   async fetch(request: Request, env: AdminWorkerEnv): Promise<Response> {
     const url = new URL(request.url);
     if (url.pathname === "/api/comercios" && request.method === "GET") {
-      const lat = Number(url.searchParams.get("lat"));
-      const lng = Number(url.searchParams.get("lng"));
+      const latRaw = url.searchParams.get("lat");
+      const lngRaw = url.searchParams.get("lng");
+      const lat = Number(latRaw);
+      const lng = Number(lngRaw);
       const radiusKm = Number(url.searchParams.get("radiusKm") ?? "3");
-      if (!Number.isFinite(lat) || !Number.isFinite(lng)) {
+      if (
+        latRaw == null ||
+        lngRaw == null ||
+        latRaw.trim() === "" ||
+        lngRaw.trim() === "" ||
+        !Number.isFinite(lat) ||
+        !Number.isFinite(lng)
+      ) {
         return json({ error: "invalid_query" }, 400);
       }
       void radiusKm;

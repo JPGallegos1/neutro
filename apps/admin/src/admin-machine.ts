@@ -164,6 +164,15 @@ export function adminReducer(state: AdminState, event: AdminEvent): AdminState {
     case "saveAreaFailed":
       return { ...state, areasStatus: "ready", areasError: event.error };
     case "comerciosHydrated":
+      if (state.comerciosStatus === "searching") {
+        return state;
+      }
+      if (
+        state.comerciosStatus === "ready" &&
+        state.comerciosRevision !== event.revision
+      ) {
+        return state;
+      }
       if (
         state.comerciosRevision === event.revision &&
         state.comerciosStatus === "ready"

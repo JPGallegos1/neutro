@@ -5,7 +5,7 @@ import {
   type PinKind,
 } from "@/comercio";
 
-function project(
+export function projectComercioPin(
   lat: number,
   lng: number,
   center: { lat: number; lng: number },
@@ -49,7 +49,13 @@ export function ComerciosMap({
       {comercios.map((c) => {
         const key = comercioKey(c);
         const kind = pinKindFor(key, selectedKey, leadKeys);
-        const { x, y } = project(c.lat, c.lng, center, spanDeg, size);
+        const { x, y } = projectComercioPin(
+          c.lat,
+          c.lng,
+          center,
+          spanDeg,
+          size,
+        );
         return (
           <button
             key={key}
