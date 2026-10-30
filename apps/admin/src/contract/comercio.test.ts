@@ -178,6 +178,7 @@ describe("Comercios — mapa↔lista", () => {
       comercios: list,
       revision: 1,
     });
+    assert.equal(state.selectedComercioKey, a);
     state = adminReducer(state, { type: "selectComercio", key: b });
     assert.equal(state.selectedComercioKey, b);
     assert.notEqual(state.selectedComercioKey, a);
@@ -191,17 +192,39 @@ describe("Comercios — mapa↔lista", () => {
     );
   });
 
+  it("selectComercio es no-op si la key no existe en la lista", () => {
+    const list = searchComerciosFromFixtures();
+    let state = adminReducer(ADMIN_INITIAL_STATE, {
+      type: "comerciosHydrated",
+      comercios: list,
+      revision: 1,
+    });
+    const selected = state.selectedComercioKey;
+    const next = adminReducer(state, {
+      type: "selectComercio",
+      key: "osm:no-existe",
+    });
+    assert.equal(next.selectedComercioKey, selected);
+    assert.equal(next, state);
+  });
+
   it("proyección Y: norte (lat mayor) queda arriba (y menor)", () => {
     const center = { lat: -32.9442, lng: -60.6505 };
-    const north = projectComercioPin(-32.94, -60.6505, center, 0.04, 320);
-    const south = projectComercioPin(-32.95, -60.6505, center, 0.04, 320);
+    const span = 0.04;
+    const size = 320;
+    const north = projectComercioPin(-32.94, -60.6505, center, span, size);
+    const south = projectComercioPin(-32.95, -60.6505, center, span, size);
     assert.ok(north.y < south.y);
-    const invertedNorthY = ((-32.94 - center.lat) / 0.04 + 0.5) * 320;
+    assert.equal(north.y, ((center.lat - -32.94) / span + 0.5) * size);
+    const invertedNorthY = ((-32.94 - center.lat) / span + 0.5) * size;
     assert.notEqual(north.y, invertedNorthY);
+    assert.ok(invertedNorthY > north.y);
   });
 
   it("atribución visible en la página vía COMERCIOS_ATTRIBUTION", () => {
     assert.ok(COMERCIOS_ATTRIBUTION.length > 0);
+    assert.match(COMERCIOS_ATTRIBUTION, /OpenStreetMap/);
+    assert.match(COMERCIOS_ATTRIBUTION, /Foursquare/);
     const page = readFileSync(join(srcRoot, "comercios-page.tsx"), "utf8");
     assert.match(
       page,
@@ -210,6 +233,10 @@ describe("Comercios — mapa↔lista", () => {
     assert.doesNotMatch(
       page,
       /data-admin-comercios-attribution[\s\S]*>\s*<\/p>/,
+    );
+    assert.doesNotMatch(
+      page,
+      /data-admin-comercios-attribution[\s\S]*>\s*["']\s*["']\s*</,
     );
   });
 });

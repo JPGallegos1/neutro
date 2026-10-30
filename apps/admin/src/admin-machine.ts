@@ -194,8 +194,14 @@ export function adminReducer(state: AdminState, event: AdminEvent): AdminState {
               ? `${event.comercios[0].source}:${event.comercios[0].externalId}`
               : null,
       };
-    case "selectComercio":
+    case "selectComercio": {
+      if (state.selectedComercioKey === event.key) return state;
+      const exists = state.comercios.some(
+        (c) => `${c.source}:${c.externalId}` === event.key,
+      );
+      if (!exists) return state;
       return { ...state, selectedComercioKey: event.key };
+    }
     case "comerciosSearchRequested":
       return { ...state, comerciosStatus: "searching" };
     case "comerciosSearchSucceeded":

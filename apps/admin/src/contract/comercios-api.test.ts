@@ -51,6 +51,21 @@ describe("GET /api/comercios", () => {
     assert.deepEqual(await res.json(), { error: "invalid_query" });
   });
 
+  it("400 si lat/lng no finitos", async () => {
+    const nan = await worker.fetch(
+      new Request("https://admin.test/api/comercios?lat=NaN&lng=-60.65"),
+      env(),
+    );
+    assert.equal(nan.status, 400);
+    assert.deepEqual(await nan.json(), { error: "invalid_query" });
+    const inf = await worker.fetch(
+      new Request("https://admin.test/api/comercios?lat=-32.94&lng=Infinity"),
+      env(),
+    );
+    assert.equal(inf.status, 400);
+    assert.deepEqual(await inf.json(), { error: "invalid_query" });
+  });
+
   it("400 si falta lng numérico", async () => {
     const res = await worker.fetch(
       new Request("https://admin.test/api/comercios?lat=-32.94"),
