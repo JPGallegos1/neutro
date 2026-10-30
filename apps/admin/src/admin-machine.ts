@@ -456,3 +456,24 @@ export function sectionFromPathname(pathname: string): AdminSection {
 export function pathForSection(section: AdminSection): string {
   return `/${section}`;
 }
+
+export type LeadsIdleSeed = { leads: Lead[]; revision: number };
+
+export function selectLeadWhenIdle(
+  leadsStatus: LeadsStatus,
+  id: string,
+  seed: LeadsIdleSeed,
+): Extract<AdminEvent, { type: "selectLead" }> {
+  return leadsStatus === "idle"
+    ? { type: "selectLead", id, seed: { leads: seed.leads, revision: seed.revision } }
+    : { type: "selectLead", id };
+}
+
+export function updateLeadRequestedWhenIdle(
+  leadsStatus: LeadsStatus,
+  seed: LeadsIdleSeed,
+): Extract<AdminEvent, { type: "updateLeadRequested" }> {
+  return leadsStatus === "idle"
+    ? { type: "updateLeadRequested", seed: { leads: seed.leads, revision: seed.revision } }
+    : { type: "updateLeadRequested" };
+}

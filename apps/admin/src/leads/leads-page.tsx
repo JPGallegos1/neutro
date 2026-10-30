@@ -1,4 +1,8 @@
 import { useAdmin } from "@/admin-context";
+import {
+  selectLeadWhenIdle,
+  updateLeadRequestedWhenIdle,
+} from "@/admin-machine";
 import { getGoogleLiveClient } from "@/leads/google-live";
 import { getLeadsClient, type LeadClientPatch } from "@/leads/leads-client";
 import {
@@ -36,12 +40,10 @@ export function LeadsPage({
     leads.find((l) => l.id === state.selectedLeadId) ??
     null;
 
+  const idleSeed = { leads: loadedLeads, revision: loadedLeadsRevision };
+
   function onSelect(id: string) {
-    dispatch(
-      state.leadsStatus === "idle"
-        ? { type: "selectLead", id, seed: { leads: loadedLeads, revision: loadedLeadsRevision } }
-        : { type: "selectLead", id },
-    );
+    dispatch(selectLeadWhenIdle(state.leadsStatus, id, idleSeed));
     const lead = leads.find((item) => item.id === id);
     if (!lead) return;
     dispatch({ type: "googleLiveRequested" });
@@ -54,14 +56,7 @@ export function LeadsPage({
   }
 
   async function persist(id: string, patch: LeadClientPatch) {
-    dispatch(
-      state.leadsStatus === "idle"
-        ? {
-            type: "updateLeadRequested",
-            seed: { leads: loadedLeads, revision: loadedLeadsRevision },
-          }
-        : { type: "updateLeadRequested" },
-    );
+    dispatch(updateLeadRequestedWhenIdle(state.leadsStatus, idleSeed));
     try {
       const body: LeadClientPatch = {};
       if (patch.status !== undefined) body.status = patch.status;
@@ -84,13 +79,7 @@ export function LeadsPage({
 
   function onNotes(notes: string) {
     if (!selected) return;
-    if (state.leadsStatus === "idle") {
-      dispatch({
-        type: "selectLead",
-        id: selected.id,
-        seed: { leads: loadedLeads, revision: loadedLeadsRevision },
-      });
-    }
+    dispatch(selectLeadWhenIdle(state.leadsStatus, selected.id, idleSeed));
     dispatch({ type: "leadNotesChanged", id: selected.id, notes });
     const prev = noteTimers.get(selected.id);
     if (prev) clearTimeout(prev);
@@ -160,12 +149,8 @@ export function LeadsPage({
                 <p className="text-xs text-neutro-text-muted">
                   {selected.source} · {selected.externalId}
                 </p>
-                {selected.address ? (
-                  <p className="text-sm text-neutro-text-muted">{selected.address}</p>
-                ) : null}
-                <p className="text-xs text-neutro-text-muted">
-                  {selected.lat.toFixed(5)}, {selected.lng.toFixed(5)}
-                </p>
+                {selected.address ? <p className="text-sm text-neutro-text-muted">{selected.address}</p> : null}
+                <p className="text-xs text-neutro-text-muted">{selected.lat.toFixed(5)}, {selected.lng.toFixed(5)}</p>
               </div>
               <div className="flex flex-wrap gap-2" role="group" aria-label="Estado del lead">
                 {LEAD_STATUSES.map((status) => (
