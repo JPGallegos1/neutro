@@ -9,6 +9,7 @@ import {
   type D1PreparedStatement,
 } from "@/d1-search-area-repository";
 import {
+  ROSARIO_CENTER,
   SEARCH_AREA_RADIUS_MAX_KM,
   SEARCH_AREA_RADIUS_MIN_KM,
   createMemorySearchAreaRepository,
@@ -22,10 +23,17 @@ describe("Área de búsqueda", () => {
   it("default Rosario · 3 km, bounds y polígono", () => {
     assert.equal(SEARCH_AREA_RADIUS_MIN_KM, 0.5);
     assert.equal(SEARCH_AREA_RADIUS_MAX_KM, 10);
+    assert.equal(ROSARIO_CENTER.lat, -32.9442);
+    assert.equal(ROSARIO_CENTER.lng, -60.6505);
     const draft = createRosarioDefaultDraft();
     assert.equal(draft.name, "Rosario centro · 3 km");
     assert.equal(draft.radiusKm, "3");
-    assert.equal(createRosarioDefaultArea().radiusKm, 3);
+    assert.equal(Number(draft.centerLat), -32.9442);
+    assert.equal(Number(draft.centerLng), -60.6505);
+    const defaultArea = createRosarioDefaultArea();
+    assert.equal(defaultArea.radiusKm, 3);
+    assert.equal(defaultArea.center.lat, -32.9442);
+    assert.equal(defaultArea.center.lng, -60.6505);
     assert.equal(
       createSearchArea({
         name: "x",
