@@ -76,7 +76,10 @@ export type AdminEvent =
     }
   | { type: "comerciosSearchFailed" }
   | { type: "leadsHydrated"; leads: Lead[]; revision: number }
-  | { type: "saveLeadsRequested" }
+  | {
+      type: "saveLeadsRequested";
+      seed?: { leads: Lead[]; revision: number };
+    }
   | { type: "saveLeadsSucceeded"; leads: Lead[]; revision: number }
   | { type: "saveLeadsFailed" };
 
@@ -308,8 +311,18 @@ export function adminReducer(state: AdminState, event: AdminEvent): AdminState {
         leadsStatus: "ready",
         leadKeys: new Set(event.leads.map(leadKey)),
       };
-    case "saveLeadsRequested":
+    case "saveLeadsRequested": {
+      if (event.seed && state.leadsStatus === "idle") {
+        return {
+          ...state,
+          leads: event.seed.leads,
+          leadsRevision: event.seed.revision,
+          leadKeys: new Set(event.seed.leads.map(leadKey)),
+          leadsStatus: "saving",
+        };
+      }
       return { ...state, leadsStatus: "saving" };
+    }
     case "saveLeadsSucceeded": {
       const leads = mergeLeadsByIdentity(state.leads, event.leads);
       return {

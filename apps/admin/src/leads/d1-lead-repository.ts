@@ -109,15 +109,9 @@ export function createD1LeadRepository(db: D1DatabaseLike): LeadRepository {
             `INSERT INTO places (id, source, external_id, name, lat, lng, website, address, social_urls_json, rubro, attribution, created_at, updated_at)
              VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
              ON CONFLICT(source, external_id) DO UPDATE SET
-               name = excluded.name,
-               lat = excluded.lat,
-               lng = excluded.lng,
-               website = excluded.website,
-               address = excluded.address,
-               social_urls_json = excluded.social_urls_json,
-               rubro = excluded.rubro,
-               attribution = excluded.attribution,
-               updated_at = excluded.updated_at`,
+               name=excluded.name, lat=excluded.lat, lng=excluded.lng, website=excluded.website,
+               address=excluded.address, social_urls_json=excluded.social_urls_json,
+               rubro=excluded.rubro, attribution=excluded.attribution, updated_at=excluded.updated_at`,
           )
           .bind(
             placeId,

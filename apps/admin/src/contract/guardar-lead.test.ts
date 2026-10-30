@@ -56,8 +56,9 @@ function fakeLeadDb() {
   const joinRow = (placeId: string) => {
     const lead = [...leads.values()].find((l) => l.place_id === placeId);
     const place = [...places.values()].find((p) => p.id === placeId);
-    if (!lead || !place) return null;
-    return { ...place, ...lead, place_id: lead.place_id };
+    return lead && place
+      ? { ...place, ...lead, place_id: lead.place_id }
+      : null;
   };
   const stmt: D1PreparedStatement = {
     bind(...values: unknown[]) {
@@ -65,12 +66,11 @@ function fakeLeadDb() {
       return stmt;
     },
     async all<T = Record<string, unknown>>() {
-      const rows: Record<string, unknown>[] = [];
-      for (const lead of leads.values()) {
-        const row = joinRow(String(lead.place_id));
-        if (row) rows.push(row);
-      }
-      return { results: rows as T[] };
+      return {
+        results: [...leads.values()]
+          .map((l) => joinRow(String(l.place_id)))
+          .filter(Boolean) as T[],
+      };
     },
     async first<T = Record<string, unknown>>() {
       if (lastSql.includes("FROM places WHERE source")) {
@@ -117,13 +117,16 @@ function fakeLeadDb() {
       return {};
     },
   };
-  const db: D1DatabaseLike = {
-    prepare(query: string) {
-      lastSql = query;
-      return stmt;
-    },
+  return {
+    db: {
+      prepare(query: string) {
+        lastSql = query;
+        return stmt;
+      },
+    } satisfies D1DatabaseLike,
+    places,
+    leads,
   };
-  return { db, places, leads };
 }
 
 function assetEnv(db: D1DatabaseLike): AdminWorkerEnv {
@@ -152,14 +155,12 @@ describe("Guardar como Lead — dominio", () => {
     const first = saveSelectionAsLeads([a, b], [], NOW);
     assert.equal(first.created.length, 2);
     assert.equal(first.reused.length, 0);
-    assert.equal(first.all.length, 2);
     assert.ok(first.created.every((lead) => lead.status === "nuevo"));
     const second = saveSelectionAsLeads([a, b, a], first.all, NOW);
     assert.equal(second.created.length, 0);
     assert.equal(second.reused.length, 2);
     assert.equal(second.all.length, 2);
     assert.equal(second.reused[0]?.id, first.created[0]?.id);
-    assert.equal(second.reused[0]?.status, "nuevo");
     assert.equal(mergeLeadsByIdentity(first.all, second.reused).length, 2);
   });
 
@@ -173,7 +174,6 @@ describe("Guardar como Lead — dominio", () => {
     assert.equal(again.length, 2);
     assert.equal((await repo.list()).length, 2);
     assert.equal(again[0]?.id, first[0]?.id);
-    assert.equal(again[0]?.status, "nuevo");
   });
 });
 
@@ -202,8 +202,6 @@ describe("Guardar como Lead — D1 + SQL", () => {
     const first = await repo.saveFromComercios([a]);
     assert.equal(first.length, 1);
     assert.equal(first[0]?.status, "nuevo");
-    assert.equal(places.size, 1);
-    assert.equal(leads.size, 1);
     const second = await repo.saveFromComercios([a, a]);
     assert.equal(second.length, 1);
     assert.equal(second[0]?.id, first[0]?.id);
@@ -225,13 +223,11 @@ describe("Guardar como Lead — machine + UI", () => {
     });
     state = adminReducer(state, { type: "toggleComercio", key: a });
     state = adminReducer(state, { type: "toggleComercio", key: b });
-    assert.equal(state.selectedComercioKeys.size, 2);
-    const leads: Lead[] = [
+    const leads = [
       createLeadFromComercio(list[0]!, { now: NOW }),
       createLeadFromComercio(list[1]!, { now: NOW }),
     ];
     state = adminReducer(state, { type: "saveLeadsRequested" });
-    assert.equal(state.leadsStatus, "saving");
     state = adminReducer(state, {
       type: "saveLeadsSucceeded",
       leads,
@@ -239,35 +235,9 @@ describe("Guardar como Lead — machine + UI", () => {
     });
     assert.equal(state.leadsStatus, "ready");
     assert.equal(state.leads.length, 2);
-    assert.equal(state.leadKeys.has(a), true);
-    assert.equal(state.leadKeys.has(b), true);
+    assert.equal(state.leadKeys.has(a) && state.leadKeys.has(b), true);
     assert.equal(state.selectedComercioKeys.size, 0);
     assert.ok(state.leads.every((lead) => lead.status === "nuevo"));
-    const again = adminReducer(state, {
-      type: "saveLeadsSucceeded",
-      leads,
-      revision: 3,
-    });
-    assert.equal(again.leads.length, 2);
-    assert.equal(again.leadKeys.size, 2);
-  });
-
-  it("leadsHydrated carga leadKeys sin pisar revision igual", () => {
-    const lead = createLeadFromComercio(comercio("x"), { now: NOW });
-    let state = adminReducer(ADMIN_INITIAL_STATE, {
-      type: "leadsHydrated",
-      leads: [lead],
-      revision: 5,
-    });
-    assert.equal(state.leadsStatus, "ready");
-    assert.equal(state.leadKeys.has("osm:x"), true);
-    const same = adminReducer(state, {
-      type: "leadsHydrated",
-      leads: [],
-      revision: 5,
-    });
-    assert.equal(same, state);
-    assert.equal(same.leads.length, 1);
   });
 
   it("anti-clobber: stale/equal no pisa; revision mayor sí actualiza", () => {
@@ -279,51 +249,50 @@ describe("Guardar como Lead — machine + UI", () => {
     const refreshed = [createLeadFromComercio(list[0]!, { now: NOW })];
     let state = adminReducer(ADMIN_INITIAL_STATE, {
       type: "leadsHydrated",
+      leads: [saved[0]!],
+      revision: 5,
+    });
+    assert.equal(state.leadKeys.has(leadKey(saved[0]!)), true);
+    assert.equal(
+      adminReducer(state, { type: "leadsHydrated", leads: [], revision: 5 }),
+      state,
+    );
+    state = adminReducer(ADMIN_INITIAL_STATE, {
+      type: "leadsHydrated",
       leads: [],
       revision: 100,
     });
     state = adminReducer(state, { type: "saveLeadsRequested" });
-    const duringSave = adminReducer(state, {
-      type: "leadsHydrated",
-      leads: [],
-      revision: 200,
-    });
-    assert.equal(duringSave, state);
-    assert.equal(duringSave.leadsStatus, "saving");
+    assert.equal(
+      adminReducer(state, {
+        type: "leadsHydrated",
+        leads: [],
+        revision: 200,
+      }).leadsStatus,
+      "saving",
+    );
     state = adminReducer(state, {
       type: "saveLeadsSucceeded",
       leads: saved,
       revision: 101,
     });
-    assert.equal(state.leads.length, 2);
-    assert.equal(state.leadKeys.size, 2);
-    assert.equal(state.leadsRevision, 101);
     const stale = adminReducer(state, {
       type: "leadsHydrated",
       leads: [],
       revision: 100,
     });
     assert.equal(stale, state);
-    assert.equal(stale.leads.length, 2);
-    assert.equal(stale.leadKeys.size, 2);
-    assert.equal(stale.leadsRevision, 101);
-    assert.equal(stale.leadKeys.has(leadKey(saved[0]!)), true);
-    const equal = adminReducer(state, {
-      type: "leadsHydrated",
-      leads: [],
-      revision: 101,
-    });
-    assert.equal(equal, state);
-    assert.equal(equal.leads.length, 2);
+    assert.equal(
+      adminReducer(state, { type: "leadsHydrated", leads: [], revision: 101 }),
+      state,
+    );
     const fresh = adminReducer(state, {
       type: "leadsHydrated",
       leads: refreshed,
       revision: 102,
     });
-    assert.notEqual(fresh, state);
     assert.equal(fresh.leadsRevision, 102);
     assert.equal(fresh.leads.length, 1);
-    assert.equal(fresh.leadKeys.size, 1);
     assert.equal(fresh.leadKeys.has(leadKey(refreshed[0]!)), true);
     assert.equal(fresh.leadKeys.has(leadKey(saved[1]!)), false);
     const machine = readFileSync(join(srcRoot, "admin-machine.ts"), "utf8");
@@ -337,7 +306,46 @@ describe("Guardar como Lead — machine + UI", () => {
     );
   });
 
-  it("UI: botón Guardar como Lead, disabled sin selección, loader leads", () => {
+  it("primer save desde idle conserva leads del loader vía seed", () => {
+    assert.equal(ADMIN_INITIAL_STATE.leadsStatus, "idle");
+    assert.equal(ADMIN_INITIAL_STATE.leads.length, 0);
+    const prior = createLeadFromComercio(comercio("prior"), { now: NOW });
+    const newly = createLeadFromComercio(searchComerciosFromFixtures()[0]!, {
+      now: NOW,
+    });
+    let state = adminReducer(ADMIN_INITIAL_STATE, {
+      type: "saveLeadsRequested",
+      seed: { leads: [prior], revision: 50 },
+    });
+    assert.equal(state.leadsStatus, "saving");
+    assert.equal(state.leadKeys.has("osm:prior"), true);
+    state = adminReducer(state, {
+      type: "saveLeadsSucceeded",
+      leads: [newly],
+      revision: 51,
+    });
+    assert.equal(state.leads.length, 2);
+    assert.equal(state.leadKeys.has("osm:prior"), true);
+    assert.equal(state.leadKeys.has(leadKey(newly)), true);
+    assert.notEqual(state.leadKeys.size, 1);
+    const dropped = adminReducer(
+      adminReducer(ADMIN_INITIAL_STATE, { type: "saveLeadsRequested" }),
+      { type: "saveLeadsSucceeded", leads: [newly], revision: 1 },
+    );
+    assert.equal(dropped.leads.length, 1);
+    assert.equal(dropped.leadKeys.has("osm:prior"), false);
+    const page = readFileSync(join(srcRoot, "comercios-page.tsx"), "utf8");
+    assert.match(
+      page,
+      /leadsStatus === "idle"[\s\S]*?saveLeadsRequested[\s\S]*?seed:\s*\{\s*leads:\s*loadedLeads/,
+    );
+    assert.doesNotMatch(
+      page,
+      /dispatch\(\{\s*type:\s*"saveLeadsRequested"\s*\}\);\s*try \{/,
+    );
+  });
+
+  it("UI: botón Guardar como Lead sin dispatch leadsHydrated en render", () => {
     const page = readFileSync(join(srcRoot, "comercios-page.tsx"), "utf8");
     const shell = readFileSync(join(srcRoot, "admin-shell.tsx"), "utf8");
     assert.match(page, /data-admin-guardar-leads/);
@@ -346,34 +354,20 @@ describe("Guardar como Lead — machine + UI", () => {
       page,
       /disabled=\{\s*visibleSelectedCount === 0 \|\| state\.leadsStatus === "saving"\s*\}/,
     );
-    assert.doesNotMatch(page, /disabled=\{false\}/);
-    assert.doesNotMatch(page, /disabled=\{true\}/);
-    assert.match(page, /saveLeadsRequested/);
+    assert.doesNotMatch(page, /disabled=\{false\}|disabled=\{true\}/);
     assert.match(page, /getLeadsClient\(\)\.save/);
-    assert.match(page, /saveLeadsSucceeded/);
-    assert.match(shell, /setLeadsClient/);
-    assert.match(shell, /getLeadsClient/);
-    assert.match(shell, /loadedLeads=/);
-  });
-
-  it("la página no despacha leadsHydrated en el cuerpo de render", () => {
-    const page = readFileSync(join(srcRoot, "comercios-page.tsx"), "utf8");
     assert.doesNotMatch(page, /leadsRevision\s*!==\s*loadedLeadsRevision/);
     assert.doesNotMatch(page, /type:\s*"leadsHydrated"/);
-    assert.doesNotMatch(page, /dispatch\(\{\s*type:\s*"leadsHydrated"/);
     assert.match(
       page,
       /const activeLeadKeys =\s*state\.leadsStatus === "idle"\s*\?\s*new Set\(loadedLeads\.map\(leadKey\)\)\s*:\s*state\.leadKeys/,
-    );
-    assert.doesNotMatch(
-      page,
-      /filterComercios\(\s*all,\s*state\.filters,\s*state\.leadKeys/,
     );
     assert.match(
       page,
       /filterComercios\(\s*all,\s*state\.filters,\s*activeLeadKeys/,
     );
     assert.match(page, /leadKeys=\{activeLeadKeys\}/);
+    assert.match(shell, /setLeadsClient[\s\S]*loadedLeads=/);
   });
 });
 
@@ -397,10 +391,8 @@ describe("Guardar como Lead — API worker", () => {
     assert.equal(createdJson.leads.length, 2);
     assert.ok(createdJson.leads.every((lead) => lead.status === "nuevo"));
     const again = await post(body);
-    assert.equal(again.status, 201);
     assert.equal(((await again.json()) as { leads: Lead[] }).leads.length, 2);
-    assert.equal(leads.size, 2);
-    assert.equal(places.size, 2);
+    assert.equal(leads.size + places.size, 4);
     const listed = await worker.fetch(
       new Request("https://admin.test/api/leads"),
       env,

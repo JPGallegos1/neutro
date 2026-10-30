@@ -70,7 +70,14 @@ export function ComerciosPage({
       state.selectedComercioKeys.has(comercioKey(item)),
     );
     if (selected.length === 0) return;
-    dispatch({ type: "saveLeadsRequested" });
+    if (state.leadsStatus === "idle") {
+      dispatch({
+        type: "saveLeadsRequested",
+        seed: { leads: loadedLeads, revision: loadedLeadsRevision },
+      });
+    } else {
+      dispatch({ type: "saveLeadsRequested" });
+    }
     try {
       const leads = await getLeadsClient().save(selected);
       dispatch({
