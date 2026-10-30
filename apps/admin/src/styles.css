@@ -1,3 +1,6 @@
+@import "@fontsource/geist-sans/400.css";
+@import "@fontsource/geist-sans/500.css";
+@import "@fontsource/geist-sans/700.css";
 @import "tailwindcss";
 
 @custom-variant dark (&:is(.dark *));
@@ -20,6 +23,7 @@
   --primary: var(--neutro-accent-orange);
   --primary-foreground: var(--neutro-on-orange);
   --ring: var(--neutro-accent-blue);
+  --font-sans: "Geist Sans", ui-sans-serif, system-ui, sans-serif;
   --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
   color-scheme: dark;
 }

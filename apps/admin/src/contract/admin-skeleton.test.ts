@@ -187,3 +187,29 @@ describe("borde interno", () => {
     assert.deepEqual(hits, []);
   });
 });
+
+describe("tipografía Geist", () => {
+  it("declara @fontsource/geist-sans y carga pesos 400/500/700", () => {
+    const pkg = JSON.parse(
+      readFileSync(join(adminRoot, "package.json"), "utf8"),
+    ) as {
+      dependencies?: Record<string, string>;
+    };
+    assert.equal(pkg.dependencies?.["@fontsource/geist-sans"], "5.3.0");
+    const styles = readFileSync(join(srcRoot, "styles.css"), "utf8");
+    assert.match(styles, /@import\s+"@fontsource\/geist-sans\/400\.css"/);
+    assert.match(styles, /@import\s+"@fontsource\/geist-sans\/500\.css"/);
+    assert.match(styles, /@import\s+"@fontsource\/geist-sans\/700\.css"/);
+  });
+
+  it("aplica Geist Sans en --font-sans y en body", () => {
+    const styles = readFileSync(join(srcRoot, "styles.css"), "utf8");
+    assert.match(
+      styles,
+      /--font-sans:\s*"Geist Sans",\s*ui-sans-serif,\s*system-ui,\s*sans-serif/,
+    );
+    assert.match(styles, /font-family:\s*var\(--font-sans\)/);
+    const shell = readFileSync(join(srcRoot, "admin-shell.tsx"), "utf8");
+    assert.match(shell, /@\/styles\.css/);
+  });
+});
