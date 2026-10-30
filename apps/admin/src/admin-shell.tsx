@@ -28,6 +28,13 @@ import {
   setAreasClient,
 } from "@/areas-client";
 import { AreasPage } from "@/areas-page";
+import {
+  createFixtureComerciosClient,
+  createHttpComerciosClient,
+  getComerciosClient,
+  setComerciosClient,
+} from "@/comercios-client";
+import { ComerciosPage } from "@/comercios-page";
 import { createMemorySearchAreaRepository } from "@/search-area";
 import "@/styles.css";
 
@@ -163,7 +170,27 @@ const indexRoute = createRoute({
 const comerciosRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: "/comercios",
-  component: () => <Placeholder title="Comercios" />,
+  loader: async () => {
+    const areas = await getAreasClient()
+      .list()
+      .catch(() => []);
+    const area = areas[0];
+    const comercios = await getComerciosClient().search({
+      lat: area?.center.lat ?? -32.9442,
+      lng: area?.center.lng ?? -60.6505,
+      radiusKm: area?.radiusKm ?? 3,
+    });
+    return { comercios, revision: Date.now() };
+  },
+  component: function ComerciosRouteView() {
+    const data = comerciosRoute.useLoaderData();
+    return (
+      <ComerciosPage
+        loadedComercios={data.comercios}
+        loadedRevision={data.revision}
+      />
+    );
+  },
 });
 
 const leadsRoute = createRoute({
@@ -235,6 +262,11 @@ if (rootElement && rootElement.dataset.adminMounted !== "1") {
     import.meta.env.PROD
       ? createHttpAreasClient()
       : createRepoAreasClient(createMemorySearchAreaRepository()),
+  );
+  setComerciosClient(
+    import.meta.env.PROD
+      ? createHttpComerciosClient()
+      : createFixtureComerciosClient(),
   );
   rootElement.dataset.adminMounted = "1";
   createRoot(rootElement).render(

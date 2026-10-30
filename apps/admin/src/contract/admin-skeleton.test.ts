@@ -134,6 +134,18 @@ describe("shell Admin (sidebar + rutas)", () => {
     assert.match(page, /data-admin-area-form/);
     assert.match(page, /Áreas de búsqueda/);
   });
+
+  it("expone Comercios con mapa, lista y atribución", () => {
+    const shell = readFileSync(join(srcRoot, "admin-shell.tsx"), "utf8");
+    const page = readFileSync(join(srcRoot, "comercios-page.tsx"), "utf8");
+    const map = readFileSync(join(srcRoot, "comercios-map.tsx"), "utf8");
+    assert.match(shell, /ComerciosPage/);
+    assert.match(page, /data-admin-comercios-page/);
+    assert.match(page, /data-admin-comercios-list/);
+    assert.match(page, /data-admin-comercios-attribution/);
+    assert.match(map, /data-admin-comercios-map/);
+    assert.match(map, /data-admin-pin/);
+  });
 });
 
 function badgeSpan(shell: string): { attribute: string; text: string } {
