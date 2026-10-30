@@ -43,10 +43,11 @@ export function createHttpLeadsClient(baseUrl = ""): LeadsClient {
       return ((await res.json()) as { leads: Lead[] }).leads;
     },
     async update(id, patch) {
+      const { assignee: _drop, ...safe } = patch;
       const res = await fetch(`${baseUrl}/api/leads/${id}`, {
         method: "PATCH",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify(patch),
+        body: JSON.stringify(safe),
       });
       if (!res.ok) throw new Error(`leads_update_failed_${res.status}`);
       return ((await res.json()) as { lead: Lead }).lead;

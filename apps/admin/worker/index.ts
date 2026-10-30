@@ -134,6 +134,9 @@ export default {
         patch.status = body.status as LeadStatus;
       }
       if (body.notes !== undefined) patch.notes = String(body.notes);
+      if ("assignee" in body) {
+        return json({ error: "assignee_via_access_only" }, 400);
+      }
       if (body.assignAccessUser) {
         patch.assignee = resolveAccessEmail(request.headers);
       }

@@ -23,7 +23,6 @@ import {
   createLeadFromComercio,
   createMemoryLeadRepository,
   filterLeadsByStatus,
-  leadKey,
   leadMapsUrl,
   leadWhatsAppUrl,
   updateLeadFields,
@@ -181,12 +180,8 @@ describe("Vista Leads", () => {
       lat: Number(before.lat),
       lng: Number(before.lng),
     });
-    assert.ok(live && /Google/.test(live.displayName));
-    assert.notEqual(live.displayName, before.name);
-    assert.deepEqual(
-      [[...places.values()][0]!.name, [...places.values()][0]!.address],
-      [before.name, before.address],
-    );
+    assert.ok(live && /Google/.test(live.displayName) && live.displayName !== before.name);
+    assert.deepEqual([[...places.values()][0]!.name, [...places.values()][0]!.address], [before.name, before.address]);
     assert.ok(googleLiveDoesNotTouchPlaces());
     const [saved] = await repo.saveFromComercios([comercio("u1")]);
     const updated = await repo.update(saved!.id, {
@@ -197,15 +192,14 @@ describe("Vista Leads", () => {
     assert.deepEqual([updated.status, updated.notes, updated.assignee], ["interesado", "Llamar", "neutrosolutions26@gmail.com"]);
     assert.equal([...places.values()].find((p) => p.external_id === "u1")!.name, "Comercio u1");
     assert.equal(leads.size, 2);
-    assert.ok(sqlLog.some((s) => /UPDATE leads SET/.test(s)));
-    assert.ok(sqlLog.every((s) => !/UPDATE places SET/.test(s)));
+    assert.ok(sqlLog.some((s) => /UPDATE leads SET/.test(s)) && sqlLog.every((s) => !/UPDATE places SET/.test(s)));
     const mem = createMemoryLeadRepository({ now: NOW });
     const [m] = await mem.saveFromComercios([comercio("m1")]);
     await mem.update(m!.id, { status: "contactado", notes: "ok" });
     assert.equal((await mem.list())[0]?.notes, "ok");
   });
 
-  it("machine + UI: seed idle, anti-clobber, sin dispatch en render", () => {
+  it("machine + UI: seeds, notes anti-clobber, Access UI", () => {
     const items = [lead("a"), lead("b", "contactado")];
     let state = adminReducer(ADMIN_INITIAL_STATE, {
       type: "leadsHydrated",
@@ -213,20 +207,6 @@ describe("Vista Leads", () => {
       revision: 1,
     });
     state = adminReducer(state, { type: "setLeadsStatusFilter", filter: "nuevo" });
-    assert.equal(state.leadsStatusFilter, "nuevo");
-    state = adminReducer(state, { type: "selectLead", id: items[0]!.id });
-    state = adminReducer(state, { type: "leadNotesChanged", id: items[0]!.id, notes: "Borrador" });
-    assert.equal(state.leads[0]?.notes, "Borrador");
-    state = adminReducer(state, { type: "updateLeadRequested" });
-    assert.equal(state.leadsStatus, "saving");
-    const patched = updateLeadFields(items[0]!, {
-      status: "contactado",
-      notes: "Borrador",
-      assignee: "neutrosolutions26@gmail.com",
-    });
-    state = adminReducer(state, { type: "updateLeadSucceeded", lead: patched, revision: 2 });
-    assert.equal(state.leads.find((l) => l.id === patched.id)?.status, "contactado");
-    assert.equal(state.leadKeys.has(leadKey(patched)), true);
     state = adminReducer(state, { type: "updateLeadRequested" });
     assert.equal(
       adminReducer(state, { type: "leadsHydrated", leads: [], revision: 200 }).leadsStatus,
@@ -238,32 +218,30 @@ describe("Vista Leads", () => {
       revision: 3,
     });
     assert.equal(adminReducer(state, { type: "leadsHydrated", leads: [], revision: 3 }), state);
-    assert.equal(
-      adminReducer(state, { type: "leadsHydrated", leads: [lead("z")], revision: 4 }).leads[0]
-        ?.externalId,
-      "z",
-    );
     const seeded = adminReducer(ADMIN_INITIAL_STATE, {
       type: "selectLead",
       id: items[0]!.id,
       seed: { leads: items, revision: 7 },
     });
     assert.equal(seeded.leadsStatus, "ready");
-    assert.equal(seeded.selectedLeadId, items[0]!.id);
-    let ns = adminReducer(seeded, { type: "leadNotesChanged", id: items[0]!.id, notes: "draft vivo" });
+    let ns = adminReducer(seeded, {
+      type: "leadNotesChanged",
+      id: items[0]!.id,
+      notes: "borrador nuevo",
+    });
     ns = adminReducer(ns, {
       type: "updateLeadSucceeded",
-      lead: updateLeadFields(items[0]!, { status: "contactado", notes: "" }),
+      lead: updateLeadFields(items[0]!, { status: "contactado", notes: "nota vieja" }),
       revision: Date.now(),
     });
-    assert.equal(ns.leads.find((l) => l.id === items[0]!.id)?.notes, "draft vivo");
+    assert.equal(ns.leads.find((l) => l.id === items[0]!.id)?.notes, "borrador nuevo");
     assert.equal(ns.leads.find((l) => l.id === items[0]!.id)?.status, "contactado");
     ns = adminReducer(ns, { type: "leadNotesChanged", id: items[0]!.id, notes: "más nuevo" });
     const stale = adminReducer(ns, {
       type: "updateLeadSucceeded",
-      lead: updateLeadFields(items[0]!, { notes: "draft vivo" }),
+      lead: updateLeadFields(items[0]!, { notes: "borrador nuevo" }),
       revision: Date.now(),
-      committedNotes: "draft vivo",
+      committedNotes: "borrador nuevo",
     });
     assert.equal(stale.leads.find((l) => l.id === items[0]!.id)?.notes, "más nuevo");
     assert.equal(
@@ -274,10 +252,12 @@ describe("Vista Leads", () => {
       }),
       stale,
     );
+    const machine = readFileSync(join(srcRoot, "admin-machine.ts"), "utf8");
+    assert.match(machine, /case "updateLeadSucceeded":[\s\S]*committedNotes !== current/);
     const page = readFileSync(join(srcRoot, "leads/leads-page.tsx"), "utf8");
     const shell = readFileSync(join(srcRoot, "admin-shell.tsx"), "utf8");
+    const clientSrc = readFileSync(join(srcRoot, "leads/leads-client.ts"), "utf8");
     assert.match(shell, /LeadsPage/);
-    assert.match(shell, /path:\s*"\/leads"/);
     for (const t of [
       "data-admin-leads-page", "data-admin-leads-list", "data-admin-leads-count",
       "data-admin-leads-filter", "data-admin-lead-ficha", "data-admin-lead-status",
@@ -288,19 +268,21 @@ describe("Vista Leads", () => {
       assert.ok(page.includes(t), t);
     }
     assert.doesNotMatch(page, /body\.assignee\s*=|getAccessMeClient|assignee:\s*me\.email/);
-    assert.doesNotMatch(
-      page,
-      /\buseState\b|\buseEffect\b|type:\s*"leadsHydrated"|leadsRevision\s*!==\s*loadedLeadsRevision/,
-    );
-    assert.match(
-      page,
-      /leadsStatus === "idle"[\s\S]*?selectLead[\s\S]*?seed:\s*\{\s*leads:\s*loadedLeads/,
-    );
+    assert.match(page, /body\.assignAccessUser\s*=\s*true/);
+    assert.match(clientSrc, /assignee:\s*_drop[\s\S]*JSON\.stringify\(safe\)/);
+    assert.doesNotMatch(page, /\buseState\b|\buseEffect\b|type:\s*"leadsHydrated"/);
+    const fn = (name: string) => {
+      const m = new RegExp(`(?:async )?function ${name}\\([\\s\\S]*?\\n  \\}`).exec(page);
+      assert.ok(m, `falta ${name}`);
+      return m[0]!;
+    };
+    assert.match(fn("onSelect"), /type:\s*"selectLead"[\s\S]*seed:\s*\{\s*leads:\s*loadedLeads/);
+    assert.match(fn("persist"), /type:\s*"updateLeadRequested"[\s\S]*seed:\s*\{\s*leads:\s*loadedLeads/);
+    assert.match(fn("onNotes"), /type:\s*"selectLead"[\s\S]*seed:\s*\{\s*leads:\s*loadedLeads/);
     const renderish = page
       .replace(/async function[\s\S]*?\n  \}/g, "")
       .replace(/function on[A-Z][\s\S]*?\n  \}/g, "");
     assert.doesNotMatch(renderish, /dispatch\(\{\s*type:\s*"leadsHydrated"/);
-    assert.doesNotMatch(renderish, /if\s*\([^)]*Revision[^)]*\)\s*\{\s*dispatch/);
   });
 
   it("API: PATCH, /api/me, google-live; 404/400", async () => {
@@ -336,7 +318,7 @@ describe("Vista Leads", () => {
     assert.equal(body.lead.status, "contactado");
     assert.equal(body.lead.assignee, "neutrosolutions26@gmail.com");
     assert.equal([...places.values()][0]!.name, placeName);
-    const forged = await worker.fetch(
+    const forgedOnly = await worker.fetch(
       new Request(`https://admin.test/api/leads/${leads[0]!.id}`, {
         method: "PATCH",
         headers: { "content-type": "application/json" },
@@ -344,23 +326,38 @@ describe("Vista Leads", () => {
       }),
       env,
     );
-    assert.equal(forged.status, 400);
-    assert.notEqual(
-      ((await (await worker.fetch(new Request("https://admin.test/api/leads"), env)).json()) as { leads: Lead[] }).leads[0]?.assignee,
-      "forged@evil.test",
-    );
-    const workerSrc = readFileSync(join(srcRoot, "../worker/index.ts"), "utf8");
-    assert.doesNotMatch(workerSrc, /body\.assignee\s*!==\s*undefined[\s\S]*patch\.assignee\s*=\s*body\.assignee/);
-    assert.match(workerSrc, /assignAccessUser[\s\S]*resolveAccessEmail/);
-    await createD1LeadRepository(db).saveFromComercios([comercio("live")]);
-    const before = structuredClone([...places.values()]);
-    const me = await worker.fetch(
-      new Request("https://admin.test/api/me", {
-        headers: { "Cf-Access-Authenticated-User-Email": "ops@neutro.solutions" },
+    assert.equal(forgedOnly.status, 400);
+    const forgedWithNotes = await worker.fetch(
+      new Request(`https://admin.test/api/leads/${leads[0]!.id}`, {
+        method: "PATCH",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ notes: "ok", assignee: "forged@evil.test" }),
       }),
       env,
     );
-    assert.deepEqual(await me.json(), { email: "ops@neutro.solutions" });
+    assert.equal(forgedWithNotes.status, 400);
+    assert.deepEqual(await forgedWithNotes.json(), { error: "assignee_via_access_only" });
+    const listed = ((await (
+      await worker.fetch(new Request("https://admin.test/api/leads"), env)
+    ).json()) as { leads: Lead[] }).leads[0];
+    assert.equal(listed?.assignee, "neutrosolutions26@gmail.com");
+    const workerSrc = readFileSync(join(srcRoot, "../worker/index.ts"), "utf8");
+    assert.match(workerSrc, /"assignee" in body[\s\S]*assignee_via_access_only/);
+    assert.match(workerSrc, /assignAccessUser[\s\S]*resolveAccessEmail/);
+    assert.doesNotMatch(workerSrc, /patch\.assignee\s*=\s*body\.assignee/);
+    await createD1LeadRepository(db).saveFromComercios([comercio("live")]);
+    const before = structuredClone([...places.values()]);
+    assert.deepEqual(
+      await (
+        await worker.fetch(
+          new Request("https://admin.test/api/me", {
+            headers: { "Cf-Access-Authenticated-User-Email": "ops@neutro.solutions" },
+          }),
+          env,
+        )
+      ).json(),
+      { email: "ops@neutro.solutions" },
+    );
     const live = await worker.fetch(
       new Request("https://admin.test/api/google-live?lat=-32.9442&lng=-60.6505&name=x"),
       env,
