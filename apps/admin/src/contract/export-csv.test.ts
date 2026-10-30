@@ -311,11 +311,49 @@ describe("Export CSV Leads + fitness Google (#93)", () => {
       src,
       /function assertFitLeadsCsv\([^)]*\)[^{]*\{\s*if \(leadCsvFitnessViolations/,
     );
+    assert.doesNotMatch(
+      src,
+      /function assertFitLeadsCsv[\s\S]*FORBIDDEN_GOOGLE_PLACES_CSV_COLUMNS[\s\S]*csv\.includes\(col\)/,
+    );
     const page = readFileSync(join(srcRoot, "leads/leads-page.tsx"), "utf8");
     assert.doesNotMatch(page, /new Blob\(/);
     const exportFn = /function onExportCsv\([\s\S]*?\n  \}/.exec(page)?.[0] ?? "";
     assert.match(exportFn, /createLeadsCsvDownload/);
     assert.doesNotMatch(exportFn, /displayName|rating|formattedAddress/);
+  });
+
+  it("MEDIO5: nota con rating no bloquea export; Google solo en header", async () => {
+    const note = "rating bajo en Maps";
+    const item = lead("r", { notes: note });
+    const csv = exportLeadsCsv([item]);
+    assert.equal(csv.split(/\r?\n/, 1)[0], LEAD_CSV_MIN_COLUMNS.join(","));
+    assert.match(csv, /rating bajo en Maps/);
+    assert.deepEqual(leadCsvFitnessViolations(csv), []);
+    assert.equal(assertFitLeadsCsv(csv), csv);
+    const download = createLeadsCsvDownload([item], "todos");
+    const blobText = await download.blob.text();
+    assert.equal(blobText.split(/\r?\n/, 1)[0], LEAD_CSV_MIN_COLUMNS.join(","));
+    assert.deepEqual(leadCsvFitnessViolations(blobText), []);
+    assert.equal(assertLeadsCsvBlobText(blobText), blobText);
+    assert.match(blobText, /rating bajo en Maps/);
+    assert.doesNotThrow(() => blobFromLeadsCsv(csv));
+    const src = readFileSync(join(srcRoot, "leads/export-csv.ts"), "utf8");
+    const assertFn =
+      /function assertFitLeadsCsv\([\s\S]*?\n\}/.exec(src)?.[0] ?? "";
+    assert.match(assertFn, /header !== LEAD_CSV_MIN_COLUMNS\.join\(\",\"\)/);
+    assert.doesNotMatch(assertFn, /csv\.includes\(/);
+    assert.doesNotMatch(
+      assertFn,
+      /for\s*\(\s*const col of FORBIDDEN_GOOGLE_PLACES_CSV_COLUMNS/,
+    );
+    assert.match(
+      src,
+      /function csvHasForbiddenGooglePlacesColumns[\s\S]*header\.some/,
+    );
+    assert.match(
+      src,
+      /function leadCsvFitnessViolations[\s\S]*for \(const col of header\)/,
+    );
   });
 
   it("UI Leads: onClick + download click cableados", () => {

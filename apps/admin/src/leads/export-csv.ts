@@ -96,9 +96,6 @@ export function assertFitLeadsCsv(csv: string): string {
   if (leadCsvFitnessViolations(csv).length > 0) {
     throw new Error("csv_fitness_failed");
   }
-  for (const col of FORBIDDEN_GOOGLE_PLACES_CSV_COLUMNS) {
-    if (csv.includes(col)) throw new Error(`google_col:${col}`);
-  }
   return csv;
 }
 
