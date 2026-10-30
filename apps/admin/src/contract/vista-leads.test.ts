@@ -98,30 +98,16 @@ function fakeLeadDb() {
         const key = pk(bound[1], bound[2]);
         const ex = places.get(key);
         places.set(key, {
-          id: ex?.id ?? bound[0],
-          source: bound[1],
-          external_id: bound[2],
-          name: bound[3],
-          lat: bound[4],
-          lng: bound[5],
-          website: bound[6],
-          address: bound[7],
-          social_urls_json: bound[8],
-          rubro: bound[9],
-          attribution: bound[10],
-          created_at: ex?.created_at ?? bound[11],
-          updated_at: bound[12],
+          id: ex?.id ?? bound[0], source: bound[1], external_id: bound[2], name: bound[3],
+          lat: bound[4], lng: bound[5], website: bound[6], address: bound[7],
+          social_urls_json: bound[8], rubro: bound[9], attribution: bound[10],
+          created_at: ex?.created_at ?? bound[11], updated_at: bound[12],
         });
       } else if (lastSql.includes("INSERT INTO leads")) {
         if (![...leads.values()].some((l) => l.place_id === bound[1])) {
           leads.set(String(bound[0]), {
-            id: bound[0],
-            place_id: bound[1],
-            status: bound[2],
-            notes: bound[3],
-            assignee: bound[4],
-            created_at: bound[5],
-            updated_at: bound[6],
+            id: bound[0], place_id: bound[1], status: bound[2], notes: bound[3],
+            assignee: bound[4], created_at: bound[5], updated_at: bound[6],
           });
         }
       } else if (lastSql.includes("UPDATE leads SET")) {
@@ -169,10 +155,7 @@ describe("Vista Leads", () => {
       { status: "contactado", notes: "Pasé", assignee: "neutrosolutions26@gmail.com" },
       "2026-10-30T16:00:00.000Z",
     );
-    assert.equal(next.status, "contactado");
-    assert.equal(next.notes, "Pasé");
-    assert.equal(next.assignee, "neutrosolutions26@gmail.com");
-    assert.equal(next.name, "Comercio x");
+    assert.deepEqual([next.status, next.notes, next.assignee, next.name], ["contactado", "Pasé", "neutrosolutions26@gmail.com", "Comercio x"]);
     const maps = leadMapsUrl(next);
     const wa = leadWhatsAppUrl(next);
     assert.match(maps, /^https:\/\/www\.google\.com\/maps.*-32\.9442.*-60\.6505/);
@@ -211,9 +194,7 @@ describe("Vista Leads", () => {
       notes: "Llamar",
       assignee: "neutrosolutions26@gmail.com",
     });
-    assert.equal(updated.status, "interesado");
-    assert.equal(updated.notes, "Llamar");
-    assert.equal(updated.assignee, "neutrosolutions26@gmail.com");
+    assert.deepEqual([updated.status, updated.notes, updated.assignee], ["interesado", "Llamar", "neutrosolutions26@gmail.com"]);
     assert.equal([...places.values()].find((p) => p.external_id === "u1")!.name, "Comercio u1");
     assert.equal(leads.size, 2);
     assert.ok(sqlLog.some((s) => /UPDATE leads SET/.test(s)));
@@ -269,6 +250,30 @@ describe("Vista Leads", () => {
     });
     assert.equal(seeded.leadsStatus, "ready");
     assert.equal(seeded.selectedLeadId, items[0]!.id);
+    let ns = adminReducer(seeded, { type: "leadNotesChanged", id: items[0]!.id, notes: "draft vivo" });
+    ns = adminReducer(ns, {
+      type: "updateLeadSucceeded",
+      lead: updateLeadFields(items[0]!, { status: "contactado", notes: "" }),
+      revision: Date.now(),
+    });
+    assert.equal(ns.leads.find((l) => l.id === items[0]!.id)?.notes, "draft vivo");
+    assert.equal(ns.leads.find((l) => l.id === items[0]!.id)?.status, "contactado");
+    ns = adminReducer(ns, { type: "leadNotesChanged", id: items[0]!.id, notes: "más nuevo" });
+    const stale = adminReducer(ns, {
+      type: "updateLeadSucceeded",
+      lead: updateLeadFields(items[0]!, { notes: "draft vivo" }),
+      revision: Date.now(),
+      committedNotes: "draft vivo",
+    });
+    assert.equal(stale.leads.find((l) => l.id === items[0]!.id)?.notes, "más nuevo");
+    assert.equal(
+      adminReducer(stale, {
+        type: "updateLeadSucceeded",
+        lead: updateLeadFields(items[0]!, { notes: "x" }),
+        revision: stale.leadsRevision,
+      }),
+      stale,
+    );
     const page = readFileSync(join(srcRoot, "leads/leads-page.tsx"), "utf8");
     const shell = readFileSync(join(srcRoot, "admin-shell.tsx"), "utf8");
     assert.match(shell, /LeadsPage/);
@@ -278,10 +283,11 @@ describe("Vista Leads", () => {
       "data-admin-leads-filter", "data-admin-lead-ficha", "data-admin-lead-status",
       "data-admin-lead-notes", "data-admin-lead-assignee", "data-admin-lead-maps",
       "data-admin-lead-whatsapp", "data-admin-google-live", "Vista en vivo (Google Places)",
-      'target="_blank"', 'rel="noreferrer"', "getLeadsClient().update",
+      'target="_blank"', 'rel="noreferrer"', "getLeadsClient().update", "assignAccessUser: true",
     ]) {
       assert.ok(page.includes(t), t);
     }
+    assert.doesNotMatch(page, /body\.assignee\s*=|getAccessMeClient|assignee:\s*me\.email/);
     assert.doesNotMatch(
       page,
       /\buseState\b|\buseEffect\b|type:\s*"leadsHydrated"|leadsRevision\s*!==\s*loadedLeadsRevision/,
@@ -330,6 +336,22 @@ describe("Vista Leads", () => {
     assert.equal(body.lead.status, "contactado");
     assert.equal(body.lead.assignee, "neutrosolutions26@gmail.com");
     assert.equal([...places.values()][0]!.name, placeName);
+    const forged = await worker.fetch(
+      new Request(`https://admin.test/api/leads/${leads[0]!.id}`, {
+        method: "PATCH",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ assignee: "forged@evil.test" }),
+      }),
+      env,
+    );
+    assert.equal(forged.status, 400);
+    assert.notEqual(
+      ((await (await worker.fetch(new Request("https://admin.test/api/leads"), env)).json()) as { leads: Lead[] }).leads[0]?.assignee,
+      "forged@evil.test",
+    );
+    const workerSrc = readFileSync(join(srcRoot, "../worker/index.ts"), "utf8");
+    assert.doesNotMatch(workerSrc, /body\.assignee\s*!==\s*undefined[\s\S]*patch\.assignee\s*=\s*body\.assignee/);
+    assert.match(workerSrc, /assignAccessUser[\s\S]*resolveAccessEmail/);
     await createD1LeadRepository(db).saveFromComercios([comercio("live")]);
     const before = structuredClone([...places.values()]);
     const me = await worker.fetch(
@@ -346,12 +368,7 @@ describe("Vista Leads", () => {
     assert.equal(live.status, 200);
     assert.match(((await live.json()) as { live: { displayName: string } }).live.displayName, /Google/i);
     assert.deepEqual([...places.values()], before);
-    const emptyStmt = {
-      bind() { return this; },
-      async all() { return { results: [] }; },
-      async first() { return null; },
-      async run() { return {}; },
-    };
+    const emptyStmt = { bind() { return this; }, async all() { return { results: [] }; }, async first() { return null; }, async run() { return {}; } };
     const empty = envOf({ prepare: () => emptyStmt });
     const patch = (path: string, body: string) =>
       worker.fetch(

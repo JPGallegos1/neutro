@@ -1,14 +1,9 @@
 export type GoogleLiveView = {
-  displayName: string;
-  formattedAddress: string;
-  rating: number | null;
-  openingHours: string[];
-  fetchedAt: string;
+  displayName: string; formattedAddress: string; rating: number | null;
+  openingHours: string[]; fetchedAt: string;
 };
 export type GoogleLiveQuery = { name: string; lat: number; lng: number };
-export type GoogleLiveClient = {
-  fetchForLead(query: GoogleLiveQuery): Promise<GoogleLiveView | null>;
-};
+export type GoogleLiveClient = { fetchForLead(query: GoogleLiveQuery): Promise<GoogleLiveView | null> };
 
 export function googleLiveDoesNotTouchPlaces(): true {
   return true;

@@ -96,7 +96,12 @@ export type AdminEvent =
   | { type: "setLeadsStatusFilter"; filter: LeadStatusFilter }
   | { type: "leadNotesChanged"; id: string; notes: string }
   | { type: "updateLeadRequested"; seed?: { leads: Lead[]; revision: number } }
-  | { type: "updateLeadSucceeded"; lead: Lead; revision: number }
+  | {
+      type: "updateLeadSucceeded";
+      lead: Lead;
+      revision: number;
+      committedNotes?: string;
+    }
   | { type: "updateLeadFailed" }
   | { type: "googleLiveRequested" }
   | { type: "googleLiveSucceeded"; live: GoogleLiveView }
@@ -412,12 +417,16 @@ export function adminReducer(state: AdminState, event: AdminEvent): AdminState {
       }
       return { ...state, leadsStatus: "saving" };
     case "updateLeadSucceeded": {
-      const found = state.leads.some((lead) => lead.id === event.lead.id);
-      const nextLeads = found
-        ? state.leads.map((lead) =>
-            lead.id === event.lead.id ? event.lead : lead,
-          )
-        : [...state.leads, event.lead];
+      if (event.revision <= state.leadsRevision) return state;
+      const current = state.leads.find((lead) => lead.id === event.lead.id);
+      const keepNotes =
+        !!current &&
+        current.notes !== event.lead.notes &&
+        event.committedNotes !== current.notes;
+      const merged = keepNotes ? { ...event.lead, notes: current!.notes } : event.lead;
+      const nextLeads = current
+        ? state.leads.map((lead) => (lead.id === merged.id ? merged : lead))
+        : [...state.leads, merged];
       return {
         ...state,
         leads: nextLeads,

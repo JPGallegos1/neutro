@@ -134,8 +134,9 @@ export default {
         patch.status = body.status as LeadStatus;
       }
       if (body.notes !== undefined) patch.notes = String(body.notes);
-      if (body.assignAccessUser) patch.assignee = resolveAccessEmail(request.headers);
-      else if (body.assignee !== undefined) patch.assignee = body.assignee;
+      if (body.assignAccessUser) {
+        patch.assignee = resolveAccessEmail(request.headers);
+      }
       if (
         patch.status === undefined &&
         patch.notes === undefined &&

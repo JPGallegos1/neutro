@@ -1,6 +1,6 @@
 import { useAdmin } from "@/admin-context";
 import { getGoogleLiveClient } from "@/leads/google-live";
-import { getAccessMeClient, getLeadsClient } from "@/leads/leads-client";
+import { getLeadsClient, type LeadClientPatch } from "@/leads/leads-client";
 import {
   LEAD_STATUSES,
   filterLeadsByStatus,
@@ -9,7 +9,6 @@ import {
   type Lead,
   type LeadStatus,
   type LeadStatusFilter,
-  type LeadUpdatePatch,
 } from "@/leads/lead";
 
 const noteTimers = new Map<string, ReturnType<typeof setTimeout>>();
@@ -54,10 +53,7 @@ export function LeadsPage({
       .catch(() => dispatch({ type: "googleLiveFailed" }));
   }
 
-  async function persist(
-    id: string,
-    patch: LeadUpdatePatch & { assignAccessUser?: boolean },
-  ) {
+  async function persist(id: string, patch: LeadClientPatch) {
     dispatch(
       state.leadsStatus === "idle"
         ? {
@@ -67,21 +63,20 @@ export function LeadsPage({
         : { type: "updateLeadRequested" },
     );
     try {
-      const body: LeadUpdatePatch = {};
+      const body: LeadClientPatch = {};
       if (patch.status !== undefined) body.status = patch.status;
       if (patch.notes !== undefined) body.notes = patch.notes;
-      if (patch.assignAccessUser) {
-        const me = await getAccessMeClient().me();
-        body.assignee = me.email;
-        if (me.email) dispatch({ type: "setAccessLabel", label: me.email });
-      } else if (patch.assignee !== undefined) {
-        body.assignee = patch.assignee;
-      }
-      dispatch({
-        type: "updateLeadSucceeded",
-        lead: await getLeadsClient().update(id, body),
-        revision: Math.max(state.leadsRevision, loadedLeadsRevision) + 1,
-      });
+      if (patch.assignAccessUser) body.assignAccessUser = true;
+      const lead = await getLeadsClient().update(id, body);
+      if (lead.assignee) dispatch({ type: "setAccessLabel", label: lead.assignee });
+      const done: {
+        type: "updateLeadSucceeded";
+        lead: typeof lead;
+        revision: number;
+        committedNotes?: string;
+      } = { type: "updateLeadSucceeded", lead, revision: Date.now() };
+      if (patch.notes !== undefined) done.committedNotes = patch.notes;
+      dispatch(done);
     } catch {
       dispatch({ type: "updateLeadFailed" });
     }

@@ -41,12 +41,9 @@ import {
   setGoogleLiveClient,
 } from "@/leads/google-live";
 import {
-  createHttpAccessMeClient,
   createHttpLeadsClient,
   createRepoLeadsClient,
-  createStaticAccessMeClient,
   getLeadsClient,
-  setAccessMeClient,
   setLeadsClient,
 } from "@/leads/leads-client";
 import { createMemoryLeadRepository } from "@/leads/lead";
@@ -302,11 +299,6 @@ if (rootElement && rootElement.dataset.adminMounted !== "1") {
     import.meta.env.PROD
       ? createHttpLeadsClient()
       : createRepoLeadsClient(createMemoryLeadRepository()),
-  );
-  setAccessMeClient(
-    import.meta.env.PROD
-      ? createHttpAccessMeClient()
-      : createStaticAccessMeClient("dev@neutro.solutions"),
   );
   setGoogleLiveClient(
     import.meta.env.PROD

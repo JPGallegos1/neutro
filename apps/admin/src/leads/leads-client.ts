@@ -1,17 +1,28 @@
 import type { Comercio } from "@/comercio";
 import type { Lead, LeadRepository, LeadUpdatePatch } from "@/leads/lead";
 
+export type LeadClientPatch = LeadUpdatePatch & { assignAccessUser?: boolean };
+
 export type LeadsClient = {
   list(): Promise<Lead[]>;
   save(comercios: Comercio[]): Promise<Lead[]>;
-  update(id: string, patch: LeadUpdatePatch): Promise<Lead>;
+  update(id: string, patch: LeadClientPatch): Promise<Lead>;
 };
 
 export function createRepoLeadsClient(repository: LeadRepository): LeadsClient {
   return {
     list: () => repository.list(),
     save: (comercios) => repository.saveFromComercios(comercios),
-    update: (id, patch) => repository.update(id, patch),
+    async update(id, patch) {
+      const { assignAccessUser, assignee: _a, ...rest } = patch;
+      if (assignAccessUser) {
+        return repository.update(id, {
+          ...rest,
+          assignee: "dev@neutro.solutions",
+        });
+      }
+      return repository.update(id, rest);
+    },
   };
 }
 
@@ -43,29 +54,11 @@ export function createHttpLeadsClient(baseUrl = ""): LeadsClient {
   };
 }
 
-export type AccessMeClient = { me(): Promise<{ email: string | null }> };
-export function createHttpAccessMeClient(baseUrl = ""): AccessMeClient {
-  return {
-    async me() {
-      const res = await fetch(`${baseUrl}/api/me`);
-      if (!res.ok) throw new Error(`access_me_failed_${res.status}`);
-      return (await res.json()) as { email: string | null };
-    },
-  };
-}
-export function createStaticAccessMeClient(email: string | null): AccessMeClient {
-  return { async me() { return { email }; } };
-}
-
 let active: LeadsClient | null = null;
-let accessMe: AccessMeClient | null = null;
-export const setLeadsClient = (c: LeadsClient) => { active = c; };
+export const setLeadsClient = (c: LeadsClient) => {
+  active = c;
+};
 export const getLeadsClient = () => {
   if (!active) throw new Error("leads_client_missing");
   return active;
-};
-export const setAccessMeClient = (c: AccessMeClient) => { accessMe = c; };
-export const getAccessMeClient = () => {
-  if (!accessMe) throw new Error("access_me_client_missing");
-  return accessMe;
 };
