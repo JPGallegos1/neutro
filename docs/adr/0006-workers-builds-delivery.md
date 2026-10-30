@@ -28,7 +28,7 @@ El repo ya separa el analytics en dos puertas, y las dos tienen que quedar cerra
 
 `wrangler.jsonc` hoy tiene `ANALYTICS_ENABLED` en `"true"` al nivel de producción. Este ADR no edita ese archivo. Las previews no heredan ese valor. Wrangler del repo es `4.151.2`, por encima del `4.135.0` que piden las Worker Previews. No hace falta un bump para este flujo.
 
-El tope de 10 archivos por PR ([ADR 0004](0004-max-pr-files.md)) sigue igual. Lo que este ADR cambia es la rama base, no el conteo.
+El tamaño de PR sigue el [ADR 0004](0004-max-pr-files.md) (autoría ~50–1000 LoC; esa regla reemplaza el tope de 10 archivos). Lo que este ADR cambia es la rama base, no esa medida.
 
 Los comandos que el README ya deja para Workers Builds, con la raíz del repo como directorio de trabajo, Node `24.18.0` y pnpm `12.14.0`:
 
@@ -56,7 +56,7 @@ No queda un ambiente de larga vida para el chequeo final. La URL de la rama deja
 
 La preview del PR sirve para review y media. `staging` junta lo que ya se aceptó y ofrece una URL estable para el chequeo final. `main` es el único disparador de producción, y solo recibe lo que Juan autoriza.
 
-Cuesta más minutos y más cola: el plan free corre un solo build. Hay que mantener vars de preview distintas de las de producción. `staging` se puede atrasar respecto de `main` si la promoción espera. El apilado de PRs contra la rama del PR anterior deja de ser el camino, aunque el tope de 10 archivos no se mueve.
+Cuesta más minutos y más cola: el plan free corre un solo build. Hay que mantener vars de preview distintas de las de producción. `staging` se puede atrasar respecto de `main` si la promoción espera. El apilado de PRs contra la rama del PR anterior deja de ser el camino; el tamaño por LoC sigue el [ADR 0004](0004-max-pr-files.md).
 
 ## Decisión
 
@@ -107,7 +107,7 @@ Un PR puede mezclar tipos. La media sigue al tipo que el diff muestra: un redire
 - `staging` puede quedar atrás de `main` mientras la promoción espera ese OK. Los PR nuevos se abren igual contra `staging`.
 - El plan free encola. Un push al PR, el merge a `staging` y el deploy de `main` comparten un solo build y los 3.000 minutos del mes. El presupuesto se gasta por push, no por PR mergeado. El build del README (`pnpm check && pnpm build` más el deploy o la preview) tiene que entrar en los 20 minutos.
 - El plan free también tiene un tope de 100 previews por Worker. Una rama abandonada ocupa cupo.
-- El tope de 10 archivos no se toca. Lo que sí cambia respecto del [ADR 0004](0004-max-pr-files.md): la base esperada pasa a ser `staging`. Partir un cambio en varios PR significa varios PR contra `staging`, no una pila contra la rama del PR anterior.
+- El tamaño por LoC del [ADR 0004](0004-max-pr-files.md) no se reabre acá. Lo que sí cambia: la base esperada pasa a ser `staging`. Partir un cambio en varios PR significa varios PR contra `staging`, no una pila contra la rama del PR anterior.
 - Hasta que Juan no conecte el repo, el deploy sigue siendo manual y el riesgo del #21 sigue abierto. Por eso el estado es Propuesto.
 - Este documento no agrega el bloque `previews` de Wrangler, no cambia `wrangler.jsonc`, no agrega el check de CI y no crea la rama `staging`.
 
