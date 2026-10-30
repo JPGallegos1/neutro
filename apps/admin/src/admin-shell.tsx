@@ -12,16 +12,23 @@ import {
 import { cva, type VariantProps } from "class-variance-authority";
 import { clsx, type ClassValue } from "clsx";
 import { MapPinned } from "lucide-react";
-import { StrictMode, useReducer, type ReactNode } from "react";
+import { StrictMode, type ReactNode } from "react";
 import { createRoot } from "react-dom/client";
 import { twMerge } from "tailwind-merge";
+import { AdminProvider, useAdmin } from "@/admin-context";
 import {
-  ADMIN_INITIAL_STATE,
-  adminReducer,
   pathForSection,
   sectionFromPathname,
   type AdminSection,
 } from "@/admin-machine";
+import {
+  createHttpAreasClient,
+  createRepoAreasClient,
+  getAreasClient,
+  setAreasClient,
+} from "@/areas-client";
+import { AreasPage } from "@/areas-page";
+import { createMemorySearchAreaRepository } from "@/search-area";
 import "@/styles.css";
 
 function cn(...inputs: ClassValue[]) {
@@ -75,11 +82,8 @@ function Placeholder({ title }: { title: string }) {
 }
 
 function ShellChrome({ children }: { children: ReactNode }) {
+  const { state, dispatch } = useAdmin();
   const pathname = useRouterState({ select: (s) => s.location.pathname });
-  const [state, dispatch] = useReducer(adminReducer, undefined, () => ({
-    ...ADMIN_INITIAL_STATE,
-    section: sectionFromPathname(pathname),
-  }));
   const active = sectionFromPathname(pathname);
 
   return (
@@ -136,9 +140,11 @@ function ShellChrome({ children }: { children: ReactNode }) {
 
 function RootLayout() {
   return (
-    <ShellChrome>
-      <Outlet />
-    </ShellChrome>
+    <AdminProvider>
+      <ShellChrome>
+        <Outlet />
+      </ShellChrome>
+    </AdminProvider>
   );
 }
 
@@ -169,7 +175,19 @@ const leadsRoute = createRoute({
 const areasRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: "/areas",
-  component: () => <Placeholder title="Áreas" />,
+  loader: async () => {
+    const areas = await getAreasClient().list();
+    return {
+      areas,
+      revision: Date.now(),
+    };
+  },
+  component: function AreasRouteView() {
+    const data = areasRoute.useLoaderData();
+    return (
+      <AreasPage loadedAreas={data.areas} loadedRevision={data.revision} />
+    );
+  },
 });
 
 const routeTree = rootRoute.addChildren([
@@ -213,6 +231,11 @@ export function AdminApp({
 
 const rootElement = document.getElementById("root");
 if (rootElement && rootElement.dataset.adminMounted !== "1") {
+  setAreasClient(
+    import.meta.env.PROD
+      ? createHttpAreasClient()
+      : createRepoAreasClient(createMemorySearchAreaRepository()),
+  );
   rootElement.dataset.adminMounted = "1";
   createRoot(rootElement).render(
     <StrictMode>

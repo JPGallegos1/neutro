@@ -28,7 +28,8 @@ function listFiles(dir: string): string[] {
 }
 
 function readSrc(): { path: string; text: string }[] {
-  return listFiles(srcRoot).map((path) => ({
+  const workerRoot = join(adminRoot, "worker");
+  return [...listFiles(srcRoot), ...listFiles(workerRoot)].map((path) => ({
     path: relative(adminRoot, path),
     text: readFileSync(path, "utf8"),
   }));
@@ -121,6 +122,17 @@ describe("shell Admin (sidebar + rutas)", () => {
     });
     assert.equal(labeled.accessLabel, "usuario@neutro.solutions");
     assert.equal(labeled.section, ADMIN_INITIAL_STATE.section);
+  });
+
+  it("expone la página Áreas de búsqueda en el shell", () => {
+    const shell = readFileSync(join(srcRoot, "admin-shell.tsx"), "utf8");
+    const page = readFileSync(join(srcRoot, "areas-page.tsx"), "utf8");
+    assert.match(shell, /AreasPage/);
+    assert.match(shell, /path:\s*"\/areas"/);
+    assert.match(page, /data-admin-areas-page/);
+    assert.match(page, /data-admin-areas-list/);
+    assert.match(page, /data-admin-area-form/);
+    assert.match(page, /Áreas de búsqueda/);
   });
 });
 
