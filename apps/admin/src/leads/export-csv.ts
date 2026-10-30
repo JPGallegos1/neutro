@@ -107,7 +107,8 @@ export function assertLeadsCsvBlobText(text: string): string {
 }
 
 export function blobFromLeadsCsv(csv: string): Blob {
-  return new Blob([assertFitLeadsCsv(csv)], {
+  const sealed = assertFitLeadsCsv(csv);
+  return new Blob([sealed], {
     type: "text/csv;charset=utf-8",
   });
 }
