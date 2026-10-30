@@ -236,7 +236,7 @@ describe("Export CSV Leads + fitness Google (#93)", () => {
     assert.equal(page.split("createLeadsCsvDownload(").length - 1, 1);
   });
 
-  it("MEDIO4: blob header+fitness; post-fitness header poison → red", async () => {
+  it("MEDIO4 formal: blob header + post-fitness displayName,rating poison", async () => {
     const ok = exportLeadsCsv([lead("a")]);
     assert.deepEqual(leadCsvFitnessViolations(ok), []);
     assert.equal(assertFitLeadsCsv(ok), ok);
@@ -301,6 +301,8 @@ describe("Export CSV Leads + fitness Google (#93)", () => {
       src,
       /function blobFromLeadsCsv[\s\S]*new Blob\(\[csv\.replace/,
     );
+    assert.doesNotMatch(src, /assertFitLeadsCsv\(csv\);\s*csv\s*=/);
+    assert.doesNotMatch(src, /csv\.replace\(\s*["']\\n["']\s*,\s*["'],displayName,rating/);
     assert.doesNotMatch(
       src,
       /function assertFitLeadsCsv\([^)]*\)[^{]*\{\s*if \(leadCsvFitnessViolations/,
