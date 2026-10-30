@@ -215,6 +215,62 @@ describe("Filtros de Comercios", () => {
       /data-admin-filter="rubro"[\s\S]*?setComerciosFilters[\s\S]*?rubro:/,
     );
   });
+
+  it("setComerciosFilters aplica tieneRedes y ocultarGuardados (cambio y no-op)", () => {
+    let state = ADMIN_INITIAL_STATE;
+    assert.equal(state.filters.tieneRedes, false);
+    assert.equal(state.filters.ocultarGuardados, false);
+
+    state = adminReducer(state, {
+      type: "setComerciosFilters",
+      filters: { tieneRedes: true },
+    });
+    assert.equal(state.filters.tieneRedes, true);
+    assert.equal(state.filters.ocultarGuardados, false);
+
+    const sameRedes = adminReducer(state, {
+      type: "setComerciosFilters",
+      filters: { tieneRedes: true },
+    });
+    assert.equal(sameRedes, state);
+    assert.equal(sameRedes.filters.tieneRedes, true);
+
+    state = adminReducer(state, {
+      type: "setComerciosFilters",
+      filters: { tieneRedes: false },
+    });
+    assert.equal(state.filters.tieneRedes, false);
+
+    state = adminReducer(state, {
+      type: "setComerciosFilters",
+      filters: { ocultarGuardados: true },
+    });
+    assert.equal(state.filters.ocultarGuardados, true);
+    assert.equal(state.filters.tieneRedes, false);
+
+    const sameOcultar = adminReducer(state, {
+      type: "setComerciosFilters",
+      filters: { ocultarGuardados: true },
+    });
+    assert.equal(sameOcultar, state);
+    assert.equal(sameOcultar.filters.ocultarGuardados, true);
+
+    state = adminReducer(state, {
+      type: "setComerciosFilters",
+      filters: { ocultarGuardados: false },
+    });
+    assert.equal(state.filters.ocultarGuardados, false);
+
+    const page = readFileSync(join(srcRoot, "comercios-page.tsx"), "utf8");
+    assert.match(
+      page,
+      /data-admin-filter="tiene-redes"[\s\S]*?setComerciosFilters[\s\S]*?tieneRedes:/,
+    );
+    assert.match(
+      page,
+      /data-admin-filter="ocultar-guardados"[\s\S]*?setComerciosFilters[\s\S]*?ocultarGuardados:/,
+    );
+  });
 });
 
 describe("Selección múltiple de Comercios", () => {
@@ -304,13 +360,29 @@ describe("Selección múltiple de Comercios", () => {
     const list = [
       c({ id: "sin-web", website: null, rubro: "cafe" }),
       c({ id: "con-web", website: "https://x.test", rubro: "cafe" }),
+      c({ id: "sin-web-b", website: null, rubro: "kiosco" }),
     ];
-    const selected = new Set([comercioKey(list[0]!), comercioKey(list[1]!)]);
+    const keyVisible = comercioKey(list[0]!);
+    const keyHidden = comercioKey(list[1]!);
+    const keyVisibleUnselected = comercioKey(list[2]!);
+    const selected = new Set([keyVisible, keyHidden]);
     assert.equal(selected.size, 2);
     const visible = filterComercios(list, DEFAULT_COMERCIOS_FILTERS, new Set());
-    assert.equal(visible.length, 1);
+    assert.equal(visible.length, 2);
+    assert.ok(visible.some((x) => comercioKey(x) === keyVisible));
+    assert.ok(visible.some((x) => comercioKey(x) === keyVisibleUnselected));
+    assert.equal(
+      visible.some((x) => comercioKey(x) === keyHidden),
+      false,
+    );
     assert.equal(countVisibleSelected(selected, visible), 1);
     assert.notEqual(countVisibleSelected(selected, visible), selected.size);
+    assert.notEqual(countVisibleSelected(selected, visible), visible.length);
+    assert.equal(countVisibleSelected(new Set(), visible), 0);
+    assert.equal(
+      countVisibleSelected(new Set([keyVisibleUnselected]), visible),
+      1,
+    );
     const page = readFileSync(join(srcRoot, "comercios-page.tsx"), "utf8");
     assert.doesNotMatch(
       page,
