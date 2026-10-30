@@ -1,7 +1,8 @@
 import { useAdmin } from "@/admin-context";
 import {
-  selectLeadWhenIdle,
-  updateLeadRequestedWhenIdle,
+  seedOnNotesSelectLeadFromIdle,
+  seedSelectLeadFromIdle,
+  seedUpdateLeadRequestedFromIdle,
 } from "@/admin-machine";
 import { getGoogleLiveClient } from "@/leads/google-live";
 import { getLeadsClient, type LeadClientPatch } from "@/leads/leads-client";
@@ -43,7 +44,7 @@ export function LeadsPage({
   const idleSeed = { leads: loadedLeads, revision: loadedLeadsRevision };
 
   function onSelect(id: string) {
-    dispatch(selectLeadWhenIdle(state.leadsStatus, id, idleSeed));
+    dispatch(state.leadsStatus === "idle" ? seedSelectLeadFromIdle(id, idleSeed) : { type: "selectLead", id });
     const lead = leads.find((item) => item.id === id);
     if (!lead) return;
     dispatch({ type: "googleLiveRequested" });
@@ -56,7 +57,7 @@ export function LeadsPage({
   }
 
   async function persist(id: string, patch: LeadClientPatch) {
-    dispatch(updateLeadRequestedWhenIdle(state.leadsStatus, idleSeed));
+    dispatch(state.leadsStatus === "idle" ? seedUpdateLeadRequestedFromIdle(idleSeed) : { type: "updateLeadRequested" });
     try {
       const body: LeadClientPatch = {};
       if (patch.status !== undefined) body.status = patch.status;
@@ -79,7 +80,7 @@ export function LeadsPage({
 
   function onNotes(notes: string) {
     if (!selected) return;
-    dispatch(selectLeadWhenIdle(state.leadsStatus, selected.id, idleSeed));
+    if (state.leadsStatus === "idle") dispatch(seedOnNotesSelectLeadFromIdle(selected.id, idleSeed));
     dispatch({ type: "leadNotesChanged", id: selected.id, notes });
     const prev = noteTimers.get(selected.id);
     if (prev) clearTimeout(prev);

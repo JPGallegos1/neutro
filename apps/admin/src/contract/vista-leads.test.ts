@@ -6,8 +6,9 @@ import { describe, it } from "vitest";
 import {
   ADMIN_INITIAL_STATE,
   adminReducer,
-  selectLeadWhenIdle,
-  updateLeadRequestedWhenIdle,
+  seedOnNotesSelectLeadFromIdle,
+  seedSelectLeadFromIdle,
+  seedUpdateLeadRequestedFromIdle,
 } from "@/admin-machine";
 import { createComercio } from "@/comercio";
 import type { D1DatabaseLike } from "@/d1-search-area-repository";
@@ -269,43 +270,44 @@ describe("Vista Leads", () => {
     );
   });
 
-  it("MEDIO3: seed selectLead / updateLeadRequested / onNotes conductual", () => {
-    const items = [lead("a"), lead("b", "contactado")];
+  it("MEDIO3: seedSelectLeadFromIdle solo", () => {
+    const items = [lead("a"), lead("b")];
     const seed = { leads: items, revision: 11 };
-    const selectEvt = selectLeadWhenIdle("idle", items[0]!.id, seed);
-    assert.deepEqual(selectEvt.seed, seed);
-    const selected = adminReducer(ADMIN_INITIAL_STATE, selectEvt);
+    const evt = seedSelectLeadFromIdle(items[0]!.id, seed);
+    assert.deepEqual(evt.seed, seed);
+    const next = adminReducer(ADMIN_INITIAL_STATE, evt);
     assert.deepEqual(
-      [selected.leadsStatus, selected.leads.length, selected.selectedLeadId, selected.leadsRevision],
+      [next.leadsStatus, next.leads.length, next.selectedLeadId, next.leadsRevision],
       ["ready", 2, items[0]!.id, 11],
     );
-    const selectBare = adminReducer(ADMIN_INITIAL_STATE, { type: "selectLead", id: items[0]!.id });
-    assert.deepEqual([selectBare.leadsStatus, selectBare.leads.length], ["idle", 0]);
-    const updateEvt = updateLeadRequestedWhenIdle("idle", seed);
-    assert.deepEqual(updateEvt.seed, seed);
-    const updating = adminReducer(ADMIN_INITIAL_STATE, updateEvt);
+    const bare = adminReducer(ADMIN_INITIAL_STATE, { type: "selectLead", id: items[0]!.id });
+    assert.deepEqual([bare.leadsStatus, bare.leads.length], ["idle", 0]);
+    assert.equal(readFileSync(join(srcRoot, "leads/leads-page.tsx"), "utf8").split("seedSelectLeadFromIdle(").length - 1, 1);
+  });
+
+  it("MEDIO3: seedUpdateLeadRequestedFromIdle solo", () => {
+    const items = [lead("a"), lead("b")];
+    const seed = { leads: items, revision: 12 };
+    const evt = seedUpdateLeadRequestedFromIdle(seed);
+    assert.deepEqual(evt.seed, seed);
+    const next = adminReducer(ADMIN_INITIAL_STATE, evt);
+    assert.deepEqual([next.leadsStatus, next.leads.length, next.leadsRevision], ["saving", 2, 12]);
+    const bare = adminReducer(ADMIN_INITIAL_STATE, { type: "updateLeadRequested" });
+    assert.deepEqual([bare.leadsStatus, bare.leads.length], ["saving", 0]);
+    assert.equal(readFileSync(join(srcRoot, "leads/leads-page.tsx"), "utf8").split("seedUpdateLeadRequestedFromIdle(").length - 1, 1);
+  });
+
+  it("MEDIO3: seedOnNotesSelectLeadFromIdle solo", () => {
+    const items = [lead("a"), lead("b", "contactado")];
+    const seed = { leads: items, revision: 13 };
+    const evt = seedOnNotesSelectLeadFromIdle(items[1]!.id, seed);
+    assert.deepEqual(evt.seed, seed);
+    const next = adminReducer(ADMIN_INITIAL_STATE, evt);
     assert.deepEqual(
-      [updating.leadsStatus, updating.leads.length, updating.leadsRevision],
-      ["saving", 2, 11],
+      [next.leadsStatus, next.selectedLeadId, next.leads.length, next.leadsRevision],
+      ["ready", items[1]!.id, 2, 13],
     );
-    const updateBare = adminReducer(ADMIN_INITIAL_STATE, { type: "updateLeadRequested" });
-    assert.deepEqual([updateBare.leadsStatus, updateBare.leads.length], ["saving", 0]);
-    const notesEvt = selectLeadWhenIdle("idle", items[1]!.id, seed);
-    assert.deepEqual(notesEvt.seed, seed);
-    const noted = adminReducer(ADMIN_INITIAL_STATE, notesEvt);
-    assert.deepEqual(
-      [noted.leadsStatus, noted.selectedLeadId, noted.leads.length],
-      ["ready", items[1]!.id, 2],
-    );
-    const machine = readFileSync(join(srcRoot, "admin-machine.ts"), "utf8");
-    assert.match(machine, /selectLeadWhenIdle[\s\S]*type:\s*"selectLead",\s*id,\s*seed:/);
-    assert.match(machine, /updateLeadRequestedWhenIdle[\s\S]*type:\s*"updateLeadRequested",\s*seed:/);
-    const page = readFileSync(join(srcRoot, "leads/leads-page.tsx"), "utf8");
-    assert.equal([...page.matchAll(/\bselectLeadWhenIdle\(/g)].length, 2);
-    assert.equal([...page.matchAll(/\bupdateLeadRequestedWhenIdle\(/g)].length, 1);
-    assert.match(page, /function onSelect[\s\S]*selectLeadWhenIdle\(/);
-    assert.match(page, /async function persist[\s\S]*updateLeadRequestedWhenIdle\(/);
-    assert.match(page, /function onNotes[\s\S]*selectLeadWhenIdle\(/);
+    assert.equal(readFileSync(join(srcRoot, "leads/leads-page.tsx"), "utf8").split("seedOnNotesSelectLeadFromIdle(").length - 1, 1);
   });
 
   it("API: PATCH, /api/me, google-live; 404/400", async () => {

@@ -459,21 +459,22 @@ export function pathForSection(section: AdminSection): string {
 
 export type LeadsIdleSeed = { leads: Lead[]; revision: number };
 
-export function selectLeadWhenIdle(
-  leadsStatus: LeadsStatus,
+export function seedSelectLeadFromIdle(
   id: string,
   seed: LeadsIdleSeed,
 ): Extract<AdminEvent, { type: "selectLead" }> {
-  return leadsStatus === "idle"
-    ? { type: "selectLead", id, seed: { leads: seed.leads, revision: seed.revision } }
-    : { type: "selectLead", id };
+  return { type: "selectLead", id, seed: { leads: seed.leads, revision: seed.revision } };
 }
 
-export function updateLeadRequestedWhenIdle(
-  leadsStatus: LeadsStatus,
+export function seedUpdateLeadRequestedFromIdle(
   seed: LeadsIdleSeed,
 ): Extract<AdminEvent, { type: "updateLeadRequested" }> {
-  return leadsStatus === "idle"
-    ? { type: "updateLeadRequested", seed: { leads: seed.leads, revision: seed.revision } }
-    : { type: "updateLeadRequested" };
+  return { type: "updateLeadRequested", seed: { leads: seed.leads, revision: seed.revision } };
+}
+
+export function seedOnNotesSelectLeadFromIdle(
+  id: string,
+  seed: LeadsIdleSeed,
+): Extract<AdminEvent, { type: "selectLead" }> {
+  return { type: "selectLead", id, seed: { leads: seed.leads, revision: seed.revision } };
 }
