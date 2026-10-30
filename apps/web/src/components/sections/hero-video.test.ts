@@ -6,7 +6,7 @@ import vm from "node:vm";
 import { fileURLToPath } from "node:url";
 
 const sourcePath = fileURLToPath(
-  new URL("./VideoSection.astro", import.meta.url),
+  new URL("./Hero.astro", import.meta.url),
 );
 const source = readFileSync(sourcePath, "utf8");
 
@@ -20,7 +20,7 @@ function extract(tag: "script" | "style"): string {
 const css = extract("style");
 const scriptSource = extract("script");
 
-describe("video section contract", () => {
+describe("hero video contract", () => {
   it("defaults to a muted looping inline video without controls", () => {
     const videoTag = source.match(/<video[\s\S]*?>/)?.[0] ?? "";
     assert.match(videoTag, /\sautoplay(?:\s|>)/);
@@ -34,12 +34,12 @@ describe("video section contract", () => {
     assert.doesNotMatch(source, /from "@lucide\/astro"/);
   });
 
-  it("lists mp4 before webm among video sources", () => {
+  it("lists webm before mp4 among video sources", () => {
     const mp4 = source.indexOf('"/video/neutro.mp4"');
     const webm = source.indexOf('"/video/neutro.webm"');
     assert.ok(mp4 >= 0, "expected mp4 source path");
     assert.ok(webm >= 0, "expected webm source path");
-    assert.ok(mp4 < webm, "mp4 must come before webm");
+    assert.ok(webm < mp4, "webm must come before mp4");
   });
 
   it("drops playback and sound controls from markup, css, and script", () => {
@@ -47,11 +47,11 @@ describe("video section contract", () => {
       source,
       /data-video-(controls|playback|mute|play|reduced)/,
     );
-    assert.doesNotMatch(css, /video-section__(controls|btn|play|icon|reduced)/);
+    assert.doesNotMatch(css, /hero__(controls|btn|play|icon|reduced)/);
     assert.doesNotMatch(css, /cursor:\s*pointer/);
     assert.doesNotMatch(scriptSource, /addEventListener\(\s*["']click["']/);
     assert.doesNotMatch(scriptSource, /data-video-(playback|mute|play)/);
-    assert.match(css, /\.video-section__video\s*\{[^}]*object-fit:\s*cover/);
+    assert.match(css, /\.hero__video\s*\{[^}]*object-fit:\s*cover/);
   });
 
   it("keeps a poster fallback when autoplay is refused or motion is reduced", () => {
@@ -76,6 +76,15 @@ describe("video section contract", () => {
       const withoutDataSrc = tag.replaceAll(/\bdata-src=/g, "");
       assert.doesNotMatch(withoutDataSrc, /\bsrc=/);
     }
+  });
+
+  it("keeps the video inside the black hero without a framed box", () => {
+    assert.match(source, /data-video-root/);
+    assert.match(source, /class="hero__media"/);
+    assert.match(css, /\.hero\s*\{[^}]*--neutro-bg:\s*#0a0a0a/);
+    assert.match(css, /\.hero__media\s*\{[^}]*aspect-ratio:\s*16\s*\/\s*9/);
+    assert.doesNotMatch(css, /\.hero__media\s*\{[^}]*border\s*:/);
+    assert.doesNotMatch(source, /video-section/);
   });
 });
 
@@ -243,10 +252,10 @@ function buildTree() {
     preload: "none",
     poster: "/video/neutro-poster.jpg",
   });
-  const mp4 = new El("source", { "data-src": "/video/neutro.mp4" });
   const webm = new El("source", { "data-src": "/video/neutro.webm" });
-  video.append(mp4);
+  const mp4 = new El("source", { "data-src": "/video/neutro.mp4" });
   video.append(webm);
+  video.append(mp4);
   frame.append(video);
   section.append(frame);
   return { section, frame, video, webm, mp4 };
@@ -322,7 +331,7 @@ const context = vm.createContext({
 
 const script = stripTypeScriptTypes(scriptSource, {
   mode: "strip",
-  sourceUrl: "VideoSection.astro",
+  sourceUrl: "Hero.astro",
 });
 
 let scriptReady = false;
@@ -384,7 +393,7 @@ async function boot(options?: {
   FakeObserver.latest = null;
   if (!scriptReady) {
     scriptReady = true;
-    vm.runInContext(script, context, { filename: "VideoSection.astro" });
+    vm.runInContext(script, context, { filename: "Hero.astro" });
   } else {
     doc.emit("astro:page-load");
   }
@@ -421,7 +430,7 @@ function assertPoster(ui: VideoUi) {
   assert.equal(ui.video.autoplay, false);
 }
 
-describe("video section playback", () => {
+describe("hero video playback", () => {
   it("autoplays muted once the frame is visible after load", () =>
     exclusive(async () => {
       const ui = await boot();
@@ -434,11 +443,11 @@ describe("video section playback", () => {
       assert.equal(ui.video.getAttribute("autoplay"), "");
       assert.equal(ui.video.loadCalls, 1);
       assert.equal(
-        ui.video.children.findIndex((child) => child === ui.mp4),
+        ui.video.children.findIndex((child) => child === ui.webm),
         0,
       );
       assert.equal(
-        ui.video.children.findIndex((child) => child === ui.webm),
+        ui.video.children.findIndex((child) => child === ui.mp4),
         1,
       );
     }));
@@ -461,8 +470,8 @@ describe("video section playback", () => {
       assert.equal(ui.webm.src, "/video/neutro.webm");
       assert.equal(ui.video.loadCalls, 1);
       assert.deepEqual(videoRequests, [
-        "/video/neutro.mp4",
         "/video/neutro.webm",
+        "/video/neutro.mp4",
       ]);
     }));
 

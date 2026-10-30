@@ -1,4 +1,9 @@
 ---
+const posterSrc = "/video/neutro-poster.jpg";
+const sources = [
+  { src: "/video/neutro.webm", type: "video/webm" },
+  { src: "/video/neutro.mp4", type: "video/mp4" },
+] as const;
 ---
 
 <section class="hero" aria-labelledby="hero-title">
@@ -23,11 +28,154 @@
     <p class="hero__lead">
       Transformá tu negocio hoy con sistemas que te diferencian.
     </p>
+    <div class="hero__media" data-video-root>
+      <video
+        class="hero__video"
+        data-video
+        autoplay
+        muted
+        loop
+        playsinline
+        preload="none"
+        poster={posterSrc}
+        width="1280"
+        height="720"
+        aria-hidden="true"
+      >
+        {sources.map((source) => (
+          <source data-src={source.src} type={source.type} />
+        ))}
+      </video>
+    </div>
   </div>
 </section>
 
+<script>
+  function prefersReducedMotion(): boolean {
+    return window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  }
+
+  function saveDataEnabled(): boolean {
+    const connection = (
+      navigator as Navigator & { connection?: { saveData?: boolean } }
+    ).connection;
+    return connection?.saveData === true;
+  }
+
+  function afterWindowLoad(run: () => void) {
+    if (document.readyState === "complete") {
+      run();
+      return;
+    }
+    window.addEventListener("load", run, { once: true });
+  }
+
+  function attachSources(video: HTMLVideoElement) {
+    if (video.dataset.sourcesReady === "true") return;
+    const sources =
+      video.querySelectorAll<HTMLSourceElement>("source[data-src]");
+    sources.forEach((source) => {
+      const src = source.dataset.src;
+      if (src) source.src = src;
+    });
+    video.load();
+    video.dataset.sourcesReady = "true";
+  }
+
+  function showPoster(video: HTMLVideoElement) {
+    video.autoplay = false;
+    video.removeAttribute("autoplay");
+    try {
+      video.pause();
+    } catch (error) {
+      void error;
+    }
+    if (video.dataset.sourcesReady !== "true") return;
+    video
+      .querySelectorAll<HTMLSourceElement>("source[data-src]")
+      .forEach((source) => {
+        source.removeAttribute("src");
+      });
+    video.removeAttribute("src");
+    try {
+      video.load();
+    } catch (error) {
+      void error;
+    }
+    delete video.dataset.sourcesReady;
+  }
+
+  function playOrPoster(video: HTMLVideoElement) {
+    video.muted = true;
+    video.defaultMuted = true;
+    let pending: Promise<void>;
+    try {
+      pending = video.play();
+    } catch (error) {
+      void error;
+      showPoster(video);
+      return;
+    }
+    void pending.catch(() => {
+      showPoster(video);
+    });
+  }
+
+  function initVideo() {
+    const root = document.querySelector<HTMLElement>("[data-video-root]");
+    if (!root || root.dataset.ready === "true") return;
+    root.dataset.ready = "true";
+
+    const video = root.querySelector<HTMLVideoElement>("[data-video]");
+    if (!video) return;
+
+    video.muted = true;
+    video.defaultMuted = true;
+
+    const startWhenVisible = () => {
+      if (prefersReducedMotion() || saveDataEnabled()) {
+        showPoster(video);
+        return;
+      }
+      afterWindowLoad(() => {
+        if (prefersReducedMotion() || saveDataEnabled()) {
+          showPoster(video);
+          return;
+        }
+        attachSources(video);
+        playOrPoster(video);
+      });
+    };
+
+    if (prefersReducedMotion() || saveDataEnabled()) showPoster(video);
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        for (const entry of entries) {
+          if (!entry.isIntersecting) continue;
+          observer.disconnect();
+          startWhenVisible();
+          break;
+        }
+      },
+      { rootMargin: "200px 0px", threshold: 0.15 },
+    );
+    observer.observe(root);
+  }
+
+  initVideo();
+  document.addEventListener("astro:page-load", initVideo);
+</script>
+
 <style>
   .hero {
+    --neutro-bg: #0a0a0a;
+    --neutro-text: #f6f6f4;
+    --neutro-text-muted: #b4b4af;
+    --neutro-border: #262624;
+    --neutro-accent-blue: #5c78ff;
+    --neutro-focus: #5c78ff;
+    --landing-focus: var(--neutro-focus);
     background: var(--neutro-bg);
     color: var(--neutro-text);
     overflow-x: clip;
@@ -117,5 +265,18 @@
       text-align: right;
       justify-self: end;
     }
+  }
+
+  .hero__media {
+    position: relative;
+    aspect-ratio: 16 / 9;
+    overflow: hidden;
+  }
+
+  .hero__video {
+    display: block;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
   }
 </style>
