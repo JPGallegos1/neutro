@@ -4,6 +4,7 @@ import {
   COMERCIOS_ATTRIBUTION,
   NEUTRO_RUBROS,
   comercioKey,
+  countVisibleSelected,
   filterComercios,
   type Comercio,
   type NeutroRubro,
@@ -23,6 +24,10 @@ export function ComerciosPage({
   const all =
     state.comerciosStatus === "idle" ? loadedComercios : state.comercios;
   const filteredComercios = filterComercios(all, state.filters, state.leadKeys);
+  const visibleSelectedCount = countVisibleSelected(
+    state.selectedComercioKeys,
+    filteredComercios,
+  );
 
   const center = state.selectedAreaId
     ? (state.areas.find((a) => a.id === state.selectedAreaId)?.center ??
@@ -161,7 +166,7 @@ export function ComerciosPage({
           className="text-xs text-neutro-text-muted"
           data-admin-selection-count
         >
-          {state.selectedComercioKeys.size} seleccionados
+          {visibleSelectedCount} seleccionados
         </span>
       </div>
       <div className="grid gap-6 lg:grid-cols-[320px_minmax(0,1fr)]">

@@ -107,6 +107,17 @@ export function filterComercios(
   });
 }
 
+export function countVisibleSelected(
+  selectedKeys: ReadonlySet<string>,
+  visible: Comercio[],
+): number {
+  let count = 0;
+  for (const item of visible) {
+    if (selectedKeys.has(comercioKey(item))) count += 1;
+  }
+  return count;
+}
+
 export type FoursquarePlaceLike = {
   fsq_place_id?: string;
   name?: string;

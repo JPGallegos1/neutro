@@ -14,6 +14,7 @@ import {
   comercioKey,
   comerciosFromFoursquare,
   comerciosFromOsm,
+  countVisibleSelected,
   createComercio,
   filterComercios,
   pinKindFor,
@@ -276,7 +277,15 @@ describe("Selección múltiple de Comercios", () => {
     assert.match(page, /aria-pressed=\{selected\}/);
     assert.match(
       page,
-      /data-admin-selection-count[\s\S]*\{state\.selectedComercioKeys\.size\} seleccionados/,
+      /data-admin-selection-count[\s\S]*\{visibleSelectedCount\} seleccionados/,
+    );
+    assert.match(
+      page,
+      /countVisibleSelected\(\s*state\.selectedComercioKeys,\s*filteredComercios,?\s*\)/,
+    );
+    assert.doesNotMatch(
+      page,
+      /data-admin-selection-count[\s\S]*\{state\.selectedComercioKeys\.size\}/,
     );
     assert.doesNotMatch(
       page,
@@ -289,5 +298,23 @@ describe("Selección múltiple de Comercios", () => {
     assert.equal(pinKindFor(a, new Set([a, b]), new Set()), "seleccionado");
     assert.equal(pinKindFor(b, new Set([a, b]), new Set()), "seleccionado");
     assert.equal(pinKindFor("osm:c", new Set([a, b]), new Set()), "comercio");
+  });
+
+  it("contador cuenta solo selección visible bajo filtros (no ocultos)", () => {
+    const list = [
+      c({ id: "sin-web", website: null, rubro: "cafe" }),
+      c({ id: "con-web", website: "https://x.test", rubro: "cafe" }),
+    ];
+    const selected = new Set([comercioKey(list[0]!), comercioKey(list[1]!)]);
+    assert.equal(selected.size, 2);
+    const visible = filterComercios(list, DEFAULT_COMERCIOS_FILTERS, new Set());
+    assert.equal(visible.length, 1);
+    assert.equal(countVisibleSelected(selected, visible), 1);
+    assert.notEqual(countVisibleSelected(selected, visible), selected.size);
+    const page = readFileSync(join(srcRoot, "comercios-page.tsx"), "utf8");
+    assert.doesNotMatch(
+      page,
+      /data-admin-selection-count[\s\S]*\{state\.selectedComercioKeys\.size\}/,
+    );
   });
 });
