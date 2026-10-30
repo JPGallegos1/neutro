@@ -253,11 +253,23 @@ describe("Export CSV Leads + fitness Google (#93)", () => {
     const headerPoison = ok.replace("\n", ",displayName,rating\n");
     assert.notEqual(headerPoison.split(/\r?\n/, 1)[0], LEAD_CSV_MIN_COLUMNS.join(","));
     assert.ok(leadCsvFitnessViolations(headerPoison).length > 0);
-    assert.throws(() => assertLeadsCsvBlobText(headerPoison), /csv_header_mismatch|csv_fitness_failed|google_col/);
-    assert.throws(() => blobFromLeadsCsv(headerPoison), /csv_fitness_failed/);
-    assert.throws(() => assertFitLeadsCsv(headerPoison), /csv_fitness_failed/);
+    assert.throws(
+      () => assertLeadsCsvBlobText(headerPoison),
+      /csv_header_mismatch|csv_fitness_failed|google_col/,
+    );
+    assert.throws(
+      () => blobFromLeadsCsv(headerPoison),
+      /csv_header_mismatch|csv_fitness_failed|google_col/,
+    );
+    assert.throws(
+      () => assertFitLeadsCsv(headerPoison),
+      /csv_header_mismatch|csv_fitness_failed|google_col/,
+    );
     const poisoned = `${LEAD_CSV_MIN_COLUMNS.join(",")},displayName,rating\nx,osm,x,nuevo,,,1,0,Google,4.2`;
-    assert.throws(() => blobFromLeadsCsv(poisoned), /csv_fitness_failed/);
+    assert.throws(
+      () => blobFromLeadsCsv(poisoned),
+      /csv_header_mismatch|csv_fitness_failed|google_col/,
+    );
     const download = createLeadsCsvDownload(
       [lead("a"), lead("b", { status: "contactado" })],
       "contactado",
@@ -272,7 +284,11 @@ describe("Export CSV Leads + fitness Google (#93)", () => {
     const src = readFileSync(join(srcRoot, "leads/export-csv.ts"), "utf8");
     assert.match(src, /return new Blob\(\[assertFitLeadsCsv\(csv\)\],/);
     assert.match(src, /function assertFitLeadsCsv/);
-    assert.match(src, /function assertLeadsCsvBlobText/);
+    assert.match(
+      src,
+      /function assertFitLeadsCsv[\s\S]*header !== LEAD_CSV_MIN_COLUMNS\.join\(\",\"\)/,
+    );
+    assert.match(src, /assertLeadsCsvBlobText[\s\S]*return assertFitLeadsCsv\(text\)/);
     assert.equal(src.split("new Blob(").length - 1, 1);
     assert.doesNotMatch(src, /new Blob\(\[[^\]]*(displayName|rating|formattedAddress)/);
     assert.doesNotMatch(src, /new Blob\(\[csv\s*\+|new Blob\(\[csv\s*,/);
@@ -284,6 +300,10 @@ describe("Export CSV Leads + fitness Google (#93)", () => {
     assert.doesNotMatch(
       src,
       /function blobFromLeadsCsv[\s\S]*new Blob\(\[csv\.replace/,
+    );
+    assert.doesNotMatch(
+      src,
+      /function assertFitLeadsCsv\([^)]*\)[^{]*\{\s*if \(leadCsvFitnessViolations/,
     );
     const page = readFileSync(join(srcRoot, "leads/leads-page.tsx"), "utf8");
     assert.doesNotMatch(page, /new Blob\(/);

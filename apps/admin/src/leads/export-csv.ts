@@ -89,24 +89,21 @@ export function leadsForCsvExport(
 }
 
 export function assertFitLeadsCsv(csv: string): string {
+  const header = csv.split(/\r?\n/, 1)[0] ?? "";
+  if (header !== LEAD_CSV_MIN_COLUMNS.join(",")) {
+    throw new Error("csv_header_mismatch");
+  }
   if (leadCsvFitnessViolations(csv).length > 0) {
     throw new Error("csv_fitness_failed");
+  }
+  for (const col of FORBIDDEN_GOOGLE_PLACES_CSV_COLUMNS) {
+    if (csv.includes(col)) throw new Error(`google_col:${col}`);
   }
   return csv;
 }
 
 export function assertLeadsCsvBlobText(text: string): string {
-  const header = text.split(/\r?\n/, 1)[0] ?? "";
-  if (header !== LEAD_CSV_MIN_COLUMNS.join(",")) {
-    throw new Error("csv_header_mismatch");
-  }
-  if (leadCsvFitnessViolations(text).length > 0) {
-    throw new Error("csv_fitness_failed");
-  }
-  for (const col of FORBIDDEN_GOOGLE_PLACES_CSV_COLUMNS) {
-    if (text.includes(col)) throw new Error(`google_col:${col}`);
-  }
-  return text;
+  return assertFitLeadsCsv(text);
 }
 
 export function blobFromLeadsCsv(csv: string): Blob {
