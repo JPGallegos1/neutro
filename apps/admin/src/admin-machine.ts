@@ -3,7 +3,13 @@ import {
   type Comercio,
   type ComerciosFilters,
 } from "@/comercio";
-import { leadKey, mergeLeadsByIdentity, type Lead } from "@/leads/lead";
+import {
+  leadKey,
+  mergeLeadsByIdentity,
+  type Lead,
+  type LeadStatusFilter,
+} from "@/leads/lead";
+import type { GoogleLiveView } from "@/leads/google-live";
 import {
   areaToDraft,
   createRosarioDefaultDraft,
@@ -37,6 +43,10 @@ export type AdminState = {
   leadsRevision: number;
   leadsStatus: LeadsStatus;
   leadKeys: ReadonlySet<string>;
+  selectedLeadId: string | null;
+  leadsStatusFilter: LeadStatusFilter;
+  googleLive: GoogleLiveView | null;
+  googleLiveStatus: "idle" | "loading" | "ready" | "error";
 };
 
 export type AdminEvent =
@@ -81,7 +91,21 @@ export type AdminEvent =
       seed?: { leads: Lead[]; revision: number };
     }
   | { type: "saveLeadsSucceeded"; leads: Lead[]; revision: number }
-  | { type: "saveLeadsFailed" };
+  | { type: "saveLeadsFailed" }
+  | { type: "selectLead"; id: string | null; seed?: { leads: Lead[]; revision: number } }
+  | { type: "setLeadsStatusFilter"; filter: LeadStatusFilter }
+  | { type: "leadNotesChanged"; id: string; notes: string }
+  | { type: "updateLeadRequested"; seed?: { leads: Lead[]; revision: number } }
+  | {
+      type: "updateLeadSucceeded";
+      lead: Lead;
+      revision: number;
+      committedNotes?: string;
+    }
+  | { type: "updateLeadFailed" }
+  | { type: "googleLiveRequested" }
+  | { type: "googleLiveSucceeded"; live: GoogleLiveView }
+  | { type: "googleLiveFailed" };
 
 export const ADMIN_INITIAL_STATE: AdminState = {
   section: "comercios",
@@ -101,6 +125,10 @@ export const ADMIN_INITIAL_STATE: AdminState = {
   leadsRevision: 0,
   leadsStatus: "idle",
   leadKeys: new Set(),
+  selectedLeadId: null,
+  leadsStatusFilter: "todos",
+  googleLive: null,
+  googleLiveStatus: "idle",
 };
 
 function keepSelected(
@@ -336,6 +364,85 @@ export function adminReducer(state: AdminState, event: AdminEvent): AdminState {
     }
     case "saveLeadsFailed":
       return { ...state, leadsStatus: "error" };
+    case "selectLead": {
+      const base =
+        event.seed && state.leadsStatus === "idle"
+          ? {
+              ...state,
+              leads: event.seed.leads,
+              leadsRevision: event.seed.revision,
+              leadKeys: new Set(event.seed.leads.map(leadKey)),
+              leadsStatus: "ready" as const,
+            }
+          : state;
+      if (event.id === null) {
+        return {
+          ...base,
+          selectedLeadId: null,
+          googleLive: null,
+          googleLiveStatus: "idle" as const,
+        };
+      }
+      if (!base.leads.some((lead) => lead.id === event.id)) {
+        return base === state ? state : base;
+      }
+      return {
+        ...base,
+        selectedLeadId: event.id,
+        googleLive: null,
+        googleLiveStatus: "idle",
+      };
+    }
+    case "setLeadsStatusFilter":
+      return state.leadsStatusFilter === event.filter
+        ? state
+        : { ...state, leadsStatusFilter: event.filter };
+    case "leadNotesChanged":
+      if (state.leadsStatus === "idle") return state;
+      return {
+        ...state,
+        leads: state.leads.map((lead) =>
+          lead.id === event.id ? { ...lead, notes: event.notes } : lead,
+        ),
+      };
+    case "updateLeadRequested":
+      if (event.seed && state.leadsStatus === "idle") {
+        return {
+          ...state,
+          leads: event.seed.leads,
+          leadsRevision: event.seed.revision,
+          leadKeys: new Set(event.seed.leads.map(leadKey)),
+          leadsStatus: "saving",
+        };
+      }
+      return { ...state, leadsStatus: "saving" };
+    case "updateLeadSucceeded": {
+      if (event.revision <= state.leadsRevision) return state;
+      const current = state.leads.find((lead) => lead.id === event.lead.id);
+      const keepNotes =
+        !!current &&
+        current.notes !== event.lead.notes &&
+        event.committedNotes !== current.notes;
+      const merged = keepNotes ? { ...event.lead, notes: current!.notes } : event.lead;
+      const nextLeads = current
+        ? state.leads.map((lead) => (lead.id === merged.id ? merged : lead))
+        : [...state.leads, merged];
+      return {
+        ...state,
+        leads: nextLeads,
+        leadsRevision: event.revision,
+        leadsStatus: "ready",
+        leadKeys: new Set(nextLeads.map(leadKey)),
+      };
+    }
+    case "updateLeadFailed":
+      return { ...state, leadsStatus: "error" };
+    case "googleLiveRequested":
+      return { ...state, googleLiveStatus: "loading", googleLive: null };
+    case "googleLiveSucceeded":
+      return { ...state, googleLiveStatus: "ready", googleLive: event.live };
+    case "googleLiveFailed":
+      return { ...state, googleLiveStatus: "error", googleLive: null };
   }
 }
 
@@ -348,4 +455,26 @@ export function sectionFromPathname(pathname: string): AdminSection {
 
 export function pathForSection(section: AdminSection): string {
   return `/${section}`;
+}
+
+export type LeadsIdleSeed = { leads: Lead[]; revision: number };
+
+export function seedSelectLeadFromIdle(
+  id: string,
+  seed: LeadsIdleSeed,
+): Extract<AdminEvent, { type: "selectLead" }> {
+  return { type: "selectLead", id, seed: { leads: seed.leads, revision: seed.revision } };
+}
+
+export function seedUpdateLeadRequestedFromIdle(
+  seed: LeadsIdleSeed,
+): Extract<AdminEvent, { type: "updateLeadRequested" }> {
+  return { type: "updateLeadRequested", seed: { leads: seed.leads, revision: seed.revision } };
+}
+
+export function seedOnNotesSelectLeadFromIdle(
+  id: string,
+  seed: LeadsIdleSeed,
+): Extract<AdminEvent, { type: "selectLead" }> {
+  return { type: "selectLead", id, seed: { leads: seed.leads, revision: seed.revision } };
 }

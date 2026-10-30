@@ -1,15 +1,28 @@
 import type { Comercio } from "@/comercio";
-import type { Lead, LeadRepository } from "@/leads/lead";
+import type { Lead, LeadRepository, LeadUpdatePatch } from "@/leads/lead";
+
+export type LeadClientPatch = LeadUpdatePatch & { assignAccessUser?: boolean };
 
 export type LeadsClient = {
   list(): Promise<Lead[]>;
   save(comercios: Comercio[]): Promise<Lead[]>;
+  update(id: string, patch: LeadClientPatch): Promise<Lead>;
 };
 
 export function createRepoLeadsClient(repository: LeadRepository): LeadsClient {
   return {
     list: () => repository.list(),
     save: (comercios) => repository.saveFromComercios(comercios),
+    async update(id, patch) {
+      const { assignAccessUser, assignee: _a, ...rest } = patch;
+      if (assignAccessUser) {
+        return repository.update(id, {
+          ...rest,
+          assignee: "dev@neutro.solutions",
+        });
+      }
+      return repository.update(id, rest);
+    },
   };
 }
 
@@ -28,6 +41,16 @@ export function createHttpLeadsClient(baseUrl = ""): LeadsClient {
       });
       if (!res.ok) throw new Error(`leads_save_failed_${res.status}`);
       return ((await res.json()) as { leads: Lead[] }).leads;
+    },
+    async update(id, patch) {
+      const { assignee: _drop, ...safe } = patch;
+      const res = await fetch(`${baseUrl}/api/leads/${id}`, {
+        method: "PATCH",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify(safe),
+      });
+      if (!res.ok) throw new Error(`leads_update_failed_${res.status}`);
+      return ((await res.json()) as { lead: Lead }).lead;
     },
   };
 }

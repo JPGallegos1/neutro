@@ -35,9 +35,18 @@ export type Lead = {
   updatedAt: string;
 };
 
+export type LeadStatusFilter = LeadStatus | "todos";
+
+export type LeadUpdatePatch = {
+  status?: LeadStatus;
+  notes?: string;
+  assignee?: string | null;
+};
+
 export type LeadRepository = {
   list(): Promise<Lead[]>;
   saveFromComercios(comercios: Comercio[]): Promise<Lead[]>;
+  update(id: string, patch: LeadUpdatePatch): Promise<Lead>;
 };
 
 export function leadKey(lead: Pick<Lead, "source" | "externalId">): string {
@@ -116,27 +125,56 @@ export function saveSelectionAsLeads(
   return { all: [...byKey.values()], created, reused };
 }
 
+export function filterLeadsByStatus(leads: Lead[], filter: LeadStatusFilter) {
+  return filter === "todos" ? [...leads] : leads.filter((l) => l.status === filter);
+}
+
+export function updateLeadFields(
+  lead: Lead,
+  patch: LeadUpdatePatch,
+  now?: string,
+): Lead {
+  return {
+    ...lead,
+    status: patch.status ?? lead.status,
+    notes: patch.notes !== undefined ? patch.notes : lead.notes,
+    assignee: patch.assignee !== undefined ? patch.assignee : lead.assignee,
+    updatedAt: now ?? new Date().toISOString(),
+  };
+}
+
+export function leadMapsUrl(lead: Pick<Lead, "lat" | "lng">) {
+  return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${lead.lat},${lead.lng}`)}`;
+}
+
+export function leadWhatsAppUrl(lead: Pick<Lead, "name">) {
+  return `https://wa.me/?text=${encodeURIComponent(`Hola, te contacto por ${lead.name}`)}`;
+}
+
 export function createMemoryLeadRepository(options?: {
   seed?: Lead[];
   now?: string;
 }): LeadRepository {
-  const store = new Map<string, Lead>(
-    (options?.seed ?? []).map((lead) => [leadKey(lead), lead]),
-  );
+  const byId = new Map((options?.seed ?? []).map((l) => [l.id, l] as const));
   return {
     async list() {
-      return [...store.values()];
+      return [...byId.values()];
     },
     async saveFromComercios(comercios) {
       const result = saveSelectionAsLeads(
         comercios,
-        [...store.values()],
+        [...byId.values()],
         options?.now,
       );
-      for (const lead of result.created) store.set(leadKey(lead), lead);
-      return result.created.length + result.reused.length === 0
-        ? []
-        : [...result.created, ...result.reused];
+      for (const lead of result.created) byId.set(lead.id, lead);
+      return [...result.created, ...result.reused];
+    },
+    async update(id, patch) {
+      const current = byId.get(id);
+      if (!current) throw new Error("lead_not_found");
+      const next = updateLeadFields(current, patch, options?.now);
+      byId.set(id, next);
+      return next;
     },
   };
 }

@@ -36,12 +36,18 @@ import {
 } from "@/comercios-client";
 import { ComerciosPage } from "@/comercios-page";
 import {
+  createFixtureGoogleLiveClient,
+  createHttpGoogleLiveClient,
+  setGoogleLiveClient,
+} from "@/leads/google-live";
+import {
   createHttpLeadsClient,
   createRepoLeadsClient,
   getLeadsClient,
   setLeadsClient,
 } from "@/leads/leads-client";
 import { createMemoryLeadRepository } from "@/leads/lead";
+import { LeadsPage } from "@/leads/leads-page";
 import { createMemorySearchAreaRepository } from "@/search-area";
 import "@/styles.css";
 
@@ -81,19 +87,6 @@ const NAV: { section: AdminSection; label: string }[] = [
   { section: "leads", label: "Leads" },
   { section: "areas", label: "Áreas" },
 ];
-
-function Placeholder({ title }: { title: string }) {
-  return (
-    <section className="flex flex-1 flex-col gap-2 p-6">
-      <h1 className="text-2xl font-medium tracking-tight text-neutro-text">
-        {title}
-      </h1>
-      <p className="text-sm text-neutro-text-muted">
-        Contenido del módulo en tickets posteriores.
-      </p>
-    </section>
-  );
-}
 
 function ShellChrome({ children }: { children: ReactNode }) {
   const { state, dispatch } = useAdmin();
@@ -216,7 +209,21 @@ const comerciosRoute = createRoute({
 const leadsRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: "/leads",
-  component: () => <Placeholder title="Leads" />,
+  loader: async () => ({
+    leads: await getLeadsClient()
+      .list()
+      .catch(() => []),
+    leadsRevision: Date.now(),
+  }),
+  component: function LeadsRouteView() {
+    const data = leadsRoute.useLoaderData();
+    return (
+      <LeadsPage
+        loadedLeads={data.leads}
+        loadedLeadsRevision={data.leadsRevision}
+      />
+    );
+  },
 });
 
 const areasRoute = createRoute({
@@ -292,6 +299,11 @@ if (rootElement && rootElement.dataset.adminMounted !== "1") {
     import.meta.env.PROD
       ? createHttpLeadsClient()
       : createRepoLeadsClient(createMemoryLeadRepository()),
+  );
+  setGoogleLiveClient(
+    import.meta.env.PROD
+      ? createHttpGoogleLiveClient()
+      : createFixtureGoogleLiveClient(),
   );
   rootElement.dataset.adminMounted = "1";
   createRoot(rootElement).render(

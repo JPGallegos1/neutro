@@ -6,9 +6,11 @@ import type {
 import {
   createLeadFromComercio,
   leadKey,
+  updateLeadFields,
   type Lead,
   type LeadRepository,
   type LeadStatus,
+  type LeadUpdatePatch,
 } from "@/leads/lead";
 
 type PlaceRow = {
@@ -167,6 +169,36 @@ export function createD1LeadRepository(db: D1DatabaseLike): LeadRepository {
         out.push(lead);
       }
       return out;
+    },
+    async update(id: string, patch: LeadUpdatePatch) {
+      const existing = await db
+        .prepare(`${LEAD_SELECT} WHERE leads.id = ? LIMIT 1`)
+        .bind(id)
+        .first<LeadRow>();
+      if (!existing) throw new Error("lead_not_found");
+      const current = toLead(existing);
+      const next = updateLeadFields(current, patch);
+      const sets: string[] = [];
+      const values: unknown[] = [];
+      if (patch.status !== undefined) {
+        sets.push("status = ?");
+        values.push(next.status);
+      }
+      if (patch.notes !== undefined) {
+        sets.push("notes = ?");
+        values.push(next.notes);
+      }
+      if (patch.assignee !== undefined) {
+        sets.push("assignee = ?");
+        values.push(next.assignee);
+      }
+      if (sets.length === 0) return current;
+      values.push(next.updatedAt, id);
+      await db
+        .prepare(`UPDATE leads SET ${sets.join(", ")}, updated_at = ? WHERE id = ?`)
+        .bind(...values)
+        .run();
+      return next;
     },
   };
 }
