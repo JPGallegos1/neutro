@@ -115,18 +115,14 @@ export default {
       if (!Number.isFinite(lat) || !Number.isFinite(lng)) {
         return json({ error: "invalid_query" }, 400);
       }
-      return json({
-        live: createFixtureGoogleLiveView({ name, lat, lng }),
-      });
+      return json({ live: createFixtureGoogleLiveView({ name, lat, lng }) });
     }
     const leadMatch = /^\/api\/leads\/([^/]+)$/.exec(url.pathname);
     if (leadMatch && request.method === "PATCH") {
       const id = decodeURIComponent(leadMatch[1] ?? "");
       let body: LeadUpdatePatch & { assignAccessUser?: boolean };
       try {
-        body = (await request.json()) as LeadUpdatePatch & {
-          assignAccessUser?: boolean;
-        };
+        body = (await request.json()) as typeof body;
       } catch {
         return json({ error: "invalid_json" }, 400);
       }
@@ -138,11 +134,8 @@ export default {
         patch.status = body.status as LeadStatus;
       }
       if (body.notes !== undefined) patch.notes = String(body.notes);
-      if (body.assignAccessUser) {
-        patch.assignee = resolveAccessEmail(request.headers);
-      } else if (body.assignee !== undefined) {
-        patch.assignee = body.assignee;
-      }
+      if (body.assignAccessUser) patch.assignee = resolveAccessEmail(request.headers);
+      else if (body.assignee !== undefined) patch.assignee = body.assignee;
       if (
         patch.status === undefined &&
         patch.notes === undefined &&
@@ -151,8 +144,9 @@ export default {
         return json({ error: "empty_patch" }, 400);
       }
       try {
-        const lead = await createD1LeadRepository(env.DB).update(id, patch);
-        return json({ lead });
+        return json({
+          lead: await createD1LeadRepository(env.DB).update(id, patch),
+        });
       } catch (error) {
         if (error instanceof Error && error.message === "lead_not_found") {
           return json({ error: "not_found" }, 404);

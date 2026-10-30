@@ -92,23 +92,15 @@ export type AdminEvent =
     }
   | { type: "saveLeadsSucceeded"; leads: Lead[]; revision: number }
   | { type: "saveLeadsFailed" }
-  | {
-      type: "selectLead";
-      id: string | null;
-      seed?: { leads: Lead[]; revision: number };
-    }
+  | { type: "selectLead"; id: string | null; seed?: { leads: Lead[]; revision: number } }
   | { type: "setLeadsStatusFilter"; filter: LeadStatusFilter }
   | { type: "leadNotesChanged"; id: string; notes: string }
-  | {
-      type: "updateLeadRequested";
-      seed?: { leads: Lead[]; revision: number };
-    }
+  | { type: "updateLeadRequested"; seed?: { leads: Lead[]; revision: number } }
   | { type: "updateLeadSucceeded"; lead: Lead; revision: number }
   | { type: "updateLeadFailed" }
   | { type: "googleLiveRequested" }
   | { type: "googleLiveSucceeded"; live: GoogleLiveView }
-  | { type: "googleLiveFailed" }
-  | { type: "googleLiveCleared" };
+  | { type: "googleLiveFailed" };
 
 export const ADMIN_INITIAL_STATE: AdminState = {
   section: "comercios",
@@ -368,26 +360,27 @@ export function adminReducer(state: AdminState, event: AdminEvent): AdminState {
     case "saveLeadsFailed":
       return { ...state, leadsStatus: "error" };
     case "selectLead": {
-      let base = state;
-      if (event.seed && state.leadsStatus === "idle") {
-        base = {
-          ...state,
-          leads: event.seed.leads,
-          leadsRevision: event.seed.revision,
-          leadKeys: new Set(event.seed.leads.map(leadKey)),
-          leadsStatus: "ready",
-        };
-      }
+      const base =
+        event.seed && state.leadsStatus === "idle"
+          ? {
+              ...state,
+              leads: event.seed.leads,
+              leadsRevision: event.seed.revision,
+              leadKeys: new Set(event.seed.leads.map(leadKey)),
+              leadsStatus: "ready" as const,
+            }
+          : state;
       if (event.id === null) {
         return {
           ...base,
           selectedLeadId: null,
           googleLive: null,
-          googleLiveStatus: "idle",
+          googleLiveStatus: "idle" as const,
         };
       }
-      const exists = base.leads.some((lead) => lead.id === event.id);
-      if (!exists) return base === state ? state : base;
+      if (!base.leads.some((lead) => lead.id === event.id)) {
+        return base === state ? state : base;
+      }
       return {
         ...base,
         selectedLeadId: event.id,
@@ -399,15 +392,15 @@ export function adminReducer(state: AdminState, event: AdminEvent): AdminState {
       return state.leadsStatusFilter === event.filter
         ? state
         : { ...state, leadsStatusFilter: event.filter };
-    case "leadNotesChanged": {
-      let base = state;
+    case "leadNotesChanged":
       if (state.leadsStatus === "idle") return state;
-      const leads = base.leads.map((lead) =>
-        lead.id === event.id ? { ...lead, notes: event.notes } : lead,
-      );
-      return { ...base, leads };
-    }
-    case "updateLeadRequested": {
+      return {
+        ...state,
+        leads: state.leads.map((lead) =>
+          lead.id === event.id ? { ...lead, notes: event.notes } : lead,
+        ),
+      };
+    case "updateLeadRequested":
       if (event.seed && state.leadsStatus === "idle") {
         return {
           ...state,
@@ -418,13 +411,13 @@ export function adminReducer(state: AdminState, event: AdminEvent): AdminState {
         };
       }
       return { ...state, leadsStatus: "saving" };
-    }
     case "updateLeadSucceeded": {
-      const leads = state.leads.map((lead) =>
-        lead.id === event.lead.id ? event.lead : lead,
-      );
-      const found = leads.some((lead) => lead.id === event.lead.id);
-      const nextLeads = found ? leads : [...leads, event.lead];
+      const found = state.leads.some((lead) => lead.id === event.lead.id);
+      const nextLeads = found
+        ? state.leads.map((lead) =>
+            lead.id === event.lead.id ? event.lead : lead,
+          )
+        : [...state.leads, event.lead];
       return {
         ...state,
         leads: nextLeads,
@@ -438,15 +431,9 @@ export function adminReducer(state: AdminState, event: AdminEvent): AdminState {
     case "googleLiveRequested":
       return { ...state, googleLiveStatus: "loading", googleLive: null };
     case "googleLiveSucceeded":
-      return {
-        ...state,
-        googleLiveStatus: "ready",
-        googleLive: event.live,
-      };
+      return { ...state, googleLiveStatus: "ready", googleLive: event.live };
     case "googleLiveFailed":
       return { ...state, googleLiveStatus: "error", googleLive: null };
-    case "googleLiveCleared":
-      return { ...state, googleLiveStatus: "idle", googleLive: null };
   }
 }
 

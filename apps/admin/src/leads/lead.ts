@@ -125,12 +125,8 @@ export function saveSelectionAsLeads(
   return { all: [...byKey.values()], created, reused };
 }
 
-export function filterLeadsByStatus(
-  leads: Lead[],
-  filter: LeadStatusFilter,
-): Lead[] {
-  if (filter === "todos") return [...leads];
-  return leads.filter((lead) => lead.status === filter);
+export function filterLeadsByStatus(leads: Lead[], filter: LeadStatusFilter) {
+  return filter === "todos" ? [...leads] : leads.filter((l) => l.status === filter);
 }
 
 export function updateLeadFields(
@@ -147,23 +143,19 @@ export function updateLeadFields(
   };
 }
 
-export function leadMapsUrl(lead: Pick<Lead, "lat" | "lng">): string {
+export function leadMapsUrl(lead: Pick<Lead, "lat" | "lng">) {
   return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${lead.lat},${lead.lng}`)}`;
 }
 
-export function leadWhatsAppUrl(lead: Pick<Lead, "name">): string {
-  const text = `Hola, te contacto por ${lead.name}`;
-  return `https://wa.me/?text=${encodeURIComponent(text)}`;
+export function leadWhatsAppUrl(lead: Pick<Lead, "name">) {
+  return `https://wa.me/?text=${encodeURIComponent(`Hola, te contacto por ${lead.name}`)}`;
 }
 
 export function createMemoryLeadRepository(options?: {
   seed?: Lead[];
   now?: string;
 }): LeadRepository {
-  const byId = new Map<string, Lead>();
-  for (const lead of options?.seed ?? []) {
-    byId.set(lead.id, lead);
-  }
+  const byId = new Map((options?.seed ?? []).map((l) => [l.id, l] as const));
   return {
     async list() {
       return [...byId.values()];
@@ -175,9 +167,7 @@ export function createMemoryLeadRepository(options?: {
         options?.now,
       );
       for (const lead of result.created) byId.set(lead.id, lead);
-      return result.created.length + result.reused.length === 0
-        ? []
-        : [...result.created, ...result.reused];
+      return [...result.created, ...result.reused];
     },
     async update(id, patch) {
       const current = byId.get(id);

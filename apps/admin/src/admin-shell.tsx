@@ -212,15 +212,12 @@ const comerciosRoute = createRoute({
 const leadsRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: "/leads",
-  loader: async () => {
-    const leads = await getLeadsClient()
+  loader: async () => ({
+    leads: await getLeadsClient()
       .list()
-      .catch(() => []);
-    return {
-      leads,
-      leadsRevision: Date.now(),
-    };
-  },
+      .catch(() => []),
+    leadsRevision: Date.now(),
+  }),
   component: function LeadsRouteView() {
     const data = leadsRoute.useLoaderData();
     return (

@@ -193,11 +193,9 @@ export function createD1LeadRepository(db: D1DatabaseLike): LeadRepository {
         values.push(next.assignee);
       }
       if (sets.length === 0) return current;
-      sets.push("updated_at = ?");
-      values.push(next.updatedAt);
-      values.push(id);
+      values.push(next.updatedAt, id);
       await db
-        .prepare(`UPDATE leads SET ${sets.join(", ")} WHERE id = ?`)
+        .prepare(`UPDATE leads SET ${sets.join(", ")}, updated_at = ? WHERE id = ?`)
         .bind(...values)
         .run();
       return next;

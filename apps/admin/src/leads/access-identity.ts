@@ -1,14 +1,10 @@
 export function accessEmailFromHeaders(headers: Headers): string | null {
-  const raw = headers.get("Cf-Access-Authenticated-User-Email");
-  if (!raw) return null;
-  const email = raw.trim().toLowerCase();
-  return email.length > 0 ? email : null;
+  const email = headers.get("Cf-Access-Authenticated-User-Email")?.trim().toLowerCase();
+  return email && email.length > 0 ? email : null;
 }
 
 export function accessEmailFromJwtPayload(token: string): string | null {
-  const parts = token.split(".");
-  if (parts.length < 2) return null;
-  const payload = parts[1];
+  const payload = token.split(".")[1];
   if (!payload) return null;
   try {
     const json = JSON.parse(
@@ -23,9 +19,10 @@ export function accessEmailFromJwtPayload(token: string): string | null {
 }
 
 export function resolveAccessEmail(headers: Headers): string | null {
-  const fromHeader = accessEmailFromHeaders(headers);
-  if (fromHeader) return fromHeader;
-  const jwt = headers.get("Cf-Access-Jwt-Assertion");
-  if (!jwt) return null;
-  return accessEmailFromJwtPayload(jwt);
+  return (
+    accessEmailFromHeaders(headers) ??
+    (headers.get("Cf-Access-Jwt-Assertion")
+      ? accessEmailFromJwtPayload(headers.get("Cf-Access-Jwt-Assertion")!)
+      : null)
+  );
 }

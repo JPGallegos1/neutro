@@ -15,15 +15,12 @@ import {
 const noteTimers = new Map<string, ReturnType<typeof setTimeout>>();
 const press =
   "transition-[transform,opacity] duration-150 ease-[var(--ease-out)] active:scale-[0.97] motion-reduce:transition-none motion-reduce:active:scale-100";
-
-function statusLabel(status: LeadStatus): string {
-  if (status === "nuevo") return "Nuevo";
-  if (status === "contactado") return "Contactado";
-  if (status === "interesado") return "Interesado";
-  return "Descartado";
-}
-
+const onChip =
+  "bg-neutro-accent-orange text-neutro-on-orange rounded-md px-2.5 py-1.5 text-xs";
+const offChip = "bg-neutro-bg text-neutro-text-muted rounded-md px-2.5 py-1.5 text-xs";
 const FILTERS: LeadStatusFilter[] = ["todos", ...LEAD_STATUSES];
+const label = (s: LeadStatus) =>
+  ({ nuevo: "Nuevo", contactado: "Contactado", interesado: "Interesado", descartado: "Descartado" })[s];
 
 export function LeadsPage({
   loadedLeads,
@@ -36,36 +33,31 @@ export function LeadsPage({
   const leads = state.leadsStatus === "idle" ? loadedLeads : state.leads;
   const visible = filterLeadsByStatus(leads, state.leadsStatusFilter);
   const selected =
-    visible.find((lead) => lead.id === state.selectedLeadId) ??
-    leads.find((lead) => lead.id === state.selectedLeadId) ??
+    visible.find((l) => l.id === state.selectedLeadId) ??
+    leads.find((l) => l.id === state.selectedLeadId) ??
     null;
 
   function onSelect(id: string) {
-    if (state.leadsStatus === "idle") {
-      dispatch({
-        type: "selectLead",
-        id,
-        seed: { leads: loadedLeads, revision: loadedLeadsRevision },
-      });
-    } else {
-      dispatch({ type: "selectLead", id });
-    }
+    dispatch(
+      state.leadsStatus === "idle"
+        ? { type: "selectLead", id, seed: { leads: loadedLeads, revision: loadedLeadsRevision } }
+        : { type: "selectLead", id },
+    );
     const lead = leads.find((item) => item.id === id);
     if (!lead) return;
     dispatch({ type: "googleLiveRequested" });
     void getGoogleLiveClient()
       .fetchForLead({ name: lead.name, lat: lead.lat, lng: lead.lng })
-      .then((live) => {
-        dispatch(
-          live
-            ? { type: "googleLiveSucceeded", live }
-            : { type: "googleLiveFailed" },
-        );
-      })
+      .then((live) =>
+        dispatch(live ? { type: "googleLiveSucceeded", live } : { type: "googleLiveFailed" }),
+      )
       .catch(() => dispatch({ type: "googleLiveFailed" }));
   }
 
-  async function persist(id: string, patch: LeadUpdatePatch & { assignAccessUser?: boolean }) {
+  async function persist(
+    id: string,
+    patch: LeadUpdatePatch & { assignAccessUser?: boolean },
+  ) {
     dispatch(
       state.leadsStatus === "idle"
         ? {
@@ -85,10 +77,9 @@ export function LeadsPage({
       } else if (patch.assignee !== undefined) {
         body.assignee = patch.assignee;
       }
-      const lead = await getLeadsClient().update(id, body);
       dispatch({
         type: "updateLeadSucceeded",
-        lead,
+        lead: await getLeadsClient().update(id, body),
         revision: Math.max(state.leadsRevision, loadedLeadsRevision) + 1,
       });
     } catch {
@@ -109,77 +100,62 @@ export function LeadsPage({
     const prev = noteTimers.get(selected.id);
     if (prev) clearTimeout(prev);
     const id = selected.id;
-    noteTimers.set(
-      id,
-      setTimeout(() => {
-        void persist(id, { notes });
-      }, 400),
-    );
+    noteTimers.set(id, setTimeout(() => void persist(id, { notes }), 400));
   }
 
   return (
-    <section
-      className="flex flex-1 flex-col gap-4 p-6"
-      data-admin-leads-page
-      aria-label="Leads"
-    >
+    <section className="flex flex-1 flex-col gap-4 p-6" data-admin-leads-page aria-label="Leads">
       <header className="flex flex-wrap items-end justify-between gap-3">
         <div>
           <h1 className="text-2xl font-medium tracking-tight">Leads</h1>
-          <p className="text-sm text-neutro-text-muted">
-            Seguimiento por estado, notas y responsable
-          </p>
+          <p className="text-sm text-neutro-text-muted">Seguimiento por estado, notas y responsable</p>
         </div>
         <p className="text-sm text-neutro-text-muted" data-admin-leads-count>
           {visible.length} leads
         </p>
       </header>
       <div className="flex flex-wrap gap-2 text-sm" role="group" aria-label="Filtro por estado">
-        {FILTERS.map((filter) => {
-          const active = state.leadsStatusFilter === filter;
-          return (
-            <button
-              key={filter}
-              type="button"
-              data-admin-leads-filter={filter}
-              aria-pressed={active}
-              className={`rounded-md px-3 py-1.5 ${press} ${
-                active
-                  ? "bg-neutro-accent-orange text-neutro-on-orange"
-                  : "bg-neutro-surface text-neutro-text-muted [@media(hover:hover)]:hover:opacity-90"
-              }`}
-              onClick={() => dispatch({ type: "setLeadsStatusFilter", filter })}
-            >
-              {filter === "todos" ? "Todos" : statusLabel(filter)}
-            </button>
-          );
-        })}
+        {FILTERS.map((filter) => (
+          <button
+            key={filter}
+            type="button"
+            data-admin-leads-filter={filter}
+            aria-pressed={state.leadsStatusFilter === filter}
+            className={`${press} rounded-md px-3 py-1.5 ${
+              state.leadsStatusFilter === filter
+                ? "bg-neutro-accent-orange text-neutro-on-orange"
+                : "bg-neutro-surface text-neutro-text-muted [@media(hover:hover)]:hover:opacity-90"
+            }`}
+            onClick={() => dispatch({ type: "setLeadsStatusFilter", filter })}
+          >
+            {filter === "todos" ? "Todos" : label(filter)}
+          </button>
+        ))}
       </div>
       <div className="grid min-h-0 flex-1 gap-6 lg:grid-cols-[minmax(0,1fr)_360px]">
         <ul className="flex max-h-[32rem] flex-col gap-2 overflow-auto" data-admin-leads-list>
-          {visible.map((lead) => {
-            const active = lead.id === state.selectedLeadId;
-            return (
-              <li key={lead.id}>
-                <button
-                  type="button"
-                  data-admin-lead-id={lead.id}
-                  aria-pressed={active}
-                  className={`w-full rounded-md px-3 py-2 text-left text-sm ${press} ${
-                    active ? "bg-neutro-surface text-neutro-text" : "bg-neutro-bg text-neutro-text-muted"
-                  }`}
-                  onClick={() => onSelect(lead.id)}
-                >
-                  <span className="font-medium text-neutro-text">{lead.name}</span>
-                  <span className="block text-xs">
-                    {statusLabel(lead.status)}
-                    {lead.assignee ? ` · ${lead.assignee}` : ""}
-                    {lead.website ? "" : " · sin website"}
-                  </span>
-                </button>
-              </li>
-            );
-          })}
+          {visible.map((item) => (
+            <li key={item.id}>
+              <button
+                type="button"
+                data-admin-lead-id={item.id}
+                aria-pressed={item.id === state.selectedLeadId}
+                className={`w-full rounded-md px-3 py-2 text-left text-sm ${press} ${
+                  item.id === state.selectedLeadId
+                    ? "bg-neutro-surface text-neutro-text"
+                    : "bg-neutro-bg text-neutro-text-muted"
+                }`}
+                onClick={() => onSelect(item.id)}
+              >
+                <span className="font-medium text-neutro-text">{item.name}</span>
+                <span className="block text-xs">
+                  {label(item.status)}
+                  {item.assignee ? ` · ${item.assignee}` : ""}
+                  {item.website ? "" : " · sin website"}
+                </span>
+              </button>
+            </li>
+          ))}
         </ul>
         <aside className="flex flex-col gap-4 rounded-md bg-neutro-surface p-4" data-admin-lead-ficha aria-label="Ficha del Lead">
           {selected ? (
@@ -197,25 +173,18 @@ export function LeadsPage({
                 </p>
               </div>
               <div className="flex flex-wrap gap-2" role="group" aria-label="Estado del lead">
-                {LEAD_STATUSES.map((status) => {
-                  const active = selected.status === status;
-                  return (
-                    <button
-                      key={status}
-                      type="button"
-                      data-admin-lead-status={status}
-                      aria-pressed={active}
-                      className={`rounded-md px-2.5 py-1.5 text-xs ${press} ${
-                        active
-                          ? "bg-neutro-accent-orange text-neutro-on-orange"
-                          : "bg-neutro-bg text-neutro-text-muted"
-                      }`}
-                      onClick={() => void persist(selected.id, { status })}
-                    >
-                      {statusLabel(status)}
-                    </button>
-                  );
-                })}
+                {LEAD_STATUSES.map((status) => (
+                  <button
+                    key={status}
+                    type="button"
+                    data-admin-lead-status={status}
+                    aria-pressed={selected.status === status}
+                    className={`${press} ${selected.status === status ? onChip : offChip}`}
+                    onClick={() => void persist(selected.id, { status })}
+                  >
+                    {label(status)}
+                  </button>
+                ))}
               </div>
               <label className="flex flex-col gap-1 text-sm">
                 Notas
@@ -239,45 +208,23 @@ export function LeadsPage({
                 </button>
               </div>
               <div className="flex flex-wrap gap-2">
-                <a
-                  data-admin-lead-maps
-                  className="rounded-md bg-neutro-bg px-3 py-2 text-sm text-neutro-text"
-                  href={leadMapsUrl(selected)}
-                  target="_blank"
-                  rel="noreferrer"
-                >
+                <a data-admin-lead-maps className="rounded-md bg-neutro-bg px-3 py-2 text-sm" href={leadMapsUrl(selected)} target="_blank" rel="noreferrer">
                   Abrir Maps
                 </a>
-                <a
-                  data-admin-lead-whatsapp
-                  className="rounded-md bg-neutro-bg px-3 py-2 text-sm text-neutro-text"
-                  href={leadWhatsAppUrl(selected)}
-                  target="_blank"
-                  rel="noreferrer"
-                >
+                <a data-admin-lead-whatsapp className="rounded-md bg-neutro-bg px-3 py-2 text-sm" href={leadWhatsAppUrl(selected)} target="_blank" rel="noreferrer">
                   Abrir WhatsApp
                 </a>
               </div>
               <div className="flex flex-col gap-2 rounded-md bg-neutro-bg p-3" data-admin-google-live>
                 <p className="text-sm font-medium">Vista en vivo (Google Places)</p>
-                {state.googleLiveStatus === "loading" ? (
-                  <p className="text-xs text-neutro-text-muted">Consultando…</p>
-                ) : null}
-                {state.googleLiveStatus === "error" ? (
-                  <p className="text-xs text-neutro-text-muted">
-                    No se pudo cargar la vista en vivo.
-                  </p>
-                ) : null}
+                {state.googleLiveStatus === "loading" ? <p className="text-xs text-neutro-text-muted">Consultando…</p> : null}
+                {state.googleLiveStatus === "error" ? <p className="text-xs text-neutro-text-muted">No se pudo cargar la vista en vivo.</p> : null}
                 {state.googleLive ? (
                   <div className="flex flex-col gap-1 text-xs text-neutro-text-muted">
                     <p>{state.googleLive.displayName}</p>
                     <p>{state.googleLive.formattedAddress}</p>
-                    {state.googleLive.rating != null ? (
-                      <p>Rating {state.googleLive.rating}</p>
-                    ) : null}
-                    {state.googleLive.openingHours.map((line) => (
-                      <p key={line}>{line}</p>
-                    ))}
+                    {state.googleLive.rating != null ? <p>Rating {state.googleLive.rating}</p> : null}
+                    {state.googleLive.openingHours.map((line) => <p key={line}>{line}</p>)}
                     <p className="text-[10px]">Solo presentación · no se guarda en D1</p>
                   </div>
                 ) : null}

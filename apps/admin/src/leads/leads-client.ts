@@ -43,10 +43,7 @@ export function createHttpLeadsClient(baseUrl = ""): LeadsClient {
   };
 }
 
-export type AccessMeClient = {
-  me(): Promise<{ email: string | null }>;
-};
-
+export type AccessMeClient = { me(): Promise<{ email: string | null }> };
 export function createHttpAccessMeClient(baseUrl = ""): AccessMeClient {
   return {
     async me() {
@@ -56,30 +53,18 @@ export function createHttpAccessMeClient(baseUrl = ""): AccessMeClient {
     },
   };
 }
-
-export function createStaticAccessMeClient(
-  email: string | null,
-): AccessMeClient {
-  return {
-    async me() {
-      return { email };
-    },
-  };
+export function createStaticAccessMeClient(email: string | null): AccessMeClient {
+  return { async me() { return { email }; } };
 }
 
 let active: LeadsClient | null = null;
-export const setLeadsClient = (c: LeadsClient) => {
-  active = c;
-};
+let accessMe: AccessMeClient | null = null;
+export const setLeadsClient = (c: LeadsClient) => { active = c; };
 export const getLeadsClient = () => {
   if (!active) throw new Error("leads_client_missing");
   return active;
 };
-
-let accessMe: AccessMeClient | null = null;
-export const setAccessMeClient = (c: AccessMeClient) => {
-  accessMe = c;
-};
+export const setAccessMeClient = (c: AccessMeClient) => { accessMe = c; };
 export const getAccessMeClient = () => {
   if (!accessMe) throw new Error("access_me_client_missing");
   return accessMe;
