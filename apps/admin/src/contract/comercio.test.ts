@@ -121,9 +121,9 @@ describe("Comercio — identidad y fuentes", () => {
       assert.match(comercioKey(c), /^(foursquare|osm):/);
     }
     const key = comercioKey(list[0]!);
-    assert.equal(pinKindFor(key, key, new Set()), "seleccionado");
-    assert.equal(pinKindFor(key, null, new Set([key])), "lead");
-    assert.equal(pinKindFor(key, null, new Set()), "comercio");
+    assert.equal(pinKindFor(key, new Set([key]), new Set()), "seleccionado");
+    assert.equal(pinKindFor(key, new Set(), new Set([key])), "lead");
+    assert.equal(pinKindFor(key, new Set(), new Set()), "comercio");
   });
 });
 
@@ -158,7 +158,7 @@ describe("Comercios — secuencia hidratar → buscar → re-hydrate", () => {
     assert.equal(state.comercios.length, 2);
     assert.equal(state.comercios[0]?.name, "buscado-a");
     assert.equal(state.comerciosRevision, 101);
-    assert.equal(state.selectedComercioKey, "osm:buscado-a");
+    assert.equal(state.selectedComercioKeys.size, 0);
   });
 
   it("la página no despacha comerciosHydrated en el cuerpo de render", () => {
@@ -169,7 +169,7 @@ describe("Comercios — secuencia hidratar → buscar → re-hydrate", () => {
 });
 
 describe("Comercios — mapa↔lista", () => {
-  it("selectComercio actualiza selectedComercioKey y pin seleccionado", () => {
+  it("toggleComercio actualiza selectedComercioKeys y pin seleccionado", () => {
     const list = searchComerciosFromFixtures();
     const a = comercioKey(list[0]!);
     const b = comercioKey(list[1]!);
@@ -178,33 +178,32 @@ describe("Comercios — mapa↔lista", () => {
       comercios: list,
       revision: 1,
     });
-    assert.equal(state.selectedComercioKey, a);
-    state = adminReducer(state, { type: "selectComercio", key: b });
-    assert.equal(state.selectedComercioKey, b);
-    assert.notEqual(state.selectedComercioKey, a);
+    state = adminReducer(state, { type: "toggleComercio", key: a });
+    state = adminReducer(state, { type: "toggleComercio", key: b });
+    assert.equal(state.selectedComercioKeys.has(a), true);
+    assert.equal(state.selectedComercioKeys.has(b), true);
     assert.equal(
-      pinKindFor(b, state.selectedComercioKey, state.leadKeys),
+      pinKindFor(b, state.selectedComercioKeys, state.leadKeys),
       "seleccionado",
     );
     assert.equal(
-      pinKindFor(a, state.selectedComercioKey, state.leadKeys),
-      "comercio",
+      pinKindFor(a, state.selectedComercioKeys, state.leadKeys),
+      "seleccionado",
     );
   });
 
-  it("selectComercio es no-op si la key no existe en la lista", () => {
+  it("toggleComercio es no-op si la key no existe en la lista", () => {
     const list = searchComerciosFromFixtures();
     let state = adminReducer(ADMIN_INITIAL_STATE, {
       type: "comerciosHydrated",
       comercios: list,
       revision: 1,
     });
-    const selected = state.selectedComercioKey;
     const next = adminReducer(state, {
-      type: "selectComercio",
+      type: "toggleComercio",
       key: "osm:no-existe",
     });
-    assert.equal(next.selectedComercioKey, selected);
+    assert.equal(next.selectedComercioKeys.size, 0);
     assert.equal(next, state);
   });
 

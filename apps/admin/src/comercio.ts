@@ -1,5 +1,17 @@
 export type ComercioSource = "foursquare" | "osm";
 
+export const NEUTRO_RUBROS = [
+  "cafe",
+  "panaderia",
+  "kiosco",
+  "gastronomia",
+  "retail",
+  "servicios",
+  "otro",
+] as const;
+
+export type NeutroRubro = (typeof NEUTRO_RUBROS)[number];
+
 export type Comercio = {
   source: ComercioSource;
   externalId: string;
@@ -8,7 +20,23 @@ export type Comercio = {
   lng: number;
   website: string | null;
   address: string | null;
+  socialUrls: string[];
+  rubro: NeutroRubro;
   attribution: string;
+};
+
+export type ComerciosFilters = {
+  sinWebsite: boolean;
+  tieneRedes: boolean;
+  rubro: NeutroRubro | null;
+  ocultarGuardados: boolean;
+};
+
+export const DEFAULT_COMERCIOS_FILTERS: ComerciosFilters = {
+  sinWebsite: true,
+  tieneRedes: false,
+  rubro: null,
+  ocultarGuardados: false,
 };
 
 export const FOURSQUARE_ATTRIBUTION = "Foursquare Open Places";
@@ -29,11 +57,16 @@ export function createComercio(input: {
   lng: number;
   website?: string | null;
   address?: string | null;
+  socialUrls?: string[] | null;
+  rubro?: NeutroRubro | null;
 }): Comercio | null {
   const externalId = input.externalId.trim();
   const name = input.name.trim();
   if (!externalId || !name) return null;
   if (!Number.isFinite(input.lat) || !Number.isFinite(input.lng)) return null;
+  const socialUrls = (input.socialUrls ?? [])
+    .map((u) => u.trim())
+    .filter(Boolean);
   return {
     source: input.source,
     externalId,
@@ -42,6 +75,8 @@ export function createComercio(input: {
     lng: input.lng,
     website: input.website?.trim() || null,
     address: input.address?.trim() || null,
+    socialUrls,
+    rubro: input.rubro ?? "otro",
     attribution:
       input.source === "osm" ? OSM_ATTRIBUTION : FOURSQUARE_ATTRIBUTION,
   };
@@ -58,14 +93,41 @@ export function mergeComercios(batches: Comercio[][]): Comercio[] {
   return [...map.values()].sort((a, b) => a.name.localeCompare(b.name, "es"));
 }
 
+export function filterComercios(
+  list: Comercio[],
+  filters: ComerciosFilters,
+  leadKeys: ReadonlySet<string>,
+): Comercio[] {
+  return list.filter((c) => {
+    if (filters.sinWebsite && c.website) return false;
+    if (filters.tieneRedes && c.socialUrls.length === 0) return false;
+    if (filters.rubro && c.rubro !== filters.rubro) return false;
+    if (filters.ocultarGuardados && leadKeys.has(comercioKey(c))) return false;
+    return true;
+  });
+}
+
 export type FoursquarePlaceLike = {
   fsq_place_id?: string;
   name?: string;
   latitude?: number;
   longitude?: number;
   website?: string | null;
+  social_media?: string[] | null;
+  categories?: string[] | null;
   location?: { formatted_address?: string | null };
 };
+
+function rubroFromLabels(labels: string[]): NeutroRubro {
+  const blob = labels.join(" ").toLowerCase();
+  if (/caf[eé]|coffee/.test(blob)) return "cafe";
+  if (/panader|bakery|pastel/.test(blob)) return "panaderia";
+  if (/kiosk|convenience|almacen|almacén/.test(blob)) return "kiosco";
+  if (/restaurant|food|gastro|bar|comida/.test(blob)) return "gastronomia";
+  if (/shop|retail|store|tienda/.test(blob)) return "retail";
+  if (/service|servicio|salon|pelu/.test(blob)) return "servicios";
+  return "otro";
+}
 
 export function comerciosFromFoursquare(
   places: FoursquarePlaceLike[],
@@ -80,6 +142,8 @@ export function comerciosFromFoursquare(
       lng: Number(place.longitude),
       website: place.website ?? null,
       address: place.location?.formatted_address ?? null,
+      socialUrls: place.social_media ?? [],
+      rubro: rubroFromLabels(place.categories ?? [place.name ?? ""]),
     });
     if (created) out.push(created);
   }
@@ -95,6 +159,26 @@ export type OsmElementLike = {
   tags?: Record<string, string | undefined>;
 };
 
+function socialsFromOsm(tags: Record<string, string | undefined>): string[] {
+  const keys = [
+    "contact:instagram",
+    "contact:facebook",
+    "contact:twitter",
+    "instagram",
+    "facebook",
+  ];
+  return keys.map((k) => tags[k]).filter((v): v is string => Boolean(v));
+}
+
+function rubroFromOsm(tags: Record<string, string | undefined>): NeutroRubro {
+  return rubroFromLabels([
+    tags.amenity ?? "",
+    tags.shop ?? "",
+    tags.cuisine ?? "",
+    tags.name ?? "",
+  ]);
+}
+
 export function comerciosFromOsm(elements: OsmElementLike[]): Comercio[] {
   const out: Comercio[] = [];
   for (const el of elements) {
@@ -109,6 +193,8 @@ export function comerciosFromOsm(elements: OsmElementLike[]): Comercio[] {
       lng: Number(lng),
       website: tags.website ?? tags["contact:website"] ?? null,
       address: tags["addr:full"] ?? tags["addr:street"] ?? null,
+      socialUrls: socialsFromOsm(tags),
+      rubro: rubroFromOsm(tags),
     });
     if (created) out.push(created);
   }
@@ -122,6 +208,8 @@ export const FIXTURE_FOURSQUARE: FoursquarePlaceLike[] = [
     latitude: -32.9451,
     longitude: -60.6498,
     website: null,
+    social_media: ["https://instagram.com/cafemitre"],
+    categories: ["Cafe"],
     location: { formatted_address: "Mitre 700, Rosario" },
   },
   {
@@ -130,6 +218,8 @@ export const FIXTURE_FOURSQUARE: FoursquarePlaceLike[] = [
     latitude: -32.9438,
     longitude: -60.6512,
     website: "https://example.com/pan",
+    social_media: [],
+    categories: ["Bakery"],
     location: { formatted_address: "San Luis 1200, Rosario" },
   },
 ];
@@ -140,7 +230,11 @@ export const FIXTURE_OSM: OsmElementLike[] = [
     id: 1001,
     lat: -32.9445,
     lon: -60.6501,
-    tags: { name: "Kiosco Sur", shop: "convenience" },
+    tags: {
+      name: "Kiosco Sur",
+      shop: "convenience",
+      "contact:instagram": "https://instagram.com/kioscosur",
+    },
   },
   {
     type: "node",
@@ -166,10 +260,10 @@ export type PinKind = "comercio" | "lead" | "seleccionado";
 
 export function pinKindFor(
   key: string,
-  selectedKey: string | null,
+  selectedKeys: ReadonlySet<string>,
   leadKeys: ReadonlySet<string>,
 ): PinKind {
-  if (selectedKey === key) return "seleccionado";
+  if (selectedKeys.has(key)) return "seleccionado";
   if (leadKeys.has(key)) return "lead";
   return "comercio";
 }
