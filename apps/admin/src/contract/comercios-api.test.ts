@@ -101,5 +101,11 @@ describe("GET /api/comercios", () => {
     );
     assert.equal(blankLat.status, 400);
     assert.deepEqual(await blankLat.json(), { error: "invalid_query" });
+    const blankLng = await worker.fetch(
+      new Request("https://admin.test/api/comercios?lat=-32.9442&lng=%20%20"),
+      env(),
+    );
+    assert.equal(blankLng.status, 400);
+    assert.deepEqual(await blankLng.json(), { error: "invalid_query" });
   });
 });

@@ -221,6 +221,19 @@ describe("Comercios — mapa↔lista", () => {
     assert.ok(invertedNorthY > north.y);
   });
 
+  it("proyección X: este (lng mayor) queda a la derecha (x mayor)", () => {
+    const center = { lat: -32.9442, lng: -60.6505 };
+    const span = 0.04;
+    const size = 320;
+    const east = projectComercioPin(-32.9442, -60.64, center, span, size);
+    const west = projectComercioPin(-32.9442, -60.66, center, span, size);
+    assert.ok(east.x > west.x);
+    assert.equal(east.x, ((-60.64 - center.lng) / span + 0.5) * size);
+    const invertedEastX = ((center.lng - -60.64) / span + 0.5) * size;
+    assert.notEqual(east.x, invertedEastX);
+    assert.ok(invertedEastX < east.x);
+  });
+
   it("atribución visible en la página vía COMERCIOS_ATTRIBUTION", () => {
     assert.ok(COMERCIOS_ATTRIBUTION.length > 0);
     assert.match(COMERCIOS_ATTRIBUTION, /OpenStreetMap/);
