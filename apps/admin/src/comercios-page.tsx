@@ -12,7 +12,7 @@ import {
 import { getComerciosClient } from "@/comercios-client";
 import { ComerciosMap } from "@/comercios-map";
 import { getLeadsClient } from "@/leads/leads-client";
-import type { Lead } from "@/leads/lead";
+import { leadKey, type Lead } from "@/leads/lead";
 import { ROSARIO_CENTER } from "@/search-area";
 
 export function ComerciosPage({
@@ -27,19 +27,13 @@ export function ComerciosPage({
   loadedLeadsRevision: number;
 }) {
   const { state, dispatch } = useAdmin();
-  if (
-    state.leadsRevision !== loadedLeadsRevision ||
-    state.leadsStatus === "idle"
-  ) {
-    dispatch({
-      type: "leadsHydrated",
-      leads: loadedLeads,
-      revision: loadedLeadsRevision,
-    });
-  }
   const all =
     state.comerciosStatus === "idle" ? loadedComercios : state.comercios;
-  const filteredComercios = filterComercios(all, state.filters, state.leadKeys);
+  const activeLeadKeys =
+    state.leadsStatus === "idle"
+      ? new Set(loadedLeads.map(leadKey))
+      : state.leadKeys;
+  const filteredComercios = filterComercios(all, state.filters, activeLeadKeys);
   const visibleSelectedCount = countVisibleSelected(
     state.selectedComercioKeys,
     filteredComercios,
@@ -222,7 +216,7 @@ export function ComerciosPage({
         <ComerciosMap
           comercios={filteredComercios}
           selectedKeys={state.selectedComercioKeys}
-          leadKeys={state.leadKeys}
+          leadKeys={activeLeadKeys}
           center={center}
           onSelect={onSelect}
         />

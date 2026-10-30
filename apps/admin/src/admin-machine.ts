@@ -292,6 +292,15 @@ export function adminReducer(state: AdminState, event: AdminEvent): AdminState {
     case "comerciosSearchFailed":
       return { ...state, comerciosStatus: "error" };
     case "leadsHydrated":
+      if (state.leadsStatus === "saving") {
+        return state;
+      }
+      if (
+        state.leadsStatus === "ready" &&
+        state.leadsRevision !== event.revision
+      ) {
+        return state;
+      }
       if (
         state.leadsRevision === event.revision &&
         state.leadsStatus === "ready"

@@ -178,7 +178,7 @@ describe("Guardar como Lead — dominio", () => {
 });
 
 describe("Guardar como Lead — D1 + SQL", () => {
-  it("migración declara places UNIQUE(source,external_id) y leads status nuevo", () => {
+  it("migración declara places UNIQUE(source,external_id) y leads.place_id UNIQUE", () => {
     const sql = readFileSync(
       join(adminRoot, "migrations/0002_places_leads.sql"),
       "utf8",
@@ -186,6 +186,8 @@ describe("Guardar como Lead — D1 + SQL", () => {
     assert.match(sql, /CREATE TABLE IF NOT EXISTS places/);
     assert.match(sql, /UNIQUE\s*\(\s*source\s*,\s*external_id\s*\)/);
     assert.match(sql, /CREATE TABLE IF NOT EXISTS leads/);
+    assert.match(sql, /place_id TEXT NOT NULL UNIQUE/);
+    assert.doesNotMatch(sql, /place_id TEXT NOT NULL,/);
     assert.match(
       sql,
       /status TEXT NOT NULL CHECK \(status IN \('nuevo', 'contactado', 'interesado', 'descartado'\)\)/,
@@ -268,7 +270,47 @@ describe("Guardar como Lead — machine + UI", () => {
     assert.equal(same.leads.length, 1);
   });
 
-  it("UI: botón Guardar como Lead, disabled sin selección, hidrata leads", () => {
+  it("conserva leads tras save si el loader rehidrata con snapshot viejo", () => {
+    const list = searchComerciosFromFixtures();
+    const saved = [
+      createLeadFromComercio(list[0]!, { now: NOW }),
+      createLeadFromComercio(list[1]!, { now: NOW }),
+    ];
+    let state = adminReducer(ADMIN_INITIAL_STATE, {
+      type: "leadsHydrated",
+      leads: [],
+      revision: 100,
+    });
+    state = adminReducer(state, { type: "saveLeadsRequested" });
+    const duringSave = adminReducer(state, {
+      type: "leadsHydrated",
+      leads: [],
+      revision: 100,
+    });
+    assert.equal(duringSave, state);
+    assert.equal(duringSave.leadsStatus, "saving");
+    state = adminReducer(state, {
+      type: "saveLeadsSucceeded",
+      leads: saved,
+      revision: 101,
+    });
+    assert.equal(state.leads.length, 2);
+    assert.equal(state.leadKeys.size, 2);
+    assert.equal(state.leadsRevision, 101);
+    const stale = adminReducer(state, {
+      type: "leadsHydrated",
+      leads: [],
+      revision: 100,
+    });
+    assert.equal(stale.leads.length, 2);
+    assert.equal(stale.leadKeys.size, 2);
+    assert.equal(stale.leadsRevision, 101);
+    assert.equal(stale.leadKeys.has(leadKey(saved[0]!)), true);
+    assert.equal(stale.leadKeys.has(leadKey(saved[1]!)), true);
+    assert.notEqual(stale.leads.length, 0);
+  });
+
+  it("UI: botón Guardar como Lead, disabled sin selección, loader leads", () => {
     const page = readFileSync(join(srcRoot, "comercios-page.tsx"), "utf8");
     const shell = readFileSync(join(srcRoot, "admin-shell.tsx"), "utf8");
     assert.match(page, /data-admin-guardar-leads/);
@@ -282,10 +324,29 @@ describe("Guardar como Lead — machine + UI", () => {
     assert.match(page, /saveLeadsRequested/);
     assert.match(page, /getLeadsClient\(\)\.save/);
     assert.match(page, /saveLeadsSucceeded/);
-    assert.match(page, /type:\s*"leadsHydrated"[\s\S]*leads:\s*loadedLeads/);
     assert.match(shell, /setLeadsClient/);
     assert.match(shell, /getLeadsClient/);
     assert.match(shell, /loadedLeads=/);
+  });
+
+  it("la página no despacha leadsHydrated en el cuerpo de render", () => {
+    const page = readFileSync(join(srcRoot, "comercios-page.tsx"), "utf8");
+    assert.doesNotMatch(page, /leadsRevision\s*!==\s*loadedLeadsRevision/);
+    assert.doesNotMatch(page, /type:\s*"leadsHydrated"/);
+    assert.doesNotMatch(page, /dispatch\(\{\s*type:\s*"leadsHydrated"/);
+    assert.match(
+      page,
+      /const activeLeadKeys =\s*state\.leadsStatus === "idle"\s*\?\s*new Set\(loadedLeads\.map\(leadKey\)\)\s*:\s*state\.leadKeys/,
+    );
+    assert.doesNotMatch(
+      page,
+      /filterComercios\(\s*all,\s*state\.filters,\s*state\.leadKeys/,
+    );
+    assert.match(
+      page,
+      /filterComercios\(\s*all,\s*state\.filters,\s*activeLeadKeys/,
+    );
+    assert.match(page, /leadKeys=\{activeLeadKeys\}/);
   });
 });
 
