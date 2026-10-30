@@ -27,7 +27,7 @@ export const FORBIDDEN_GOOGLE_PLACES_CSV_COLUMNS = [
   "google_place_id",
 ] as const;
 
-function escapeCsv(value: string): string {
+export function escapeCsv(value: string): string {
   if (/[",\n\r]/.test(value)) return `"${value.replaceAll('"', '""')}"`;
   return value;
 }

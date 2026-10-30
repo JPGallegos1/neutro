@@ -8,6 +8,7 @@ import {
   FORBIDDEN_GOOGLE_PLACES_CSV_COLUMNS,
   LEAD_CSV_MIN_COLUMNS,
   csvHasForbiddenGooglePlacesColumns,
+  escapeCsv,
   exportLeadsCsv,
   leadCsvFitnessViolations,
   leadToCsvRow,
@@ -154,14 +155,38 @@ describe("Export CSV Leads + fitness Google (#93)", () => {
     assert.deepEqual(hits, []);
   });
 
-  it("UI Leads: Exportar CSV de filtrados sin Google en page", () => {
+  it("escapeCsv: comma, comillas y newline; export lo usa", () => {
+    assert.equal(escapeCsv("plain"), "plain");
+    assert.equal(escapeCsv("a,b"), '"a,b"');
+    assert.equal(escapeCsv('dice "hola"'), '"dice ""hola"""');
+    assert.equal(escapeCsv("linea1\nlinea2"), '"linea1\nlinea2"');
+    assert.equal(escapeCsv("x\ry"), '"x\ry"');
+    const comma = exportLeadsCsv([lead("c", { notes: "a,b" })]);
+    assert.match(comma, /"a,b"/);
+    assert.equal(comma.split("\n")[1]!.includes(",a,b,"), false);
+    const quoted = exportLeadsCsv([lead("q", { notes: 'dice "hola"' })]);
+    assert.match(quoted, /"dice ""hola"""/);
+    const nl = exportLeadsCsv([lead("n", { notes: "linea1\nlinea2" })]);
+    assert.match(nl, /"linea1\nlinea2"/);
+    const src = readFileSync(join(srcRoot, "leads/export-csv.ts"), "utf8");
+    assert.match(src, /escapeCsv\(row\[col\]\)/);
+    assert.equal(src.split("escapeCsv(row[col])").length - 1, 1);
+  });
+
+  it("UI Leads: onClick + download click cableados", () => {
     const page = readFileSync(join(srcRoot, "leads/leads-page.tsx"), "utf8");
-    assert.match(page, /exportLeadsCsv/);
     assert.match(page, /data-admin-leads-export/);
     assert.match(page, /Exportar CSV/);
     assert.match(page, /exportLeadsCsv\(visible\)/);
+    assert.match(page, /onClick=\{onExportCsv\}/);
+    assert.match(page, /function onExportCsv\(/);
+    assert.match(page, /anchor\.click\(\)/);
+    assert.match(page, /anchor\.download\s*=\s*"leads\.csv"/);
+    assert.match(page, /URL\.createObjectURL\(blob\)/);
     assert.doesNotMatch(page, /exportLeadsCsv\([^\)]*googleLive|exportLeadsCsv\([^\)]*displayName/);
     assert.doesNotMatch(page, /\buseState\b|\buseEffect\b/);
     assert.equal(page.split("exportLeadsCsv(").length - 1, 1);
+    assert.equal(page.split("onClick={onExportCsv}").length - 1, 1);
+    assert.equal(page.split("anchor.click()").length - 1, 1);
   });
 });
