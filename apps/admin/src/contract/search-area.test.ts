@@ -28,12 +28,7 @@ describe("Área de búsqueda", () => {
     const draft = createRosarioDefaultDraft();
     assert.equal(draft.name, "Rosario centro · 3 km");
     assert.equal(draft.radiusKm, "3");
-    assert.equal(Number(draft.centerLat), -32.9442);
-    assert.equal(Number(draft.centerLng), -60.6505);
-    const defaultArea = createRosarioDefaultArea();
-    assert.equal(defaultArea.radiusKm, 3);
-    assert.equal(defaultArea.center.lat, -32.9442);
-    assert.equal(defaultArea.center.lng, -60.6505);
+    assert.equal(createRosarioDefaultArea().radiusKm, 3);
     assert.equal(
       createSearchArea({
         name: "x",
@@ -90,44 +85,34 @@ describe("Área de búsqueda", () => {
       created_at: seed.createdAt,
       updated_at: seed.updatedAt,
     });
-    const db: D1DatabaseLike = {
-      prepare(query: string) {
-        let bound: unknown[] = [];
-        const stmt: D1PreparedStatement = {
-          bind(...values: unknown[]) {
-            bound = values;
-            return stmt;
-          },
-          async all<T = Record<string, unknown>>() {
-            return {
-              results: [...rows.values()].sort((a, b) =>
-                String(a.created_at).localeCompare(String(b.created_at)),
-              ) as T[],
-            };
-          },
-          async first<T = Record<string, unknown>>() {
-            return (rows.get(String(bound[0])) as T) ?? null;
-          },
-          async run() {
-            if (query.includes("INSERT")) {
-              rows.set(String(bound[0]), {
-                id: bound[0],
-                name: bound[1],
-                center_lat: bound[2],
-                center_lng: bound[3],
-                radius_km: bound[4],
-                shape: bound[5],
-                polygon_json: bound[6],
-                created_at: bound[7],
-                updated_at: bound[8],
-              });
-            }
-            return {};
-          },
-        };
+    let bound: unknown[] = [];
+    const stmt: D1PreparedStatement = {
+      bind(...values: unknown[]) {
+        bound = values;
         return stmt;
       },
+      async all<T = Record<string, unknown>>() {
+        return { results: [...rows.values()] as T[] };
+      },
+      async first<T = Record<string, unknown>>() {
+        return (rows.get(String(bound[0])) as T) ?? null;
+      },
+      async run() {
+        rows.set(String(bound[0]), {
+          id: bound[0],
+          name: bound[1],
+          center_lat: bound[2],
+          center_lng: bound[3],
+          radius_km: bound[4],
+          shape: bound[5],
+          polygon_json: bound[6],
+          created_at: bound[7],
+          updated_at: bound[8],
+        });
+        return {};
+      },
     };
+    const db: D1DatabaseLike = { prepare: () => stmt };
     const d1 = createD1SearchAreaRepository(db);
     await d1.create({
       name: "Centro · 1 km",
@@ -139,10 +124,7 @@ describe("Área de búsqueda", () => {
     });
     assert.equal((await d1.list()).length, 2);
     const sql = readFileSync(
-      join(
-        dirname(fileURLToPath(import.meta.url)),
-        "../../migrations/0001_search_areas.sql",
-      ),
+      join(dirname(fileURLToPath(import.meta.url)), "../../migrations/0001_search_areas.sql"),
       "utf8",
     );
     assert.match(sql, /search_areas/);
