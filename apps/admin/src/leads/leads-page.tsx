@@ -4,6 +4,7 @@ import {
   seedSelectLeadFromIdle,
   seedUpdateLeadRequestedFromIdle,
 } from "@/admin-machine";
+import { exportLeadsCsv } from "@/leads/export-csv";
 import { getGoogleLiveClient } from "@/leads/google-live";
 import { getLeadsClient, type LeadClientPatch } from "@/leads/leads-client";
 import {
@@ -88,6 +89,17 @@ export function LeadsPage({
     noteTimers.set(id, setTimeout(() => void persist(id, { notes }), 400));
   }
 
+  function onExportCsv() {
+    const csv = exportLeadsCsv(visible);
+    const blob = new Blob([csv], { type: "text/csv;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const anchor = document.createElement("a");
+    anchor.href = url;
+    anchor.download = "leads.csv";
+    anchor.click();
+    URL.revokeObjectURL(url);
+  }
+
   return (
     <section className="flex flex-1 flex-col gap-4 p-6" data-admin-leads-page aria-label="Leads">
       <header className="flex flex-wrap items-end justify-between gap-3">
@@ -95,9 +107,19 @@ export function LeadsPage({
           <h1 className="text-2xl font-medium tracking-tight">Leads</h1>
           <p className="text-sm text-neutro-text-muted">Seguimiento por estado, notas y responsable</p>
         </div>
-        <p className="text-sm text-neutro-text-muted" data-admin-leads-count>
-          {visible.length} leads
-        </p>
+        <div className="flex flex-wrap items-center gap-3">
+          <p className="text-sm text-neutro-text-muted" data-admin-leads-count>
+            {visible.length} leads
+          </p>
+          <button
+            type="button"
+            data-admin-leads-export
+            className={`rounded-md bg-neutro-accent-orange px-3 py-2 text-sm text-neutro-on-orange ${press}`}
+            onClick={onExportCsv}
+          >
+            Exportar CSV
+          </button>
+        </div>
       </header>
       <div className="flex flex-wrap gap-2 text-sm" role="group" aria-label="Filtro por estado">
         {FILTERS.map((filter) => (
