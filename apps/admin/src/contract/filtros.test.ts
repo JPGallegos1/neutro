@@ -130,7 +130,7 @@ describe("Filtros de Comercios", () => {
     const page = readFileSync(join(srcRoot, "comercios-page.tsx"), "utf8");
     assert.match(
       page,
-      /const filteredComercios = filterComercios\(\s*all,\s*state\.filters,\s*state\.leadKeys,?\s*\);/,
+      /const filteredComercios = filterComercios\(\s*all,\s*state\.filters,\s*activeLeadKeys,?\s*\);/,
     );
     assert.doesNotMatch(
       page,

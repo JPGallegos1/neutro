@@ -1,8 +1,9 @@
-import { searchComerciosFromFixtures } from "../src/comercio";
+import { searchComerciosFromFixtures, type Comercio } from "../src/comercio";
 import {
   createD1SearchAreaRepository,
   type D1DatabaseLike,
 } from "../src/d1-search-area-repository";
+import { createD1LeadRepository } from "../src/leads/d1-lead-repository";
 import {
   createSearchArea,
   type CreateSearchAreaInput,
@@ -70,6 +71,29 @@ export default {
           now: validated.value.createdAt,
         });
         return json({ area }, 201);
+      } catch {
+        return json({ error: "persist_failed" }, 500);
+      }
+    }
+    if (url.pathname === "/api/leads" && request.method === "GET") {
+      return json({ leads: await createD1LeadRepository(env.DB).list() });
+    }
+    if (url.pathname === "/api/leads" && request.method === "POST") {
+      let body: { comercios?: Comercio[] };
+      try {
+        body = (await request.json()) as { comercios?: Comercio[] };
+      } catch {
+        return json({ error: "invalid_json" }, 400);
+      }
+      const comercios = Array.isArray(body.comercios) ? body.comercios : [];
+      if (comercios.length === 0) {
+        return json({ error: "empty_selection" }, 400);
+      }
+      try {
+        const leads = await createD1LeadRepository(env.DB).saveFromComercios(
+          comercios,
+        );
+        return json({ leads }, 201);
       } catch {
         return json({ error: "persist_failed" }, 500);
       }

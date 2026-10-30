@@ -3,6 +3,7 @@ import {
   type Comercio,
   type ComerciosFilters,
 } from "@/comercio";
+import { leadKey, mergeLeadsByIdentity, type Lead } from "@/leads/lead";
 import {
   areaToDraft,
   createRosarioDefaultDraft,
@@ -16,6 +17,7 @@ export const ADMIN_SECTIONS = ["comercios", "leads", "areas"] as const;
 export type AdminSection = (typeof ADMIN_SECTIONS)[number];
 export type AreasStatus = "idle" | "ready" | "saving" | "error";
 export type ComerciosStatus = "idle" | "ready" | "searching" | "error";
+export type LeadsStatus = "idle" | "ready" | "saving" | "error";
 
 export type AdminState = {
   section: AdminSection;
@@ -31,6 +33,9 @@ export type AdminState = {
   comerciosStatus: ComerciosStatus;
   selectedComercioKeys: ReadonlySet<string>;
   filters: ComerciosFilters;
+  leads: Lead[];
+  leadsRevision: number;
+  leadsStatus: LeadsStatus;
   leadKeys: ReadonlySet<string>;
 };
 
@@ -69,7 +74,14 @@ export type AdminEvent =
       comercios: Comercio[];
       revision: number;
     }
-  | { type: "comerciosSearchFailed" };
+  | { type: "comerciosSearchFailed" }
+  | { type: "leadsHydrated"; leads: Lead[]; revision: number }
+  | {
+      type: "saveLeadsRequested";
+      seed?: { leads: Lead[]; revision: number };
+    }
+  | { type: "saveLeadsSucceeded"; leads: Lead[]; revision: number }
+  | { type: "saveLeadsFailed" };
 
 export const ADMIN_INITIAL_STATE: AdminState = {
   section: "comercios",
@@ -85,6 +97,9 @@ export const ADMIN_INITIAL_STATE: AdminState = {
   comerciosStatus: "idle",
   selectedComercioKeys: new Set(),
   filters: { ...DEFAULT_COMERCIOS_FILTERS },
+  leads: [],
+  leadsRevision: 0,
+  leadsStatus: "idle",
   leadKeys: new Set(),
 };
 
@@ -279,6 +294,48 @@ export function adminReducer(state: AdminState, event: AdminEvent): AdminState {
       };
     case "comerciosSearchFailed":
       return { ...state, comerciosStatus: "error" };
+    case "leadsHydrated":
+      if (state.leadsStatus === "saving") {
+        return state;
+      }
+      if (
+        state.leadsStatus === "ready" &&
+        event.revision <= state.leadsRevision
+      ) {
+        return state;
+      }
+      return {
+        ...state,
+        leads: event.leads,
+        leadsRevision: event.revision,
+        leadsStatus: "ready",
+        leadKeys: new Set(event.leads.map(leadKey)),
+      };
+    case "saveLeadsRequested": {
+      if (event.seed && state.leadsStatus === "idle") {
+        return {
+          ...state,
+          leads: event.seed.leads,
+          leadsRevision: event.seed.revision,
+          leadKeys: new Set(event.seed.leads.map(leadKey)),
+          leadsStatus: "saving",
+        };
+      }
+      return { ...state, leadsStatus: "saving" };
+    }
+    case "saveLeadsSucceeded": {
+      const leads = mergeLeadsByIdentity(state.leads, event.leads);
+      return {
+        ...state,
+        leads,
+        leadsRevision: event.revision,
+        leadsStatus: "ready",
+        leadKeys: new Set(leads.map(leadKey)),
+        selectedComercioKeys: new Set(),
+      };
+    }
+    case "saveLeadsFailed":
+      return { ...state, leadsStatus: "error" };
   }
 }
 
