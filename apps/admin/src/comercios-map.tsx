@@ -25,13 +25,13 @@ const PIN_CLASS: Record<PinKind, string> = {
 
 export function ComerciosMap({
   comercios,
-  selectedKey,
+  selectedKeys,
   leadKeys,
   center,
   onSelect,
 }: {
   comercios: Comercio[];
-  selectedKey: string | null;
+  selectedKeys: ReadonlySet<string>;
   leadKeys: ReadonlySet<string>;
   center: { lat: number; lng: number };
   onSelect: (key: string) => void;
@@ -48,7 +48,7 @@ export function ComerciosMap({
       <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,#262624_0%,#0a0a0a_70%)] opacity-40" />
       {comercios.map((c) => {
         const key = comercioKey(c);
-        const kind = pinKindFor(key, selectedKey, leadKeys);
+        const kind = pinKindFor(key, selectedKeys, leadKeys);
         const { x, y } = projectComercioPin(
           c.lat,
           c.lng,

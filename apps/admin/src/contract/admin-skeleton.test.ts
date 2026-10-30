@@ -143,6 +143,7 @@ describe("shell Admin (sidebar + rutas)", () => {
     assert.match(page, /data-admin-comercios-page/);
     assert.match(page, /data-admin-comercios-list/);
     assert.match(page, /data-admin-comercios-attribution/);
+    assert.match(page, /data-admin-comercios-filters/);
     assert.match(map, /data-admin-comercios-map/);
     assert.match(map, /data-admin-pin/);
   });

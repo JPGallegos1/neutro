@@ -1,4 +1,8 @@
-import type { Comercio } from "@/comercio";
+import {
+  DEFAULT_COMERCIOS_FILTERS,
+  type Comercio,
+  type ComerciosFilters,
+} from "@/comercio";
 import {
   areaToDraft,
   createRosarioDefaultDraft,
@@ -25,7 +29,8 @@ export type AdminState = {
   comercios: Comercio[];
   comerciosRevision: number;
   comerciosStatus: ComerciosStatus;
-  selectedComercioKey: string | null;
+  selectedComercioKeys: ReadonlySet<string>;
+  filters: ComerciosFilters;
   leadKeys: ReadonlySet<string>;
 };
 
@@ -52,7 +57,12 @@ export type AdminEvent =
       comercios: Comercio[];
       revision: number;
     }
-  | { type: "selectComercio"; key: string }
+  | {
+      type: "toggleComercio";
+      key: string;
+      seed?: { comercios: Comercio[]; revision: number };
+    }
+  | { type: "setComerciosFilters"; filters: Partial<ComerciosFilters> }
   | { type: "comerciosSearchRequested" }
   | {
       type: "comerciosSearchSucceeded";
@@ -73,9 +83,22 @@ export const ADMIN_INITIAL_STATE: AdminState = {
   comercios: [],
   comerciosRevision: 0,
   comerciosStatus: "idle",
-  selectedComercioKey: null,
+  selectedComercioKeys: new Set(),
+  filters: { ...DEFAULT_COMERCIOS_FILTERS },
   leadKeys: new Set(),
 };
+
+function keepSelected(
+  keys: ReadonlySet<string>,
+  comercios: Comercio[],
+): ReadonlySet<string> {
+  const valid = new Set(comercios.map((c) => `${c.source}:${c.externalId}`));
+  const next = new Set<string>();
+  for (const key of keys) {
+    if (valid.has(key)) next.add(key);
+  }
+  return next;
+}
 
 export function adminReducer(state: AdminState, event: AdminEvent): AdminState {
   switch (event.type) {
@@ -184,23 +207,62 @@ export function adminReducer(state: AdminState, event: AdminEvent): AdminState {
         comercios: event.comercios,
         comerciosRevision: event.revision,
         comerciosStatus: "ready",
-        selectedComercioKey:
-          state.selectedComercioKey &&
-          event.comercios.some(
-            (c) => `${c.source}:${c.externalId}` === state.selectedComercioKey,
-          )
-            ? state.selectedComercioKey
-            : event.comercios[0]
-              ? `${event.comercios[0].source}:${event.comercios[0].externalId}`
-              : null,
+        selectedComercioKeys: keepSelected(
+          state.selectedComercioKeys,
+          event.comercios,
+        ),
       };
-    case "selectComercio": {
-      if (state.selectedComercioKey === event.key) return state;
-      const exists = state.comercios.some(
+    case "toggleComercio": {
+      let base = state;
+      if (event.seed && state.comerciosStatus === "idle") {
+        base = {
+          ...state,
+          comercios: event.seed.comercios,
+          comerciosRevision: event.seed.revision,
+          comerciosStatus: "ready",
+          selectedComercioKeys: keepSelected(
+            state.selectedComercioKeys,
+            event.seed.comercios,
+          ),
+        };
+      }
+      const exists = base.comercios.some(
         (c) => `${c.source}:${c.externalId}` === event.key,
       );
-      if (!exists) return state;
-      return { ...state, selectedComercioKey: event.key };
+      if (!exists) return base === state ? state : base;
+      const next = new Set(base.selectedComercioKeys);
+      if (next.has(event.key)) next.delete(event.key);
+      else next.add(event.key);
+      return { ...base, selectedComercioKeys: next };
+    }
+    case "setComerciosFilters": {
+      const filters = {
+        sinWebsite:
+          event.filters.sinWebsite !== undefined
+            ? event.filters.sinWebsite
+            : state.filters.sinWebsite,
+        tieneRedes:
+          event.filters.tieneRedes !== undefined
+            ? event.filters.tieneRedes
+            : state.filters.tieneRedes,
+        rubro:
+          "rubro" in event.filters
+            ? (event.filters.rubro ?? null)
+            : state.filters.rubro,
+        ocultarGuardados:
+          event.filters.ocultarGuardados !== undefined
+            ? event.filters.ocultarGuardados
+            : state.filters.ocultarGuardados,
+      };
+      if (
+        filters.sinWebsite === state.filters.sinWebsite &&
+        filters.tieneRedes === state.filters.tieneRedes &&
+        filters.rubro === state.filters.rubro &&
+        filters.ocultarGuardados === state.filters.ocultarGuardados
+      ) {
+        return state;
+      }
+      return { ...state, filters };
     }
     case "comerciosSearchRequested":
       return { ...state, comerciosStatus: "searching" };
@@ -210,9 +272,10 @@ export function adminReducer(state: AdminState, event: AdminEvent): AdminState {
         comercios: event.comercios,
         comerciosRevision: event.revision,
         comerciosStatus: "ready",
-        selectedComercioKey: event.comercios[0]
-          ? `${event.comercios[0].source}:${event.comercios[0].externalId}`
-          : null,
+        selectedComercioKeys: keepSelected(
+          state.selectedComercioKeys,
+          event.comercios,
+        ),
       };
     case "comerciosSearchFailed":
       return { ...state, comerciosStatus: "error" };
