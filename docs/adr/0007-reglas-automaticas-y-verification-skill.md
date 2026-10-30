@@ -10,12 +10,12 @@ Varios criterios de revisión del sitio estaban sólo en [`AGENTS.md`](../../AGE
 
 Lo que ya está en el repo, y esta decisión no vuelve a implementar:
 
-- Tope de 10 archivos: job `Max 10 files`, `tools/ci/check-pr-file-count.mjs` ([ADR 0004](0004-max-pr-files.md)).
+- Tamaño de PR por autoría ~50–1000 LoC (lockfiles afuera); esa regla reemplaza el tope de 10 archivos ([ADR 0004](0004-max-pr-files.md)). El job histórico `Max 10 files` (`tools/ci/check-pr-file-count.mjs`) puede seguir corriendo hasta un PR de CI aparte.
 - Sin comentarios en JS, TS y en el frontmatter y los `<script>` de Astro: `pnpm lint` y `pnpm test:lint-rules` ([ADR 0003](0003-no-source-comments.md)). Ese ADR limita el alcance a eso. El HTML de plantilla y el CSS quedan afuera de oxlint, y no afirma que los haga cumplir. No habla de YAML ni de un campo `razon`.
 - CI de `Lint`, `Check` y `Build`, como está escrito en [`.github/workflows/ci.yml`](../../.github/workflows/ci.yml). `Lint` corre `pnpm lint` y `pnpm test:lint-rules`. `Check` corre `pnpm check` y `pnpm test`. En la raíz, `pnpm test` es `turbo run test` (el `test` de `@neutro/web` y el de `@neutro/core`). `Build` corre `pnpm build` (`turbo run build --filter=@neutro/web`; en `apps/web/package.json` el script es `astro build`) y no hace `unset` ni `env -u`. El workflow `e2e` hace `unset PUBLIC_POSTHOG_KEY` y `unset PUBLIC_ANALYTICS_ENABLED`, corre `pnpm build` y después Chromium.
 - Analytics apagado salvo las dos variables de build ([ADR 0001](0001-analytics-off-by-default.md)). El Worker hace `/f/N`, `/t`, `/ingest` y el redirect de barra final ([ADR 0002](0002-qr-redirect-routes.md)). `astro preview` no ejecuta ese Worker.
 
-`main` no tiene protección de rama. Juan decidió el 26/10 que no se active: GitHub no aplica reglas de protección en repos privados con plan gratuito. Los checks siguen corriendo como aviso. Nadie mergea con CI rojo, y nadie mergea a `main` sin el OK explícito de Juan. El bloqueo es de proceso, no de la plataforma.
+El repo es **público**. `main` no tiene protección de rama. Juan decidió el 26/10 que no se active: el bloqueo queda en el proceso, no en la plataforma. Los checks siguen corriendo como aviso. Nadie mergea con CI rojo, y nadie mergea a `main` sin el OK explícito de Juan. Los workflows se endurecieron para un repo público (#84: `persist-credentials: false`, `permissions: contents: read`).
 
 Playwright es la prueba del sitio construido. Juan aceptó la dependencia y la descarga del browser en CI. Esa base (config, Chromium, humo, workflow con un job, caché y filtro de paths) entró en main con #46. Los specs de producto y axe son de Hamilton y entran después.
 
@@ -29,7 +29,7 @@ Cada regla tiene un mecanismo y un dueño. La skill no reemplaza al mecanismo: l
 
 | Regla                                        | Mecanismo                                                                                                                                                                                                                                          | Dueño                                           | Qué hace la skill                                                                                                |
 | -------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------- | ---------------------------------------------------------------------------------------------------------------- |
-| Máximo 10 archivos, lockfiles afuera         | CI, job `Max 10 files`                                                                                                                                                                                                                             | Ya está. [ADR 0004](0004-max-pr-files.md)       | Vuelve a correr el mismo script con los SHA del PR                                                               |
+| Autoría ~50–1000 LoC, lockfiles afuera       | Política [ADR 0004](0004-max-pr-files.md); job histórico `Max 10 files` puede quedar hasta un PR de CI                                                                                                                                             | [ADR 0004](0004-max-pr-files.md)                | Mide LoC del diff del PR (lockfiles afuera); no trata el tope de 10 archivos como regla vigente                  |
 | Sin comentarios en el fuente                 | `pnpm lint` y `pnpm test:lint-rules`                                                                                                                                                                                                               | Ya está. [ADR 0003](0003-no-source-comments.md) | Recorre además las líneas agregadas que ese ADR no cubre                                                         |
 | Cards de Trabajo sin JavaScript              | Playwright, spec fijo                                                                                                                                                                                                                              | Hamilton, PR posterior                          | Lo corre cuando el archivo está                                                                                  |
 | Botón, foco y `aria-live`                    | Playwright, spec fijo                                                                                                                                                                                                                              | Hamilton, PR posterior                          | Lo corre cuando el archivo está                                                                                  |
@@ -74,9 +74,9 @@ En un cambio crítico, Lucy suma un segundo verificador: Codex CLI con esfuerzo 
 
 No se activa.
 
-GitHub no aplica reglas de protección en repos privados con plan gratuito. Marcar `Lint`, `Check`, `Max 10 files` o `Chromium` como checks requeridos no bloquearía el merge en este repo, y daría por cerrado un candado que la plataforma no pone.
+El repo es público. Juan decidió el 26/10 dejar la protección de `main` apagada: el candado es de proceso, no de checks requeridos en GitHub. Marcar `Lint`, `Check`, `Max 10 files` o `Chromium` como requeridos no reemplaza el OK explícito de Juan, y este ADR no prende esa protección.
 
-Los checks siguen como aviso. El bloqueo es de proceso: no se mergea con CI rojo, y no se mergea a `main` sin el OK explícito de Juan Gallegos. Si el plan de GitHub cambia, la protección se vuelve a mirar. Este ADR no la prende.
+Los checks siguen como aviso. El bloqueo es de proceso: no se mergea con CI rojo, y no se mergea a `main` sin el OK explícito de Juan Gallegos. Si el proceso o el plan de GitHub cambian, la protección se vuelve a mirar. Este ADR no la prende.
 
 ## Alternativas
 
@@ -84,7 +84,7 @@ Los checks siguen como aviso. El bloqueo es de proceso: no se mergea con CI rojo
 
 Deja el bloqueo en la plataforma, que es lo que el orden de PR anterior pedía.
 
-No sirve con el plan actual: la regla no se aplica en un repo privado gratuito. Quedaría una configuración que no impide el merge. Por eso Juan la descartó el 26/10. El proceso ocupa ese lugar, con el límite de que alguien con permiso de escritura puede igual apretar merge.
+Juan la descartó el 26/10: el merge a `main` sigue dependiendo del OK explícito y del proceso, no de checks requeridos. En un repo público la plataforma sí puede exigir checks; igual no se activan acá. El proceso ocupa ese lugar, con el límite de que alguien con permiso de escritura puede igual apretar merge.
 
 ### B. Sólo CI, sin skill
 
@@ -106,8 +106,8 @@ El CLI cambia de modelo. Un id escrito en la skill queda viejo y parece una puer
 
 ## Consecuencias y trade-offs
 
-- La protección de rama sigue apagada. Un check rojo no impide el merge en GitHub. El proceso es el único bloqueo, y depende de que quien mergea lo respete. El OK de Juan tampoco lo pone la plataforma.
-- Playwright en un repo privado consume minutos de GitHub Actions. El plan de Actions no está verificado en este ADR. Cada corrida de `e2e` descarga o reusa Chromium y ocupa un runner cuando el diff entra en el filtro de paths. La mitigación ya está en el workflow de main: un job, un browser, caché y paths. Baja el consumo y no lo elimina. Este ADR no lo mide.
+- La protección de rama sigue apagada en este repo público. Un check rojo no impide el merge en GitHub. El proceso es el único bloqueo, y depende de que quien mergea lo respete. El OK de Juan tampoco lo pone la plataforma.
+- Playwright en un repo público consume minutos de GitHub Actions. El plan de Actions no está verificado en este ADR. Cada corrida de `e2e` descarga o reusa Chromium y ocupa un runner cuando el diff entra en el filtro de paths. La mitigación ya está en el workflow de main: un job, un browser, caché y paths. Baja el consumo y no lo elimina. Este ADR no lo mide.
 - La skill pide `pnpm test`, el mismo comando del job `Check`, y `pnpm exec turbo run build --filter=@neutro/web --force` con `env -u` de las dos variables públicas. El job `Build` corre `pnpm build`, sin `--force` y sin ese `env -u`. Un CI verde y una puerta local en rojo pueden convivir. Eso es un hallazgo del informe, no un cambio de YAML en este PR.
 - El conteo de la cadena `posthog` en `dist` puede ser mayor que cero con el SDK apagado. La búsqueda es `rg -i` porque el texto legal escribe `PostHog`. El informe lista cada archivo de esa corrida y lo clasifica: texto legal, chunk JS u otro. Un archivo JS con la key, o una request de analytics, es hallazgo alto. El conteo solo no falla la puerta. Las cifras, la receta y las versiones están en la skill, como medición de la VM del agente el 2026-10-26. No son un piso de cada PR.
 - Esa medición también vio que un `.env*` real en `apps/web` vuelve a meter una key de prueba en el cliente aunque el proceso la saque con `env -u`, y que `--var` en un Worker de prueba pisa el flag y deja cargada la key de `.dev.vars`. La skill no admite esos archivos en la pasada. No está medido en `neutro-web`, ni si una variable que ya está en el proceso le gana al archivo.

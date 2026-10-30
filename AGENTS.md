@@ -12,7 +12,7 @@ Versión de Node: ver [`.node-version`](.node-version). Versión de pnpm: campo 
 
 ## Reglas del repo
 
-- Máximo **10 archivos** por PR (lockfiles fuera del conteo). Detalle: [`docs/adr/0004-max-pr-files.md`](docs/adr/0004-max-pr-files.md). CI: job Max 10 files.
+- Tamaño de PR por autoría **~50–1000 LoC** (lockfiles fuera del conteo); esa regla reemplaza el tope de 10 archivos. Detalle: [`docs/adr/0004-max-pr-files.md`](docs/adr/0004-max-pr-files.md).
 - **Sin comentarios** en el código fuente (JS/TS y frontmatter/script de Astro). Regla oxlint `neutro/no-comments`. Excepciones mínimas de tooling (`@ts-expect-error`, `oxlint-*`, `prettier-ignore`, etc.). Detalle: [`docs/adr/0003-no-source-comments.md`](docs/adr/0003-no-source-comments.md).
 - Analytics off por defecto: [`docs/adr/0001-analytics-off-by-default.md`](docs/adr/0001-analytics-off-by-default.md).
 - Redirects QR y Worker: [`docs/adr/0002-qr-redirect-routes.md`](docs/adr/0002-qr-redirect-routes.md).
@@ -38,7 +38,7 @@ No copies el contenido de un ADR al PR: linkealo.
   - Verificación
 - Una idea por ítem; pensado para lectura rápida.
 - PR visuales: incluir slides o video (sin alargar el proceso en la descripción).
-- Si un cambio pasa de 10 archivos, se divide en PRs apilados o secuenciales ([ADR 0004](docs/adr/0004-max-pr-files.md)).
+- Si la autoría pasa de ~1000 LoC (lockfiles afuera), se divide en PRs apilados o secuenciales ([ADR 0004](docs/adr/0004-max-pr-files.md)).
 
 ## Verificación
 
