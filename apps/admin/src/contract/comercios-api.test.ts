@@ -75,4 +75,31 @@ describe("GET /api/comercios", () => {
     const body = (await res.json()) as { error?: string };
     assert.equal(body.error, "invalid_query");
   });
+
+  it("400 si lat= o lng= están vacíos", async () => {
+    const both = await worker.fetch(
+      new Request("https://admin.test/api/comercios?lat=&lng="),
+      env(),
+    );
+    assert.equal(both.status, 400);
+    assert.deepEqual(await both.json(), { error: "invalid_query" });
+    const emptyLat = await worker.fetch(
+      new Request("https://admin.test/api/comercios?lat=&lng=-60.6505"),
+      env(),
+    );
+    assert.equal(emptyLat.status, 400);
+    assert.deepEqual(await emptyLat.json(), { error: "invalid_query" });
+    const emptyLng = await worker.fetch(
+      new Request("https://admin.test/api/comercios?lat=-32.9442&lng="),
+      env(),
+    );
+    assert.equal(emptyLng.status, 400);
+    assert.deepEqual(await emptyLng.json(), { error: "invalid_query" });
+    const blankLat = await worker.fetch(
+      new Request("https://admin.test/api/comercios?lat=%20%20&lng=-60.6505"),
+      env(),
+    );
+    assert.equal(blankLat.status, 400);
+    assert.deepEqual(await blankLat.json(), { error: "invalid_query" });
+  });
 });
