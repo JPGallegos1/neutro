@@ -12,8 +12,11 @@ import {
   DEFAULT_COMERCIOS_FILTERS,
   NEUTRO_RUBROS,
   comercioKey,
+  comerciosFromFoursquare,
+  comerciosFromOsm,
   createComercio,
   filterComercios,
+  pinKindFor,
   searchComerciosFromFixtures,
   type Comercio,
   type ComerciosFilters,
@@ -121,6 +124,96 @@ describe("Filtros de Comercios", () => {
     assert.ok(filtered.every((x) => x.website === null));
     assert.ok(filtered.length < all.length);
   });
+
+  it("mapa y lista reciben filteredComercios, no la lista cruda", () => {
+    const page = readFileSync(join(srcRoot, "comercios-page.tsx"), "utf8");
+    assert.match(
+      page,
+      /const filteredComercios = filterComercios\(\s*all,\s*state\.filters,\s*state\.leadKeys,?\s*\)/,
+    );
+    assert.match(
+      page,
+      /<ComerciosMap\s+[\s\S]*?comercios=\{filteredComercios\}/,
+    );
+    assert.doesNotMatch(page, /<ComerciosMap\s+[\s\S]*?comercios=\{all\}/);
+    assert.match(
+      page,
+      /data-admin-comercios-list[\s\S]*?\{filteredComercios\.map\(/,
+    );
+    assert.doesNotMatch(page, /data-admin-comercios-list[\s\S]*?\{all\.map\(/);
+  });
+
+  it("parsers FSQ y OSM traen redes y rubro desde la fuente", () => {
+    const fsq = comerciosFromFoursquare([
+      {
+        fsq_place_id: "fsq_redes",
+        name: "Local FSQ",
+        latitude: -32.94,
+        longitude: -60.65,
+        social_media: ["https://instagram.com/fsq"],
+        categories: ["Cafe", "Coffee Shop"],
+      },
+    ]);
+    assert.equal(fsq.length, 1);
+    assert.deepEqual(fsq[0]?.socialUrls, ["https://instagram.com/fsq"]);
+    assert.equal(fsq[0]?.rubro, "cafe");
+    const osm = comerciosFromOsm([
+      {
+        type: "node",
+        id: 55,
+        lat: -32.94,
+        lon: -60.65,
+        tags: {
+          name: "Kiosco Red",
+          shop: "convenience",
+          "contact:instagram": "https://instagram.com/kiosco",
+          "contact:facebook": "https://facebook.com/kiosco",
+        },
+      },
+    ]);
+    assert.equal(osm.length, 1);
+    assert.deepEqual(osm[0]?.socialUrls, [
+      "https://instagram.com/kiosco",
+      "https://facebook.com/kiosco",
+    ]);
+    assert.equal(osm[0]?.rubro, "kiosco");
+    const pan = comerciosFromFoursquare([
+      {
+        fsq_place_id: "fsq_pan",
+        name: "Pan",
+        latitude: -32.94,
+        longitude: -60.65,
+        categories: ["Bakery"],
+      },
+    ]);
+    assert.equal(pan[0]?.rubro, "panaderia");
+    assert.deepEqual(pan[0]?.socialUrls, []);
+  });
+
+  it("setComerciosFilters aplica rubro y Todos (null)", () => {
+    let state = ADMIN_INITIAL_STATE;
+    assert.equal(state.filters.rubro, null);
+    state = adminReducer(state, {
+      type: "setComerciosFilters",
+      filters: { rubro: "cafe" },
+    });
+    assert.equal(state.filters.rubro, "cafe");
+    state = adminReducer(state, {
+      type: "setComerciosFilters",
+      filters: { rubro: "kiosco" },
+    });
+    assert.equal(state.filters.rubro, "kiosco");
+    state = adminReducer(state, {
+      type: "setComerciosFilters",
+      filters: { rubro: null },
+    });
+    assert.equal(state.filters.rubro, null);
+    const page = readFileSync(join(srcRoot, "comercios-page.tsx"), "utf8");
+    assert.match(
+      page,
+      /data-admin-filter="rubro"[\s\S]*?setComerciosFilters[\s\S]*?rubro:/,
+    );
+  });
 });
 
 describe("Selección múltiple de Comercios", () => {
@@ -174,5 +267,27 @@ describe("Selección múltiple de Comercios", () => {
     assert.equal(next.comerciosStatus, "ready");
     assert.equal(next.comerciosRevision, 7);
     assert.equal(next.selectedComercioKeys.has(key), true);
+  });
+
+  it("mapa, lista y contador reflejan selectedComercioKeys", () => {
+    const page = readFileSync(join(srcRoot, "comercios-page.tsx"), "utf8");
+    const map = readFileSync(join(srcRoot, "comercios-map.tsx"), "utf8");
+    assert.match(page, /selectedKeys=\{state\.selectedComercioKeys\}/);
+    assert.match(page, /aria-pressed=\{selected\}/);
+    assert.match(
+      page,
+      /data-admin-selection-count[\s\S]*\{state\.selectedComercioKeys\.size\} seleccionados/,
+    );
+    assert.doesNotMatch(
+      page,
+      /data-admin-selection-count[\s\S]*>\s*0 seleccionados/,
+    );
+    assert.match(map, /selectedKeys/);
+    assert.match(map, /pinKindFor\(\s*key,\s*selectedKeys/);
+    const a = "osm:a";
+    const b = "osm:b";
+    assert.equal(pinKindFor(a, new Set([a, b]), new Set()), "seleccionado");
+    assert.equal(pinKindFor(b, new Set([a, b]), new Set()), "seleccionado");
+    assert.equal(pinKindFor("osm:c", new Set([a, b]), new Set()), "comercio");
   });
 });

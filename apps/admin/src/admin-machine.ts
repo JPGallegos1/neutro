@@ -236,7 +236,24 @@ export function adminReducer(state: AdminState, event: AdminEvent): AdminState {
       return { ...base, selectedComercioKeys: next };
     }
     case "setComerciosFilters": {
-      const filters = { ...state.filters, ...event.filters };
+      const filters = {
+        sinWebsite:
+          event.filters.sinWebsite !== undefined
+            ? event.filters.sinWebsite
+            : state.filters.sinWebsite,
+        tieneRedes:
+          event.filters.tieneRedes !== undefined
+            ? event.filters.tieneRedes
+            : state.filters.tieneRedes,
+        rubro:
+          "rubro" in event.filters
+            ? (event.filters.rubro ?? null)
+            : state.filters.rubro,
+        ocultarGuardados:
+          event.filters.ocultarGuardados !== undefined
+            ? event.filters.ocultarGuardados
+            : state.filters.ocultarGuardados,
+      };
       if (
         filters.sinWebsite === state.filters.sinWebsite &&
         filters.tieneRedes === state.filters.tieneRedes &&

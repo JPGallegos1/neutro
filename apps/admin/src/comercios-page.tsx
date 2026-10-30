@@ -22,7 +22,7 @@ export function ComerciosPage({
   const { state, dispatch } = useAdmin();
   const all =
     state.comerciosStatus === "idle" ? loadedComercios : state.comercios;
-  const comercios = filterComercios(all, state.filters, state.leadKeys);
+  const filteredComercios = filterComercios(all, state.filters, state.leadKeys);
 
   const center = state.selectedAreaId
     ? (state.areas.find((a) => a.id === state.selectedAreaId)?.center ??
@@ -166,7 +166,7 @@ export function ComerciosPage({
       </div>
       <div className="grid gap-6 lg:grid-cols-[320px_minmax(0,1fr)]">
         <ComerciosMap
-          comercios={comercios}
+          comercios={filteredComercios}
           selectedKeys={state.selectedComercioKeys}
           leadKeys={state.leadKeys}
           center={center}
@@ -176,7 +176,7 @@ export function ComerciosPage({
           className="flex max-h-[28rem] flex-col gap-2 overflow-auto"
           data-admin-comercios-list
         >
-          {comercios.map((item) => {
+          {filteredComercios.map((item) => {
             const key = comercioKey(item);
             const selected = state.selectedComercioKeys.has(key);
             return (
