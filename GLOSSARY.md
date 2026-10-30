@@ -77,39 +77,3 @@ _Avoid_: paginación, scroll infinito
 **«Cargar más»**:
 Botón del listado con el que quien visita ve más casos publicados.
 _Avoid_: «Ver más», «Ver todos», paginador
-
-## Admin y mapeo de leads
-
-Lenguaje de la app interna Admin (`apps/admin`), detrás de Cloudflare Access. No es el sitio público.
-
-**Admin**:
-App interna del monorepo Neutro para trabajo del equipo. Host propio, noindex, badge interno.
-_Avoid_: backoffice, panel, dashboard público
-
-**Access**:
-Cloudflare Access que protege el host de Admin. La identidad del usuario llega por el borde Access.
-_Avoid_: login propio, IdP Neutro, sesión de producto
-
-**Mapeo de leads**:
-Módulo activo de Admin para descubrir comercios, guardarlos como Lead y hacer seguimiento básico.
-_Avoid_: CRM, prospección genérica, scraping
-
-**Comercio**:
-Negocio local descubierto desde fuentes persistibles (Foursquare Open Places, OSM). No es un Cliente de Neutro.
-_Avoid_: cliente, lead (antes de guardar), POI genérico
-
-**Lead**:
-Comercio ya guardado en Admin para outreach, con estado, notas y responsable.
-_Avoid_: cliente, oportunidad CRM, deal
-
-**Área de búsqueda**:
-Zona (centro + radio o polígono) donde Admin busca Comercios. Varias áreas se pueden guardar y reutilizar.
-_Avoid_: región, geo-fence, territorio
-
-**Sin website**:
-Señal/filtro principal (activo por defecto) para priorizar Comercios sin presencia web clara en la Fuente de datos.
-_Avoid_: sin web, no website, dark lead
-
-**Estado del lead**:
-Estado de seguimiento del Lead: nuevo, contactado, interesado, descartado.
-_Avoid_: pipeline stage, status CRM, kanban
