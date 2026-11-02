@@ -11,10 +11,15 @@ interface Props {
 const { navItems } = Astro.props;
 ---
 
-<dialog id="menu-drawer" class="mobile-drawer" aria-label="Menú" data-drawer>
+<dialog
+  id="menu-drawer"
+  class="mobile-drawer dark"
+  aria-label="Menú"
+  data-drawer
+>
   <div class="mobile-drawer__panel">
     <div class="mobile-drawer__top">
-      <Logo />
+      <Logo forceDark />
       <button
         type="button"
         class="mobile-drawer__close"
@@ -190,6 +195,13 @@ const { navItems } = Astro.props;
 
 <style>
   .mobile-drawer {
+    --neutro-bg: #0a0a0a;
+    --neutro-text: #f6f6f4;
+    --neutro-text-muted: #b4b4af;
+    --neutro-border: #262624;
+    --neutro-accent-blue: #5c78ff;
+    --neutro-focus: #5c78ff;
+    --landing-focus: var(--neutro-focus);
     width: 100%;
     max-width: 100%;
     height: 100%;
@@ -197,7 +209,7 @@ const { navItems } = Astro.props;
     margin: 0;
     padding: 0;
     border: 0;
-    background: var(--neutro-bg);
+    background: #0a0a0a;
     color: var(--neutro-text);
   }
 
