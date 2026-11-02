@@ -171,15 +171,10 @@ const showLoadMore = workProjects.length > LANDING_WORK_LIMIT;
     display: grid;
     grid-template-columns: minmax(0, 1fr);
     gap: 0;
+    row-gap: var(--landing-work-row-gap);
     margin: 0;
     padding: 0;
     list-style: none;
-  }
-
-  @media (max-width: 1023px) {
-    .work-index__grid {
-      row-gap: 24px;
-    }
   }
 
   @media (min-width: 1024px) {

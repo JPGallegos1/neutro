@@ -27,8 +27,12 @@ const TitleTag = titleAs;
       <span class="work-card__tag">{project.tag}</span>
     </div>
     <div class="work-card__details">
-      <TitleTag class="work-card__title">{project.title}</TitleTag>
-      <p class="work-card__desc">{project.description}</p>
+      <TitleTag class="work-card__title landing-service-title">
+        {project.title}
+      </TitleTag>
+      <p class="work-card__desc landing-service-summary">
+        {project.description}
+      </p>
     </div>
   </a>
 </li>
@@ -37,12 +41,6 @@ const TitleTag = titleAs;
   .work-card {
     list-style: none;
     min-width: 0;
-  }
-
-  @media (max-width: 1023px) {
-    .work-card {
-      padding-inline: 1rem;
-    }
   }
 
   .work-card__inner {
@@ -130,29 +128,12 @@ const TitleTag = titleAs;
 
   .work-card__title {
     margin: 0;
-    font-size: 18px;
-    font-weight: 500;
-    letter-spacing: -0.2px;
     color: var(--neutro-text);
-  }
-
-  @media (min-width: 1024px) {
-    .work-card__title {
-      font-size: 20px;
-    }
   }
 
   .work-card__desc {
     margin: 0;
-    font-size: 14px;
-    line-height: 1.4;
     color: var(--neutro-text-muted);
-  }
-
-  @media (min-width: 1024px) {
-    .work-card__desc {
-      font-size: 15px;
-    }
   }
 
   a.work-card__inner:hover .work-card__title {

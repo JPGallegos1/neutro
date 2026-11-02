@@ -22,6 +22,7 @@ type PaddingRule = {
   media: MediaKind;
   value: string;
   raw: string;
+  selector: "card" | "details";
 };
 
 function pageCss(relativePath: string): string {
@@ -94,6 +95,20 @@ function extractPaddingRules(css: string): PaddingRule[] {
         media,
         value: (pad[1] ?? "").trim().toLowerCase(),
         raw: match[0],
+        selector: "card",
+      });
+    }
+    for (const match of body.matchAll(
+      /\.work-card__details(?:\[data-astro-cid-[^\]]+\])?\s*\{([^}]*)\}/g,
+    )) {
+      const decls = match[1] ?? "";
+      const pad = PADDING_INLINE.exec(decls);
+      if (!pad) continue;
+      rules.push({
+        media,
+        value: (pad[1] ?? "").trim().toLowerCase(),
+        raw: match[0],
+        selector: "details",
       });
     }
   }
@@ -113,78 +128,50 @@ function extractPaddingRules(css: string): PaddingRule[] {
   return rules;
 }
 
-function assertWorkCardMobileMargin(css: string, where: string): void {
+function assertWorkCardFlushImages(css: string, where: string): void {
   const rules = extractPaddingRules(css);
-  const mobile = rules.filter((rule) => rule.media === "mobile");
-  const desktop = rules.filter((rule) => rule.media === "desktop");
-  const unscoped = rules.filter((rule) => rule.media === "none");
-  const other = rules.filter((rule) => rule.media === "other");
+  const cardPads = rules.filter((rule) => rule.selector === "card");
+  const detailPads = rules.filter((rule) => rule.selector === "details");
 
   assert.equal(
-    mobile.length,
+    cardPads.length,
+    0,
+    `${where}: .work-card no debe tener padding-inline (imágenes al borde); hay ${cardPads.length}: ${cardPads.map((r) => r.raw).join(" | ")}`,
+  );
+  assert.equal(
+    detailPads.length,
     1,
-    `${where}: se esperaba 1 regla mobile de padding-inline en .work-card; hay ${mobile.length}: ${mobile.map((r) => r.raw).join(" | ")}`,
+    `${where}: se esperaba 1 padding-inline en .work-card__details; hay ${detailPads.length}: ${detailPads.map((r) => r.raw).join(" | ")}`,
   );
   assert.equal(
-    mobile[0]?.value,
-    "1rem",
-    `${where}: padding-inline mobile debe ser 1rem; quedó ${JSON.stringify(mobile[0]?.value)}`,
+    detailPads[0]?.media,
+    "none",
+    `${where}: el padding del texto debe ser base (sin media); quedó ${detailPads[0]?.media}`,
   );
-  assert.equal(
-    desktop.length,
-    0,
-    `${where}: .work-card no debe tener padding-inline desde 1024px; hay ${desktop.length}: ${desktop.map((r) => r.raw).join(" | ")}`,
-  );
-  assert.equal(
-    unscoped.length,
-    0,
-    `${where}: .work-card no debe tener padding-inline fuera de media mobile; hay ${unscoped.length}: ${unscoped.map((r) => r.raw).join(" | ")}`,
-  );
-  assert.equal(
-    other.length,
-    0,
-    `${where}: .work-card no debe tener padding-inline en otros breakpoints; hay ${other.length}: ${other.map((r) => r.raw).join(" | ")}`,
-  );
-}
-
-function withMobilePaddingRemoved(css: string): string {
-  const next = css.replace(
-    /@media\s*\((?:max-width:\s*1023px|width\s*<=\s*1023px)\)\s*\{\s*\.work-card(?!__)(?:\[data-astro-cid-[^\]]+\])?\s*\{\s*padding-inline\s*:\s*1rem\s*;?\s*\}\s*\}/gi,
-    "",
-  );
-  assert.notEqual(
-    next,
-    css,
-    "no se pudo quitar el padding mobile de .work-card",
-  );
-  return next;
-}
-
-function withMobilePaddingOnDesktop(css: string): string {
-  const next = css.replace(
-    /@media\s*\((?:max-width:\s*1023px|width\s*<=\s*1023px)\)/gi,
-    "@media (width>=1024px)",
-  );
-  assert.notEqual(next, css, "no se pudo mover el media a desktop");
   assert.match(
-    next,
-    /@media\s*\(width>=1024px\)\s*\{[^}]*\.work-card(?!__)[^}]*padding-inline\s*:\s*1rem/i,
+    detailPads[0]?.value ?? "",
+    /^var\(--landing-gutter\)$/,
+    `${where}: .work-card__details debe usar var(--landing-gutter); quedó ${JSON.stringify(detailPads[0]?.value)}`,
   );
-  return next;
 }
 
-function withHalfRemPadding(css: string): string {
+function withCardPaddingInjected(css: string): string {
+  const injection =
+    "@media (max-width: 1023px) { .work-card { padding-inline: 1rem; } }\n";
+  return `${injection}${css}`;
+}
+
+function withDetailsPaddingRemoved(css: string): string {
   const next = css.replace(
-    /(\.work-card(?!__)(?:\[data-astro-cid-[^\]]+\])?\s*\{[^}]*padding-inline\s*:\s*)1rem/gi,
-    (_full, prefix: string) => `${prefix}0.5rem`,
+    /(\.work-card__details(?:\[data-astro-cid-[^\]]+\])?\s*\{[^}]*?)padding-inline\s*:\s*var\(--landing-gutter\)\s*;?/gi,
+    "$1",
   );
-  assert.notEqual(next, css, "no se pudo cambiar 1rem a 0.5rem");
-  assert.match(next, /padding-inline\s*:\s*0\.5rem/i);
+  assert.notEqual(next, css, "no se pudo quitar padding de .work-card__details");
   return next;
 }
 
 describe("margen lateral de WorkCard en el dist", () => {
-  it("exige padding-inline 1rem bajo 1024px y ninguno desde 1024px", () => {
+  it("exige imágenes sin padding en .work-card y texto con gutter", () => {
     for (const relativePath of WORK_CARD_PAGES) {
       const css = pageCss(relativePath);
       assert.match(
@@ -192,7 +179,7 @@ describe("margen lateral de WorkCard en el dist", () => {
         /\.work-card(?!__)/,
         `dist/${relativePath} no trae estilos de .work-card`,
       );
-      assertWorkCardMobileMargin(css, `dist/${relativePath}`);
+      assertWorkCardFlushImages(css, `dist/${relativePath}`);
     }
     const pagesWithCards = readDistHtmlPages().filter((page) =>
       page.document.querySelector("li.work-card"),
@@ -203,32 +190,23 @@ describe("margen lateral de WorkCard en el dist", () => {
     );
   });
 
-  it("falla si se quita el padding-inline mobile de .work-card", () => {
+  it("falla si .work-card vuelve a tener padding-inline", () => {
     const css = pageCss("index.html");
     assert.throws(
       () =>
-        assertWorkCardMobileMargin(withMobilePaddingRemoved(css), "mutación"),
-      /1 regla mobile|padding-inline/,
+        assertWorkCardFlushImages(withCardPaddingInjected(css), "mutación"),
+      /padding-inline|imágenes al borde/,
     );
-    assertWorkCardMobileMargin(css, "dist/index.html");
+    assertWorkCardFlushImages(css, "dist/index.html");
   });
 
-  it("falla si el padding-inline de .work-card aplica desde 1024px", () => {
+  it("falla si .work-card__details pierde el gutter del texto", () => {
     const css = pageCss("index.html");
     assert.throws(
       () =>
-        assertWorkCardMobileMargin(withMobilePaddingOnDesktop(css), "mutación"),
-      /desde 1024px|1 regla mobile/,
+        assertWorkCardFlushImages(withDetailsPaddingRemoved(css), "mutación"),
+      /work-card__details|landing-gutter/,
     );
-    assertWorkCardMobileMargin(css, "dist/index.html");
-  });
-
-  it("falla si el padding-inline mobile no es 1rem", () => {
-    const css = pageCss("index.html");
-    assert.throws(
-      () => assertWorkCardMobileMargin(withHalfRemPadding(css), "mutación"),
-      /1rem/,
-    );
-    assertWorkCardMobileMargin(css, "dist/index.html");
+    assertWorkCardFlushImages(css, "dist/index.html");
   });
 });
