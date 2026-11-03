@@ -92,7 +92,11 @@ export type AdminEvent =
     }
   | { type: "saveLeadsSucceeded"; leads: Lead[]; revision: number }
   | { type: "saveLeadsFailed" }
-  | { type: "selectLead"; id: string | null; seed?: { leads: Lead[]; revision: number } }
+  | {
+      type: "selectLead";
+      id: string | null;
+      seed?: { leads: Lead[]; revision: number };
+    }
   | { type: "setLeadsStatusFilter"; filter: LeadStatusFilter }
   | { type: "leadNotesChanged"; id: string; notes: string }
   | { type: "updateLeadRequested"; seed?: { leads: Lead[]; revision: number } }
@@ -423,7 +427,9 @@ export function adminReducer(state: AdminState, event: AdminEvent): AdminState {
         !!current &&
         current.notes !== event.lead.notes &&
         event.committedNotes !== current.notes;
-      const merged = keepNotes ? { ...event.lead, notes: current!.notes } : event.lead;
+      const merged = keepNotes
+        ? { ...event.lead, notes: current!.notes }
+        : event.lead;
       const nextLeads = current
         ? state.leads.map((lead) => (lead.id === merged.id ? merged : lead))
         : [...state.leads, merged];
@@ -463,18 +469,29 @@ export function seedSelectLeadFromIdle(
   id: string,
   seed: LeadsIdleSeed,
 ): Extract<AdminEvent, { type: "selectLead" }> {
-  return { type: "selectLead", id, seed: { leads: seed.leads, revision: seed.revision } };
+  return {
+    type: "selectLead",
+    id,
+    seed: { leads: seed.leads, revision: seed.revision },
+  };
 }
 
 export function seedUpdateLeadRequestedFromIdle(
   seed: LeadsIdleSeed,
 ): Extract<AdminEvent, { type: "updateLeadRequested" }> {
-  return { type: "updateLeadRequested", seed: { leads: seed.leads, revision: seed.revision } };
+  return {
+    type: "updateLeadRequested",
+    seed: { leads: seed.leads, revision: seed.revision },
+  };
 }
 
 export function seedOnNotesSelectLeadFromIdle(
   id: string,
   seed: LeadsIdleSeed,
 ): Extract<AdminEvent, { type: "selectLead" }> {
-  return { type: "selectLead", id, seed: { leads: seed.leads, revision: seed.revision } };
+  return {
+    type: "selectLead",
+    id,
+    seed: { leads: seed.leads, revision: seed.revision },
+  };
 }

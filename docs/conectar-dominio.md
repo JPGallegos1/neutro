@@ -83,12 +83,13 @@ Para que los siguientes despliegues mantengan el dominio como configuración del
 
 ```jsonc
 {
-  "workers_dev": true,
+  "workers_dev": false,
+  "preview_urls": false,
   "routes": [{ "pattern": "neutro.solutions", "custom_domain": true }],
 }
 ```
 
-`workers_dev: true` mantiene disponible la URL pública de `workers.dev` además del dominio personalizado.
+`workers_dev: false` y `preview_urls: false` dejan el Worker solo en el dominio personalizado; sin URL pública `*.workers.dev`.
 
 Desde la raíz del repositorio, validar y desplegar:
 
@@ -107,6 +108,8 @@ Completar la autorización en el navegador y volver a ejecutar el despliegue. Gu
 
 ## 6. Redirigir www al dominio principal
 
+`www.neutro.solutions` **no** es un Custom Domain del Worker. No va en `routes` de `apps/web/wrangler.jsonc`. Queda como redirección a nivel de zona (DNS + Redirect Rules).
+
 El Custom Domain de `neutro.solutions` sólo cubre ese hostname. Para atender `www.neutro.solutions` y redirigirlo:
 
 1. En **DNS → Records** de la zona, crear o ajustar un registro para `www` con el proxy de Cloudflare activado. Para un hostname dedicado únicamente a redirecciones, se puede usar **AAAA**, nombre **`www`**, valor **`100::`**, estado **Proxied**.
@@ -115,7 +118,7 @@ El Custom Domain de `neutro.solutions` sólo cubre ese hostname. Para atender `w
 4. Configurar la redirección de `www.neutro.solutions` a **`https://neutro.solutions`**, con código **301**, conservando la ruta y los parámetros de consulta.
 5. Guardar y activar la regla.
 
-`100::` es una dirección de marcador para este caso sin servidor de origen: el proxy de Cloudflare atiende la petición y aplica la redirección.
+`100::` es una dirección de marcador para este caso sin servidor de origen: el proxy de Cloudflare atiende la petición y aplica la redirección. No asociar `www` al Worker como Custom Domain.
 
 ## 7. Verificar el resultado
 

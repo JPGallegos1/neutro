@@ -15,6 +15,7 @@ import {
   createSearchArea,
   type CreateSearchAreaInput,
 } from "../src/search-area";
+import { withSecurityHeaders } from "./security-headers";
 
 export type AdminWorkerEnv = {
   DB: D1DatabaseLike;
@@ -161,10 +162,12 @@ export default {
     const asset = await env.ASSETS.fetch(request);
     const headers = new Headers(asset.headers);
     headers.set("x-robots-tag", "noindex, nofollow");
-    return new Response(asset.body, {
-      status: asset.status,
-      statusText: asset.statusText,
-      headers,
-    });
+    return withSecurityHeaders(
+      new Response(asset.body, {
+        status: asset.status,
+        statusText: asset.statusText,
+        headers,
+      }),
+    );
   },
 };

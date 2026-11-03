@@ -428,13 +428,17 @@ describe("Worker: 404 bajo assets con Cache-Control propio", () => {
       );
       assert.equal(response.headers.get("X-Frame-Options"), "DENY");
       assert.ok(
-        (
-          response.headers.get("Content-Security-Policy-Report-Only") ?? ""
-        ).includes("default-src 'self'"),
+        (response.headers.get("Content-Security-Policy") ?? "").includes(
+          "default-src 'self'",
+        ),
+      );
+      assert.equal(
+        response.headers.get("Content-Security-Policy-Report-Only"),
+        null,
       );
       assert.equal(
         response.headers.get("Strict-Transport-Security"),
-        "max-age=300",
+        "max-age=31536000; includeSubDomains",
       );
       assert.equal(calls.length, 1);
     });
