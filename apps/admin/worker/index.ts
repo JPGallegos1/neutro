@@ -15,6 +15,7 @@ import {
   createSearchArea,
   type CreateSearchAreaInput,
 } from "../src/search-area";
+import { withSecurityHeaders } from "./security-headers";
 
 export type AdminWorkerEnv = {
   DB: D1DatabaseLike;
@@ -23,13 +24,15 @@ export type AdminWorkerEnv = {
 };
 
 function json(data: unknown, status = 200) {
-  return new Response(JSON.stringify(data), {
-    status,
-    headers: {
-      "content-type": "application/json; charset=utf-8",
-      "x-robots-tag": "noindex, nofollow",
-    },
-  });
+  return withSecurityHeaders(
+    new Response(JSON.stringify(data), {
+      status,
+      headers: {
+        "content-type": "application/json; charset=utf-8",
+        "x-robots-tag": "noindex, nofollow",
+      },
+    }),
+  );
 }
 
 export default {
@@ -161,10 +164,12 @@ export default {
     const asset = await env.ASSETS.fetch(request);
     const headers = new Headers(asset.headers);
     headers.set("x-robots-tag", "noindex, nofollow");
-    return new Response(asset.body, {
-      status: asset.status,
-      statusText: asset.statusText,
-      headers,
-    });
+    return withSecurityHeaders(
+      new Response(asset.body, {
+        status: asset.status,
+        statusText: asset.statusText,
+        headers,
+      }),
+    );
   },
 };
