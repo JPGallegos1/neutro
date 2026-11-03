@@ -8,8 +8,9 @@ const ROOT = fileURLToPath(new URL("../..", import.meta.url));
 const WEB_WRANGLER = `${ROOT}/apps/web/wrangler.jsonc`;
 const ADMIN_WRANGLER = `${ROOT}/apps/admin/wrangler.jsonc`;
 
-const WEB_CUSTOM_DOMAINS = ["neutro.solutions", "www.neutro.solutions"];
+const WEB_CUSTOM_DOMAINS = ["neutro.solutions"];
 const ADMIN_CUSTOM_DOMAINS = ["admin.neutro.solutions"];
+const FORBIDDEN_CUSTOM_DOMAINS = ["www.neutro.solutions"];
 
 function parseJsonc(raw) {
   const withoutBlockComments = raw.replace(/\/\*[\s\S]*?\*\//g, "");
@@ -21,23 +22,32 @@ function parseJsonc(raw) {
   return JSON.parse(withoutTrailingCommas);
 }
 
+function customDomainPatterns(config) {
+  assert.ok(Array.isArray(config.routes), "falta routes[]");
+  return config.routes
+    .filter(
+      (route) =>
+        route &&
+        typeof route === "object" &&
+        route.custom_domain === true &&
+        typeof route.pattern === "string",
+    )
+    .map((route) => route.pattern);
+}
+
 function assertCustomDomainRoutes(config, expectedPatterns, label) {
-  assert.ok(Array.isArray(config.routes), `${label}: falta routes[]`);
-  const custom = config.routes.filter(
-    (route) =>
-      route &&
-      typeof route === "object" &&
-      route.custom_domain === true &&
-      typeof route.pattern === "string",
-  );
-  const patterns = custom.map((route) => route.pattern).sort();
+  const patterns = customDomainPatterns(config).sort();
   assert.deepEqual(
     patterns,
     [...expectedPatterns].sort(),
     `${label}: routes custom_domain`,
   );
-  for (const route of custom) {
-    assert.equal(route.custom_domain, true, `${label}: ${route.pattern}`);
+  for (const pattern of patterns) {
+    assert.equal(
+      FORBIDDEN_CUSTOM_DOMAINS.includes(pattern),
+      false,
+      `${label}: ${pattern} no debe ser custom_domain`,
+    );
   }
 }
 
@@ -51,7 +61,7 @@ function assertOptionalWorkersFlags(config, label) {
 }
 
 describe("wrangler custom domains", () => {
-  it("declara custom_domain en web (apex + www) y admin", () => {
+  it("declara custom_domain en web (apex) y admin, sin www", () => {
     const web = parseJsonc(readFileSync(WEB_WRANGLER, "utf8"));
     const admin = parseJsonc(readFileSync(ADMIN_WRANGLER, "utf8"));
 
@@ -59,5 +69,17 @@ describe("wrangler custom domains", () => {
     assertCustomDomainRoutes(admin, ADMIN_CUSTOM_DOMAINS, "admin");
     assertOptionalWorkersFlags(web, "web");
     assertOptionalWorkersFlags(admin, "admin");
+
+    const allPatterns = [
+      ...customDomainPatterns(web),
+      ...customDomainPatterns(admin),
+    ];
+    for (const forbidden of FORBIDDEN_CUSTOM_DOMAINS) {
+      assert.equal(
+        allPatterns.includes(forbidden),
+        false,
+        `${forbidden} no debe aparecer como custom_domain`,
+      );
+    }
   });
 });
