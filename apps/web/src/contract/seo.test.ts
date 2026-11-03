@@ -400,8 +400,7 @@ const JAKE_DOCUMENT_TITLES = {
   "conexion-laboral":
     "Conexión Laboral: landing de asesoría | Neutro Solutions",
   afectiva: "Afectiva Comunicaciones: sitio web | Neutro Solutions",
-  "capa-automotores":
-    "Capa Automotores: catálogo con stock | Neutro Solutions",
+  "capa-automotores": "Capa Automotores: catálogo con stock | Neutro Solutions",
   "suplementacion-ciencia":
     "Suplementación con Ciencia: tienda online | Neutro Solutions",
   luxurycars: "Luxury Cars: plataforma de autos de lujo | Neutro Solutions",
@@ -461,8 +460,9 @@ function metaNameContent(document: HTMLElement, name: string): string[] {
 }
 
 function jsonLdGraphs(document: HTMLElement): unknown[] {
-  return document.querySelectorAll('script[type="application/ld+json"]').flatMap(
-    (script) => {
+  return document
+    .querySelectorAll('script[type="application/ld+json"]')
+    .flatMap((script) => {
       try {
         const parsed: unknown = JSON.parse(script.text);
         if (
@@ -477,8 +477,7 @@ function jsonLdGraphs(document: HTMLElement): unknown[] {
       } catch {
         return [];
       }
-    },
-  );
+    });
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -678,7 +677,9 @@ describe("contrato SEO-04 y SEO-05 de fichas", () => {
     assert.deepEqual(itemNames, JAKE_OFFICIAL_NAME_LIST);
     for (const name of itemNames) {
       assert.ok(
-        JAKE_OFFICIAL_NAME_LIST.includes(name as (typeof JAKE_OFFICIAL_NAME_LIST)[number]),
+        JAKE_OFFICIAL_NAME_LIST.includes(
+          name as (typeof JAKE_OFFICIAL_NAME_LIST)[number],
+        ),
         `ItemList name no oficial: ${name}`,
       );
       assert.ok(
@@ -738,7 +739,7 @@ describe("contrato SEO-04 y SEO-05 de fichas", () => {
         );
         assert.ok(
           next === null ||
-            !((next.getAttribute("class") ?? "").includes("work-case__name")),
+            !(next.getAttribute("class") ?? "").includes("work-case__name"),
           `${route} no debe tener p.work-case__name tras el H1`,
         );
         assert.equal(
@@ -758,7 +759,11 @@ describe("contrato SEO-04 y SEO-05 de fichas", () => {
           `${route} aria-labelledby=${JSON.stringify(labelledBy)}`,
         );
         assert.ok(next, `${route} sin hermano siguiente del H1`);
-        assert.equal(next.tagName.toLowerCase(), "p", `${route} hermano del H1`);
+        assert.equal(
+          next.tagName.toLowerCase(),
+          "p",
+          `${route} hermano del H1`,
+        );
         const nextClass = next.getAttribute("class") ?? "";
         assert.ok(
           nextClass.includes("work-case__name"),
