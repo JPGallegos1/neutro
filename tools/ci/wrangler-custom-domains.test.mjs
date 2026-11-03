@@ -51,13 +51,9 @@ function assertCustomDomainRoutes(config, expectedPatterns, label) {
   }
 }
 
-function assertOptionalWorkersFlags(config, label) {
-  if (Object.hasOwn(config, "workers_dev")) {
-    assert.equal(config.workers_dev, false, `${label}: workers_dev`);
-  }
-  if (Object.hasOwn(config, "preview_urls")) {
-    assert.equal(config.preview_urls, false, `${label}: preview_urls`);
-  }
+function assertWorkersDevAndPreviewUrlsOff(config, label) {
+  assert.equal(config.workers_dev, false, `${label}: workers_dev`);
+  assert.equal(config.preview_urls, false, `${label}: preview_urls`);
 }
 
 describe("wrangler custom domains", () => {
@@ -67,8 +63,8 @@ describe("wrangler custom domains", () => {
 
     assertCustomDomainRoutes(web, WEB_CUSTOM_DOMAINS, "web");
     assertCustomDomainRoutes(admin, ADMIN_CUSTOM_DOMAINS, "admin");
-    assertOptionalWorkersFlags(web, "web");
-    assertOptionalWorkersFlags(admin, "admin");
+    assertWorkersDevAndPreviewUrlsOff(web, "web");
+    assertWorkersDevAndPreviewUrlsOff(admin, "admin");
 
     const allPatterns = [
       ...customDomainPatterns(web),
