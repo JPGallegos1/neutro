@@ -14,7 +14,7 @@ const EXPECTED_REFERRER_POLICY = "strict-origin-when-cross-origin";
 const EXPECTED_PERMISSIONS_POLICY =
   "camera=(), microphone=(), geolocation=(), payment=(), usb=(), browsing-topics=()";
 const EXPECTED_X_FRAME_OPTIONS = "DENY";
-const EXPECTED_HSTS = "max-age=300";
+const EXPECTED_HSTS = "max-age=31536000; includeSubDomains";
 const EXPECTED_CSP_DIRECTIVES = [
   "default-src 'self'",
   "script-src 'self' 'unsafe-inline'",
@@ -27,7 +27,7 @@ const EXPECTED_CSP_DIRECTIVES = [
   "base-uri 'self'",
   "form-action 'self'",
 ] as const;
-const EXPECTED_CSP_REPORT_ONLY = EXPECTED_CSP_DIRECTIVES.join("; ");
+const EXPECTED_CSP = EXPECTED_CSP_DIRECTIVES.join("; ");
 
 function executionContext(): ExecutionContext {
   return {
@@ -286,9 +286,9 @@ function assertSimpleSecurityHeaders(response: Response): void {
   }
 }
 
-function assertCspReportOnly(response: Response): void {
-  const csp = response.headers.get("Content-Security-Policy-Report-Only");
-  assert.equal(csp, EXPECTED_CSP_REPORT_ONLY);
+function assertCspEnforced(response: Response): void {
+  const csp = response.headers.get("Content-Security-Policy");
+  assert.equal(csp, EXPECTED_CSP);
   for (const directive of EXPECTED_CSP_DIRECTIVES) {
     assert.equal(
       csp?.includes(directive) ?? false,
@@ -296,7 +296,10 @@ function assertCspReportOnly(response: Response): void {
       `CSP missing directive: ${directive}`,
     );
   }
-  assert.equal(response.headers.get("Content-Security-Policy"), null);
+  assert.equal(
+    response.headers.get("Content-Security-Policy-Report-Only"),
+    null,
+  );
 }
 
 function assertNoCsp(response: Response): void {
@@ -310,9 +313,9 @@ function assertNoCsp(response: Response): void {
 function assertHstsProduction(response: Response): void {
   const hsts = response.headers.get("Strict-Transport-Security");
   assert.equal(hsts, EXPECTED_HSTS);
-  assert.equal(hsts?.includes("includeSubDomains"), false);
+  assert.equal(hsts?.includes("includeSubDomains"), true);
   assert.equal(hsts?.includes("preload"), false);
-  assert.match(hsts ?? "", /^max-age=300$/);
+  assert.match(hsts ?? "", /^max-age=31536000; includeSubDomains$/);
 }
 
 function assertNoHsts(response: Response): void {
@@ -364,7 +367,7 @@ describe("SEO-10 security headers", () => {
     assert.equal(response.headers.get("X-Frame-Options"), "DENY");
     assertSimpleSecurityHeaders(response);
     assertHstsProduction(response);
-    assertCspReportOnly(response);
+    assertCspEnforced(response);
     assert.equal(
       response.headers.get("cache-control"),
       "public, max-age=0, must-revalidate",
@@ -458,7 +461,7 @@ describe("SEO-10 security headers", () => {
     }
   });
 
-  it("applies simple headers and CSP Report-Only to HTML 404", async () => {
+  it("applies simple headers and enforced CSP to HTML 404", async () => {
     const { env } = typedAssetEnv(
       404,
       "<html>404</html>",
@@ -469,7 +472,7 @@ describe("SEO-10 security headers", () => {
     assert.equal(response.status, 404);
     assertSimpleSecurityHeaders(response);
     assertHstsProduction(response);
-    assertCspReportOnly(response);
+    assertCspEnforced(response);
   });
 
   it("sets HSTS only on apex and www, including uppercase host and explicit port", async () => {
@@ -515,7 +518,7 @@ describe("SEO-10 security headers", () => {
       );
       assertNoHsts(response);
       assertSimpleSecurityHeaders(response);
-      assertCspReportOnly(response);
+      assertCspEnforced(response);
     }
 
     assert.equal(isHstsHost("neutro.solutions.evil.com"), false);
@@ -531,9 +534,9 @@ describe("SEO-10 security headers", () => {
       "referrer-policy": "no-referrer",
       "permissions-policy": "camera=(self)",
       "x-content-type-options": "none",
+      "content-security-policy": "default-src 'none'",
       "content-security-policy-report-only": "default-src 'none'",
-      "strict-transport-security":
-        "max-age=31536000; includeSubDomains; preload",
+      "strict-transport-security": "max-age=60; includeSubDomains; preload",
     });
     const response = await fetchWorker(`${PRODUCTION}/`, env);
 
@@ -552,7 +555,11 @@ describe("SEO-10 security headers", () => {
       response.headers.get("Strict-Transport-Security"),
       EXPECTED_HSTS,
     );
-    assertCspReportOnly(response);
+    assert.equal(
+      response.headers.get("Strict-Transport-Security")?.includes("preload"),
+      false,
+    );
+    assertCspEnforced(response);
   });
 
   it("preserves 206 Partial Content status, Content-Range and body", async () => {
@@ -703,16 +710,29 @@ describe("SEO-10 security headers", () => {
     assert.equal(response.status, 200);
     assertSimpleSecurityHeaders(response);
     assertHstsProduction(response);
-    assertCspReportOnly(response);
+    assertCspEnforced(response);
   });
 
-  it("never emits Content-Security-Policy enforce on any response type", async () => {
-    const cases: Array<() => Promise<Response>> = [
+  it("emits enforced CSP on HTML and never Report-Only on any response type", async () => {
+    const htmlCases: Array<() => Promise<Response>> = [
       () =>
         fetchWorker(
           `${PRODUCTION}/`,
           typedAssetEnv(200, "<html/>", "text/html").env,
         ),
+      () =>
+        fetchWorker(
+          `${PRODUCTION}/missing`,
+          typedAssetEnv(404, "<html>404</html>", "text/html").env,
+        ),
+    ];
+    for (const run of htmlCases) {
+      const response = await run();
+      assertCspEnforced(response);
+      assertSimpleSecurityHeaders(response);
+    }
+
+    const nonHtmlCases: Array<() => Promise<Response>> = [
       () =>
         fetchWorker(
           `${PRODUCTION}/_astro/x.css`,
@@ -733,16 +753,11 @@ describe("SEO-10 security headers", () => {
           globalThis.fetch = originalFetch;
         }
       },
-      () =>
-        fetchWorker(
-          `${PRODUCTION}/missing`,
-          typedAssetEnv(404, "<html>404</html>", "text/html").env,
-        ),
     ];
 
-    for (const run of cases) {
+    for (const run of nonHtmlCases) {
       const response = await run();
-      assert.equal(response.headers.get("Content-Security-Policy"), null);
+      assertNoCsp(response);
       assertSimpleSecurityHeaders(response);
     }
   });
