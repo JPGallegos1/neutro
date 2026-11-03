@@ -66,7 +66,9 @@ export function csvHasForbiddenGooglePlacesColumns(csv: string): boolean {
 
 export function leadCsvFitnessViolations(csv: string): string[] {
   const violations: string[] = [];
-  const header = (csv.split(/\r?\n/, 1)[0] ?? "").split(",").map((c) => c.trim());
+  const header = (csv.split(/\r?\n/, 1)[0] ?? "")
+    .split(",")
+    .map((c) => c.trim());
   for (const col of LEAD_CSV_MIN_COLUMNS) {
     if (!header.includes(col)) violations.push(`missing:${col}`);
   }
@@ -74,7 +76,9 @@ export function leadCsvFitnessViolations(csv: string): string[] {
     violations.push("forbidden_google_places_columns");
   }
   for (const col of header) {
-    if ((FORBIDDEN_GOOGLE_PLACES_CSV_COLUMNS as readonly string[]).includes(col)) {
+    if (
+      (FORBIDDEN_GOOGLE_PLACES_CSV_COLUMNS as readonly string[]).includes(col)
+    ) {
       violations.push(`google_col:${col}`);
     }
   }

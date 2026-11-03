@@ -20,11 +20,7 @@ const showLoadMore = workProjects.length > LANDING_WORK_LIMIT;
       data-page-size={LANDING_WORK_LIMIT}
     >
       {workProjects.map((project, index) => (
-        <WorkCard
-          project={project}
-          titleAs="h2"
-          priority={index === 0}
-        />
+        <WorkCard project={project} titleAs="h2" priority={index === 0} />
       ))}
     </ul>
     {showLoadMore && (
@@ -80,9 +76,8 @@ const showLoadMore = workProjects.length > LANDING_WORK_LIMIT;
         document.activeElement === loadButton
       ) {
         const focusCard = cards[focusFrom];
-        const focusLink = focusCard?.querySelector<HTMLAnchorElement>(
-          "a.work-card__inner",
-        );
+        const focusLink =
+          focusCard?.querySelector<HTMLAnchorElement>("a.work-card__inner");
         focusLink?.focus();
       }
       const showMore = visible < cards.length;

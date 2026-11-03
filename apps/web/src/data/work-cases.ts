@@ -186,8 +186,7 @@ export const workCases: WorkCase[] = [
     h1OfficialLine: "Suplementación con Ciencia (SCC)",
     clientName: "Suplementación con Ciencia",
     seoTitle: "Suplementación con Ciencia: tienda online",
-    outcomeTitle:
-      "una tienda online que muestra la ciencia detrás",
+    outcomeTitle: "una tienda online que muestra la ciencia detrás",
     metaDescription:
       "Tienda online de suplementos deportivos con información respaldada por ciencia y envíos a todo el país. Catálogo, pagos y diseño a medida sobre Tiendanube.",
     tag: "En producción",
