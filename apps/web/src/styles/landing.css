@@ -1,10 +1,11 @@
 :root {
   --landing-gutter: 24px;
   --landing-section-space: 56px;
+  --landing-section-divider-space: calc(var(--landing-section-space) / 2);
   --landing-work-row-gap: 24px;
 
   --landing-service-title-size: 28px;
-  --landing-service-title-weight: 500;
+  --landing-service-title-weight: 200;
   --landing-service-title-leading: normal;
   --landing-service-title-tracking: -0.84px;
   --landing-service-summary-size: 18px;

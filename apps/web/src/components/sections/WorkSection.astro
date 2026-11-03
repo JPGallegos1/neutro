@@ -21,7 +21,9 @@ const landingProjects = workProjects.slice(0, LANDING_WORK_LIMIT);
 <style>
   .work {
     background: var(--neutro-bg);
-    padding-block: var(--landing-section-space) 0;
+    padding-block: var(--landing-section-space)
+      var(--landing-section-divider-space);
+    border-bottom: 1px solid var(--neutro-border);
   }
 
   .work__header {
@@ -40,6 +42,7 @@ const landingProjects = workProjects.slice(0, LANDING_WORK_LIMIT);
     font-weight: 500;
     line-height: 1;
     letter-spacing: -0.8px;
+    text-transform: uppercase;
     color: var(--neutro-text);
   }
 

@@ -7,10 +7,7 @@ import { fileURLToPath } from "node:url";
 const webRoot = fileURLToPath(new URL("../", import.meta.url));
 const distDir = fileURLToPath(new URL("../../dist/", import.meta.url));
 
-const landingCss = readFileSync(
-  join(webRoot, "styles/landing.css"),
-  "utf8",
-);
+const landingCss = readFileSync(join(webRoot, "styles/landing.css"), "utf8");
 const workCardSource = readFileSync(
   join(webRoot, "components/sections/WorkCard.astro"),
   "utf8",
@@ -37,8 +34,8 @@ function assertSharedTitleTokens(css: string, where: string): void {
   );
   assert.match(
     css,
-    /--landing-service-title-weight\s*:\s*500/,
-    `${where}: falta --landing-service-title-weight 500`,
+    /--landing-service-title-weight\s*:\s*200/,
+    `${where}: falta --landing-service-title-weight 200`,
   );
   assert.match(
     css,
@@ -159,10 +156,7 @@ describe("tipografía compartida Qué hacemos ↔ work-card", () => {
       "work-card__title-only",
     );
     assert.throws(() => {
-      assert.match(
-        mutated,
-        /class="work-card__title landing-service-title"/,
-      );
+      assert.match(mutated, /class="work-card__title landing-service-title"/);
     }, /landing-service-title/);
   });
 });
