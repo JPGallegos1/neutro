@@ -4,11 +4,11 @@ export const PERMISSIONS_POLICY =
   "camera=(), microphone=(), geolocation=(), payment=(), usb=(), browsing-topics=()";
 export const X_FRAME_OPTIONS = "DENY";
 
-export const CSP_REPORT_ONLY =
+export const CSP =
   "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self' data:; media-src 'self'; connect-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'";
 
-export const HSTS_MAX_AGE_SECONDS = 300;
-export const HSTS_VALUE = `max-age=${HSTS_MAX_AGE_SECONDS}`;
+export const HSTS_MAX_AGE_SECONDS = 31536000;
+export const HSTS_VALUE = `max-age=${HSTS_MAX_AGE_SECONDS}; includeSubDomains`;
 
 const HSTS_HOSTS = new Set(["neutro.solutions", "www.neutro.solutions"]);
 
@@ -45,7 +45,8 @@ export function withSecurityHeaders(
   headers.set("X-Frame-Options", X_FRAME_OPTIONS);
 
   if (isHtmlContentType(headers.get("content-type"))) {
-    headers.set("Content-Security-Policy-Report-Only", CSP_REPORT_ONLY);
+    headers.set("Content-Security-Policy", CSP);
+    headers.delete("Content-Security-Policy-Report-Only");
   }
 
   if (isHstsHost(hostname)) {

@@ -83,12 +83,13 @@ Para que los siguientes despliegues mantengan el dominio como configuración del
 
 ```jsonc
 {
-  "workers_dev": true,
+  "workers_dev": false,
+  "preview_urls": false,
   "routes": [{ "pattern": "neutro.solutions", "custom_domain": true }],
 }
 ```
 
-`workers_dev: true` mantiene disponible la URL pública de `workers.dev` además del dominio personalizado.
+`workers_dev: false` y `preview_urls: false` dejan el Worker solo en el dominio personalizado; sin URL pública `*.workers.dev`.
 
 Desde la raíz del repositorio, validar y desplegar:
 
