@@ -11,10 +11,15 @@ interface Props {
 const { navItems } = Astro.props;
 ---
 
-<dialog id="menu-drawer" class="mobile-drawer" aria-label="Menú" data-drawer>
+<dialog
+  id="menu-drawer"
+  class="mobile-drawer dark"
+  aria-label="Menú"
+  data-drawer
+>
   <div class="mobile-drawer__panel">
     <div class="mobile-drawer__top">
-      <Logo />
+      <Logo forceDark />
       <button
         type="button"
         class="mobile-drawer__close"
@@ -141,28 +146,102 @@ const { navItems } = Astro.props;
       document.body.style.overflow = open ? "hidden" : "";
     };
 
-    const open = () => {
+    let pendingClose: AbortController | undefined;
+
+    const cancelClose = () => {
+      pendingClose?.abort();
+      pendingClose = undefined;
+      delete dialog.dataset.closing;
+    };
+
+    const closeImmediately = () => {
+      cancelClose();
+      dialog.dataset.instant = "";
+      if (dialog.open) dialog.close();
+    };
+
+    const open = (event: MouseEvent) => {
+      cancelClose();
+      dialog.toggleAttribute("data-instant", event.detail === 0);
       if (!dialog.open) {
         dialog.showModal();
         setExpanded(true);
       }
     };
 
-    const close = () => {
-      if (dialog.open) {
-        dialog.close();
+    const close = (event: MouseEvent) => {
+      if (event.detail === 0) {
+        closeImmediately();
+        return;
       }
+      if (!dialog.open || pendingClose) return;
+
+      delete dialog.dataset.instant;
+      void getComputedStyle(dialog).opacity;
+      const closing = new AbortController();
+      pendingClose = closing;
+      const finish = () => {
+        if (pendingClose === closing) closeImmediately();
+      };
+
+      dialog.addEventListener(
+        "transitionend",
+        (event) => {
+          if (event.target === dialog && event.propertyName === "opacity") {
+            finish();
+          }
+        },
+        { signal: closing.signal },
+      );
+      dialog.dataset.closing = "";
+
+      const fading = dialog
+        .getAnimations()
+        .some(
+          (animation) =>
+            animation instanceof CSSTransition &&
+            animation.transitionProperty === "opacity" &&
+            animation.playState !== "finished",
+        );
+      if (!fading) {
+        finish();
+        return;
+      }
+
+      const timer = window.setTimeout(finish, 200);
+      closing.signal.addEventListener(
+        "abort",
+        () => window.clearTimeout(timer),
+        {
+          once: true,
+        },
+      );
     };
 
+    signal.addEventListener("abort", cancelClose, { once: true });
     openBtn.addEventListener("click", open, { signal });
     closeBtns.forEach((btn) =>
       btn.addEventListener("click", close, { signal }),
     );
-    links.forEach((link) => link.addEventListener("click", close, { signal }));
+    links.forEach((link) =>
+      link.addEventListener("click", closeImmediately, { signal }),
+    );
+
+    dialog.addEventListener(
+      "cancel",
+      () => {
+        cancelClose();
+        dialog.dataset.instant = "";
+      },
+      { signal },
+    );
 
     dialog.addEventListener(
       "close",
       () => {
+        if (dialog.open) return;
+        cancelClose();
+        delete dialog.dataset.instant;
         setExpanded(false);
         focusVisibleControl(openBtn);
       },
@@ -172,16 +251,16 @@ const { navItems } = Astro.props;
     dialog.addEventListener(
       "click",
       (event) => {
-        if (event.target === dialog) close();
+        if (event.target === dialog) close(event);
       },
       { signal },
     );
 
     const onDesktopChange = (event: MediaQueryListEvent) => {
-      if (event.matches) close();
+      if (event.matches) closeImmediately();
     };
     desktopMq.addEventListener("change", onDesktopChange, { signal });
-    if (desktopMq.matches && dialog.open) close();
+    if (desktopMq.matches && dialog.open) closeImmediately();
   }
 
   initDrawer();
@@ -190,6 +269,13 @@ const { navItems } = Astro.props;
 
 <style>
   .mobile-drawer {
+    --neutro-bg: #0a0a0a;
+    --neutro-text: #f6f6f4;
+    --neutro-text-muted: #b4b4af;
+    --neutro-border: #262624;
+    --neutro-accent-blue: #5c78ff;
+    --neutro-focus: #5c78ff;
+    --landing-focus: var(--neutro-focus);
     width: 100%;
     max-width: 100%;
     height: 100%;
@@ -197,8 +283,13 @@ const { navItems } = Astro.props;
     margin: 0;
     padding: 0;
     border: 0;
-    background: var(--neutro-bg);
+    background: #0a0a0a;
     color: var(--neutro-text);
+    opacity: 0;
+    transform: translateY(-8px);
+    transition:
+      opacity var(--landing-ease-drawer-exit),
+      transform var(--landing-ease-drawer-exit);
   }
 
   .mobile-drawer::backdrop {
@@ -207,18 +298,26 @@ const { navItems } = Astro.props;
 
   .mobile-drawer[open] {
     display: block;
-    animation: drawer-in var(--landing-ease-drawer) both;
+    opacity: 1;
+    transform: translateY(0);
+    transition:
+      opacity var(--landing-ease-drawer),
+      transform var(--landing-ease-drawer);
   }
 
-  @keyframes drawer-in {
-    from {
+  @starting-style {
+    .mobile-drawer[open]:not([data-instant]) {
       opacity: 0;
       transform: translateY(-8px);
     }
-    to {
-      opacity: 1;
-      transform: translateY(0);
-    }
+  }
+
+  .mobile-drawer[open][data-closing] {
+    opacity: 0;
+    transform: translateY(-8px);
+    transition:
+      opacity var(--landing-ease-drawer-exit),
+      transform var(--landing-ease-drawer-exit);
   }
 
   .mobile-drawer__panel {
@@ -329,8 +428,22 @@ const { navItems } = Astro.props;
   }
 
   @media (prefers-reduced-motion: reduce) {
-    .mobile-drawer[open] {
-      animation: none;
+    .mobile-drawer,
+    .mobile-drawer[open],
+    .mobile-drawer[open][data-closing] {
+      transform: none;
+      transition: opacity var(--landing-ease-drawer-reduced);
+      transition-duration: 100ms !important;
     }
+
+    @starting-style {
+      .mobile-drawer[open]:not([data-instant]) {
+        transform: none;
+      }
+    }
+  }
+
+  .mobile-drawer[open][data-instant] {
+    transition: none !important;
   }
 </style>

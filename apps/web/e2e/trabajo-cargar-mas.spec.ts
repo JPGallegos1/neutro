@@ -97,7 +97,7 @@ function conNueveCards(html: string): string {
       `href="/trabajo/${extra.slug}"`,
     );
     card = card.replace(
-      /(<h2 class="work-card__title"[^>]*>)([\s\S]*?)(<\/h2>)/,
+      /(<h2\b[^>]*\bclass="[^"]*\bwork-card__title\b[^"]*"[^>]*>)([\s\S]*?)(<\/h2>)/,
       `$1${extra.title}$3`,
     );
     card = card.replace(/\sloading="eager"/, ' loading="lazy"');

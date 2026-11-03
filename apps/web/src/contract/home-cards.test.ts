@@ -1,13 +1,38 @@
 import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
 import { describe, it } from "node:test";
+import { fileURLToPath } from "node:url";
 
 import { readDistPage } from "./dist.ts";
+
+const workSectionSource = readFileSync(
+  fileURLToPath(
+    new URL("../components/sections/WorkSection.astro", import.meta.url),
+  ),
+  "utf8",
+);
 
 function isTrabajoHref(href: string): boolean {
   return href === "/trabajo" || href.startsWith("/trabajo/");
 }
 
 describe("cards de trabajo en la home", () => {
+  it("el heading de la sección home sigue siendo exactamente Trabajo", () => {
+    assert.match(
+      workSectionSource,
+      /<h2\b[^>]*\bid="trabajo-heading"[^>]*>\s*Trabajo\s*<\/h2>/,
+    );
+    assert.doesNotMatch(workSectionSource, /Casos de clientes/);
+    const section = readDistPage("index.html").querySelector("section#trabajo");
+    assert.ok(section, "falta section#trabajo en dist/index.html");
+    const heading = section.querySelector("#trabajo-heading");
+    assert.equal(
+      heading?.text.trim().replace(/\s+/g, " "),
+      "Trabajo",
+      `heading home=${JSON.stringify(heading?.text)}; se exige «Trabajo»`,
+    );
+  });
+
   it("renderiza exactamente 4 cards en dist/index.html", () => {
     const cards = readDistPage("index.html").querySelectorAll("li.work-card");
     assert.equal(

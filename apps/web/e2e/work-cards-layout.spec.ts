@@ -3,6 +3,7 @@ import { expect, test, type Locator, type Page } from "@playwright/test";
 const GAP_VIEWPORTS = [360, 390, 768, 1023] as const;
 const DESKTOP_FOCUS = [1024, 1440] as const;
 const MIN_GAP_PX = 24;
+const DESKTOP_ROW_GAP_PX = 48;
 const MIN_RING_PX = 2;
 const RING_TOLERANCE = 0.5;
 const MAX_TABS = 40;
@@ -82,18 +83,24 @@ async function verticalGaps(page: Page, cardScope: string): Promise<number[]> {
       (card) => getComputedStyle(card).display !== "none",
     );
     const gaps: number[] = [];
-    for (let i = 0; i < cards.length - 1; i += 1) {
+    for (let i = 0; i < cards.length; i += 1) {
       const current = cards[i];
-      const next = cards[i + 1];
-      if (!current || !next) {
-        throw new Error(
-          `faltan cards adyacentes en el índice ${i} (visibles: ${cards.length})`,
-        );
-      }
+      if (!current) continue;
       const a = current.getBoundingClientRect();
-      const b = next.getBoundingClientRect();
-      if (Math.abs(a.left - b.left) < 40) {
-        gaps.push(b.top - a.bottom);
+      let nearestBelow: { top: number; bottom: number } | null = null;
+      for (let j = 0; j < cards.length; j += 1) {
+        if (i === j) continue;
+        const candidate = cards[j];
+        if (!candidate) continue;
+        const b = candidate.getBoundingClientRect();
+        if (Math.abs(a.left - b.left) >= 40) continue;
+        if (b.top < a.bottom - 0.5) continue;
+        if (!nearestBelow || b.top < nearestBelow.top) {
+          nearestBelow = { top: b.top, bottom: a.bottom };
+        }
+      }
+      if (nearestBelow) {
+        gaps.push(nearestBelow.top - nearestBelow.bottom);
       }
     }
     return gaps;
@@ -299,7 +306,7 @@ test.describe("separación vertical de work-cards en una columna", () => {
       });
     }
 
-    test(`a 1024px en ${surface.name}: 2 columnas y row-gap 0`, async ({
+    test(`a 1024px en ${surface.name}: 2 columnas y row-gap ${DESKTOP_ROW_GAP_PX}px`, async ({
       page,
     }) => {
       await page.setViewportSize({ width: 1024, height: 900 });
@@ -309,14 +316,14 @@ test.describe("separación vertical de work-cards en una columna", () => {
       const rowGap = await gridRowGap(page, surface.grid);
       expect(
         rowGap,
-        `row-gap a 1024 en ${surface.name} debe ser 0px; quedó ${rowGap}`,
-      ).toBe("0px");
+        `row-gap a 1024 en ${surface.name} debe ser ${DESKTOP_ROW_GAP_PX}px; quedó ${rowGap}`,
+      ).toBe(`${DESKTOP_ROW_GAP_PX}px`);
       const gaps = await verticalGaps(page, surface.cardScope);
       for (const gap of gaps) {
         expect(
           gap,
-          `no debería haber gap vertical de columna en ${surface.name} a 1024; gap=${gap}`,
-        ).toBeLessThan(MIN_GAP_PX - RING_TOLERANCE);
+          `gap vertical de columna en ${surface.name} a 1024; gap=${gap}`,
+        ).toBeGreaterThanOrEqual(DESKTOP_ROW_GAP_PX - RING_TOLERANCE);
       }
     });
   }

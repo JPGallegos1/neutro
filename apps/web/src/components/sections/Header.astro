@@ -7,9 +7,9 @@ import { navItems } from "@/data/nav";
 import { socialLinks } from "@/data/socials";
 ---
 
-<header class="site-header">
+<header class="site-header dark">
   <div class="landing-shell site-header__inner">
-    <Logo />
+    <Logo forceDark />
 
     <nav class="site-header__nav" aria-label="Principal">
       <ul class="site-header__nav-list">
@@ -76,7 +76,15 @@ import { socialLinks } from "@/data/socials";
 
 <style>
   .site-header {
-    background: var(--neutro-bg);
+    --neutro-bg: #0a0a0a;
+    --neutro-text: #f6f6f4;
+    --neutro-text-muted: #b4b4af;
+    --neutro-border: #262624;
+    --neutro-accent-blue: #5c78ff;
+    --neutro-focus: #5c78ff;
+    --landing-focus: var(--neutro-focus);
+    background: #0a0a0a;
+    color: var(--neutro-text);
   }
 
   .site-header__inner {
