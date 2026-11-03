@@ -66,22 +66,23 @@ describe("asset-cache path and status helpers", () => {
   });
 
   it("reconoce prefijos con startsWith y favicons/manifest por ruta exacta", () => {
-    assert.deepEqual([...LONG_CACHE_ASSET_PREFIXES], [
-      "/_astro/",
-      "/images/",
-      "/video/",
-      "/og/",
-    ]);
-    assert.deepEqual([...LONG_CACHE_ASSET_EXACT_PATHS], [
-      "/favicon.ico",
-      "/favicon.svg",
-      "/favicon-16x16.png",
-      "/favicon-32x32.png",
-      "/apple-touch-icon.png",
-      "/icon-192.png",
-      "/icon-512.png",
-      "/site.webmanifest",
-    ]);
+    assert.deepEqual(
+      [...LONG_CACHE_ASSET_PREFIXES],
+      ["/_astro/", "/images/", "/video/", "/og/"],
+    );
+    assert.deepEqual(
+      [...LONG_CACHE_ASSET_EXACT_PATHS],
+      [
+        "/favicon.ico",
+        "/favicon.svg",
+        "/favicon-16x16.png",
+        "/favicon-32x32.png",
+        "/apple-touch-icon.png",
+        "/icon-192.png",
+        "/icon-512.png",
+        "/site.webmanifest",
+      ],
+    );
     assert.equal(isLongCacheAssetPath("/_astro/base.CssHash.css"), true);
     assert.equal(isLongCacheAssetPath("/images/work/x.webp"), true);
     assert.equal(isLongCacheAssetPath("/video/neutro.mp4"), true);
@@ -155,7 +156,10 @@ describe("withAssetErrorCacheControl", () => {
   });
 
   it("conserva max-age=3600 en 200 de /images/* y /og/*", () => {
-    for (const path of ["/images/work/x.webp", "/og/og-1200x630.png"] as const) {
+    for (const path of [
+      "/images/work/x.webp",
+      "/og/og-1200x630.png",
+    ] as const) {
       const upstream = new Response("bin", {
         status: 200,
         headers: { "cache-control": HOUR },
@@ -215,7 +219,8 @@ describe("withAssetErrorCacheControl", () => {
       ] as const) {
         const upstream = new Response(`err-${status}`, {
           status,
-          statusText: status === 405 ? "Method Not Allowed" : "Internal Server Error",
+          statusText:
+            status === 405 ? "Method Not Allowed" : "Internal Server Error",
           headers: {
             "content-type": "text/plain",
             "cache-control": IMMUTABLE,
@@ -274,7 +279,10 @@ describe("withAssetErrorCacheControl", () => {
       assert.equal(fixed.statusText, upstream.statusText);
       assert.equal(await fixed.text(), bodyText);
       assert.equal(fixed.headers.get("Cache-Control"), "no-store");
-      assert.equal(fixed.headers.get("content-type"), "text/html; charset=utf-8");
+      assert.equal(
+        fixed.headers.get("content-type"),
+        "text/html; charset=utf-8",
+      );
       assert.equal(fixed.headers.get("x-upstream-probe"), "preserve");
       assert.equal(fixed.headers.get("etag"), '"abc123"');
       assert.notEqual(fixed.headers.get("Cache-Control"), IMMUTABLE);
@@ -321,7 +329,10 @@ describe("withAssetErrorCacheControl", () => {
     const fixed = withAssetErrorCacheControl(upstream, "/images/gone.webp");
     const fixedBody = await fixed.text();
     assert.equal(fixedBody, "keep-body");
-    assert.notEqual(await new Response(null, { status: 404 }).text(), fixedBody);
+    assert.notEqual(
+      await new Response(null, { status: 404 }).text(),
+      fixedBody,
+    );
     assert.equal(fixed.statusText, "Not Found");
     assert.notEqual(fixed.statusText, "");
     assert.equal(fixed.headers.get("x-upstream-probe"), "preserve");
@@ -417,9 +428,9 @@ describe("Worker: 404 bajo assets con Cache-Control propio", () => {
       );
       assert.equal(response.headers.get("X-Frame-Options"), "DENY");
       assert.ok(
-        (response.headers.get("Content-Security-Policy-Report-Only") ?? "").includes(
-          "default-src 'self'",
-        ),
+        (
+          response.headers.get("Content-Security-Policy-Report-Only") ?? ""
+        ).includes("default-src 'self'"),
       );
       assert.equal(
         response.headers.get("Strict-Transport-Security"),
@@ -460,16 +471,24 @@ describe("Worker: 404 bajo assets con Cache-Control propio", () => {
   });
 
   it("conserva max-age=3600 sin SWR en 200 de /images y /og", async () => {
-    for (const path of ["/images/work/x.webp", "/og/og-1200x630.png"] as const) {
+    for (const path of [
+      "/images/work/x.webp",
+      "/og/og-1200x630.png",
+    ] as const) {
       const { env } = assetEnv(200, "bin", {
         "content-type": "image/webp",
         "cache-control": HOUR,
       });
       const response = await fetchWorker(`${PRODUCTION}${path}`, env);
       assert.equal(response.status, 200);
-      assert.equal(response.headers.get("Cache-Control"), "public, max-age=3600");
       assert.equal(
-        response.headers.get("Cache-Control")?.includes("stale-while-revalidate"),
+        response.headers.get("Cache-Control"),
+        "public, max-age=3600",
+      );
+      assert.equal(
+        response.headers
+          .get("Cache-Control")
+          ?.includes("stale-while-revalidate"),
         false,
       );
       assert.notEqual(
@@ -577,7 +596,10 @@ describe("Worker: 404 bajo assets con Cache-Control propio", () => {
         env,
       );
       assert.equal(ingest.status, 200);
-      assert.equal(ingest.headers.get("Cache-Control"), "public, max-age=14400");
+      assert.equal(
+        ingest.headers.get("Cache-Control"),
+        "public, max-age=14400",
+      );
       assert.notEqual(ingest.headers.get("Cache-Control"), "no-store");
 
       const redirect = await fetchWorker(`${PRODUCTION}/f/999`, env);
@@ -603,16 +625,12 @@ describe("Worker: 404 bajo assets con Cache-Control propio", () => {
       "content-type": "text/html; charset=utf-8",
       "cache-control": IMMUTABLE,
     });
-    const getResponse = await fetchWorker(
-      `${PRODUCTION}/og/gone.png`,
-      env,
-      { method: "GET" },
-    );
-    const headResponse = await fetchWorker(
-      `${PRODUCTION}/og/gone.png`,
-      env,
-      { method: "HEAD" },
-    );
+    const getResponse = await fetchWorker(`${PRODUCTION}/og/gone.png`, env, {
+      method: "GET",
+    });
+    const headResponse = await fetchWorker(`${PRODUCTION}/og/gone.png`, env, {
+      method: "HEAD",
+    });
     assert.equal(getResponse.headers.get("Cache-Control"), "no-store");
     assert.equal(headResponse.headers.get("Cache-Control"), "no-store");
   });

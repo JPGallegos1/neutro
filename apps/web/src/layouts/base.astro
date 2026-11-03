@@ -100,7 +100,10 @@ const ogImageAlt =
       })();
     </script>
     {jsonLd && (
-      <script type="application/ld+json" set:html={JSON.stringify(siteJsonLd)} />
+      <script
+        type="application/ld+json"
+        set:html={JSON.stringify(siteJsonLd)}
+      />
     )}
     <slot name="head" />
   </head>

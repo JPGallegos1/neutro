@@ -126,7 +126,9 @@ export function saveSelectionAsLeads(
 }
 
 export function filterLeadsByStatus(leads: Lead[], filter: LeadStatusFilter) {
-  return filter === "todos" ? [...leads] : leads.filter((l) => l.status === filter);
+  return filter === "todos"
+    ? [...leads]
+    : leads.filter((l) => l.status === filter);
 }
 
 export function updateLeadFields(

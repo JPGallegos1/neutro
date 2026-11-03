@@ -184,17 +184,20 @@ import Legal from "@/layouts/Legal.astro";
     </h2>
     <div class="legal-section__body">
       <p class="legal-p">
-        Escribinos a
-        <a href="mailto:hola@neutro.solutions">hola@neutro.solutions</a> y te
-        respondemos por el mismo medio. Si sos consumidor, también podés
-        reclamar ante Defensa del Consumidor:
-        <strong>Defensa de las y los Consumidores. Para reclamos </strong>
-        <a
-          href="https://autogestion.produccion.gob.ar/consumidores"
-          target="_blank"
-          rel="noopener noreferrer"
-          ><strong>ingrese aquí</strong></a
-        >.
+        {[
+          "Escribinos a ",
+          <a href="mailto:hola@neutro.solutions">hola@neutro.solutions</a>,
+          " y te respondemos por el mismo medio. Si sos consumidor, también podés reclamar ante Defensa del Consumidor: ",
+          <strong>Defensa de las y los Consumidores. Para reclamos </strong>,
+          <a
+            href="https://autogestion.produccion.gob.ar/consumidores"
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            <strong>ingrese aquí</strong>
+          </a>,
+          ".",
+        ]}
       </p>
     </div>
   </section>

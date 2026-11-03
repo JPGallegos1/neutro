@@ -5,9 +5,7 @@ import { describe, it } from "node:test";
 import vm from "node:vm";
 import { fileURLToPath } from "node:url";
 
-const sourcePath = fileURLToPath(
-  new URL("./Hero.astro", import.meta.url),
-);
+const sourcePath = fileURLToPath(new URL("./Hero.astro", import.meta.url));
 const source = readFileSync(sourcePath, "utf8");
 
 function extract(tag: "script" | "style"): string {
@@ -35,7 +33,7 @@ function heroMediaOpening(): string {
   return openingTag(
     astroTemplate(),
     /<div\b(?=[^>]*\bclass="hero__media")[^>]*>/,
-    'div.hero__media',
+    "div.hero__media",
   );
 }
 
@@ -135,7 +133,9 @@ describe("hero video contract", () => {
   });
 
   it("puts media URLs only in data-src on source markup", () => {
-    const tags = [...source.matchAll(/<source\b[^>]*>/g)].map((match) => match[0]);
+    const tags = [...source.matchAll(/<source\b[^>]*>/g)].map(
+      (match) => match[0],
+    );
     assert.ok(tags.length >= 1, "expected at least one source tag");
     for (const tag of tags) {
       assert.match(tag, /\bdata-src=/);

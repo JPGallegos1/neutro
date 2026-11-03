@@ -96,11 +96,7 @@ import Legal from "@/layouts/Legal.astro";
           <strong>Descarta tu dirección IP</strong>: no queda guardada junto con
           los datos de la visita.
         </li>
-        <li>
-          Los datos pasan por nuestro propio dominio (<code
-            >neutro.solutions/ingest</code
-          >) antes de llegar a PostHog.
-        </li>
+        <li set:html="Los datos pasan por nuestro propio dominio (<code>neutro.solutions/ingest</code>) antes de llegar a PostHog." />
         <li>
           Para no contar dos veces la misma visita en un día, se calcula en el
           servidor un código a partir de datos técnicos de la conexión (IP,
@@ -134,10 +130,9 @@ import Legal from "@/layouts/Legal.astro";
         <li>
           Los <strong>códigos QR</strong> de nuestros folletos llevan a una
           dirección corta (por ejemplo,
-          <code>neutro.solutions/f/8</code>).
-          Cuando la abrís, nuestro servidor anota que se escaneó ese QR y te
-          lleva a la página principal con las etiquetas de campaña. Esa
-          anotación se hace en el servidor,
+          <code>neutro.solutions/f/8</code>). Cuando la abrís, nuestro servidor
+          anota que se escaneó ese QR y te lleva a la página principal con las
+          etiquetas de campaña. Esa anotación se hace en el servidor,
           <strong>sin guardar nada en tu teléfono</strong>.
         </li>
       </ul>

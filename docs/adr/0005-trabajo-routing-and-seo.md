@@ -20,10 +20,10 @@ Jake (SEO) defined hard criteria for the Trabajo surface: index + case URLs, slu
 
 ### Routes
 
-| Surface | Path              | Notes                                                                                                                                                                                |
-| ------- | ----------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Surface | Path              | Notes                                                                                                                                                                                          |
+| ------- | ----------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | Index   | `/trabajo`        | Header title (ES): `Casos de clientes`. Intro (ES): `Explorá nuestro trabajo seleccionado.` Same card grid as the landing Trabajo section. **Cargar más** when there are more than four cases. |
-| Case    | `/trabajo/<slug>` | One page per published project. **Más trabajo** lists every other published case, in the manual order, in 2 columns.                                                                  |
+| Case    | `/trabajo/<slug>` | One page per published project. **Más trabajo** lists every other published case, in the manual order, in 2 columns.                                                                           |
 
 Astro must use exactly `trailingSlash: 'never'`. Emit and link **without** a trailing slash. Prefer redirecting accidental trailing-slash requests to the slashless URL when the host allows it.
 
