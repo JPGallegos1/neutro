@@ -24,15 +24,13 @@ export type AdminWorkerEnv = {
 };
 
 function json(data: unknown, status = 200) {
-  return withSecurityHeaders(
-    new Response(JSON.stringify(data), {
-      status,
-      headers: {
-        "content-type": "application/json; charset=utf-8",
-        "x-robots-tag": "noindex, nofollow",
-      },
-    }),
-  );
+  return new Response(JSON.stringify(data), {
+    status,
+    headers: {
+      "content-type": "application/json; charset=utf-8",
+      "x-robots-tag": "noindex, nofollow",
+    },
+  });
 }
 
 export default {

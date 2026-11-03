@@ -35,22 +35,63 @@ function env(overrides?: Partial<AdminWorkerEnv>): AdminWorkerEnv {
   };
 }
 
+function assertCspReportOnly(res: Response): void {
+  const csp = res.headers.get("Content-Security-Policy-Report-Only");
+  assert.equal(csp, CSP_REPORT_ONLY);
+  assert.equal(csp, EXPECTED_CSP_DIRECTIVES.join("; "));
+  for (const directive of EXPECTED_CSP_DIRECTIVES) {
+    assert.equal(
+      csp?.includes(directive) ?? false,
+      true,
+      `CSP missing directive: ${directive}`,
+    );
+  }
+  assert.equal(res.headers.get("Content-Security-Policy"), null);
+}
+
 describe("Content-Security-Policy-Report-Only (admin)", () => {
   it("pone Report-Only en HTML con todas las directivas clave", async () => {
     const res = await worker.fetch(new Request("https://admin.test/"), env());
     assert.equal(res.status, 200);
     assert.equal(res.headers.get("x-robots-tag"), "noindex, nofollow");
-    const csp = res.headers.get("Content-Security-Policy-Report-Only");
-    assert.equal(csp, CSP_REPORT_ONLY);
-    assert.equal(csp, EXPECTED_CSP_DIRECTIVES.join("; "));
-    for (const directive of EXPECTED_CSP_DIRECTIVES) {
-      assert.equal(
-        csp?.includes(directive) ?? false,
-        true,
-        `CSP missing directive: ${directive}`,
-      );
-    }
-    assert.equal(res.headers.get("Content-Security-Policy"), null);
+    assertCspReportOnly(res);
+  });
+
+  it("pone Report-Only en HTML 404", async () => {
+    const res = await worker.fetch(
+      new Request("https://admin.test/missing.html"),
+      env({
+        ASSETS: {
+          fetch: async () =>
+            new Response("<html>404</html>", {
+              status: 404,
+              headers: { "content-type": "text/html; charset=utf-8" },
+            }),
+        },
+      }),
+    );
+    assert.equal(res.status, 404);
+    assert.equal(res.headers.get("x-robots-tag"), "noindex, nofollow");
+    assertCspReportOnly(res);
+  });
+
+  it("pone Report-Only en el HTML del fallback SPA", async () => {
+    const res = await worker.fetch(
+      new Request("https://admin.test/leads"),
+      env({
+        ASSETS: {
+          fetch: async () =>
+            new Response("<html>spa</html>", {
+              status: 200,
+              headers: { "content-type": "text/html; charset=utf-8" },
+            }),
+        },
+      }),
+    );
+    assert.equal(res.status, 200);
+    assert.equal(await res.clone().text(), "<html>spa</html>");
+    assert.equal(res.headers.get("x-robots-tag"), "noindex, nofollow");
+    assertCspReportOnly(res);
   });
 
   it("no pone CSP en JSON de API", async () => {
