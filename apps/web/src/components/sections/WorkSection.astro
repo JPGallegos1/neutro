@@ -6,30 +6,22 @@ const landingProjects = workProjects.slice(0, LANDING_WORK_LIMIT);
 ---
 
 <section id="trabajo" class="work" aria-labelledby="trabajo-heading">
-  <div class="landing-shell">
-    <div class="landing-gutter work__header">
-      <h2 id="trabajo-heading" class="work__title">
-        Trabajo
-      </h2>
-    </div>
-    <ul class="work__grid">
-      {landingProjects.map((project) => (
-        <WorkCard project={project} />
-      ))}
-    </ul>
+  <div class="landing-shell landing-gutter work__header">
+    <h2 id="trabajo-heading" class="work__title">
+      Trabajo
+    </h2>
   </div>
+  <ul class="work__grid">
+    {landingProjects.map((project) => (
+      <WorkCard project={project} />
+    ))}
+  </ul>
 </section>
 
 <style>
   .work {
     background: var(--neutro-bg);
-    padding-block: 24px 48px;
-  }
-
-  @media (min-width: 1024px) {
-    .work {
-      padding-block: 0 64px;
-    }
+    padding-block: var(--landing-section-space) 0;
   }
 
   .work__header {

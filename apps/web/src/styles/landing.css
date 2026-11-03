@@ -1,6 +1,6 @@
 :root {
-  --landing-max: 1440px;
   --landing-gutter: 24px;
+  --landing-section-space: 56px;
   --landing-work-row-gap: 24px;
 
   --landing-service-title-size: 28px;
@@ -12,8 +12,11 @@
   --landing-service-summary-tracking: -0.02em;
 
   --landing-focus: var(--neutro-focus);
+  --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
   --landing-ease-hover: 150ms ease;
-  --landing-ease-drawer: 250ms ease;
+  --landing-ease-drawer: 250ms var(--ease-out);
+  --landing-ease-drawer-exit: 160ms var(--ease-out);
+  --landing-ease-drawer-reduced: 100ms var(--ease-out);
   --landing-ease-accordion: 200ms ease-out;
 }
 
@@ -32,6 +35,7 @@ body {
 @media (min-width: 1024px) {
   :root {
     --landing-gutter: 56px;
+    --landing-section-space: 96px;
     --landing-work-row-gap: 48px;
     --landing-service-title-size: 48px;
     --landing-service-title-tracking: -1.68px;
@@ -104,7 +108,6 @@ body {
 
 .landing-shell {
   width: 100%;
-  max-width: var(--landing-max);
   margin-inline: auto;
 }
 
