@@ -99,7 +99,10 @@ function parseHeadersFile(source: string): ParsedHeaders {
       );
       const name = trimmed.slice(0, separator).trim();
       const value = trimmed.slice(separator + 1).trim();
-      assert.ok(name.length > 0, `línea ${index + 1}: nombre de cabecera vacío`);
+      assert.ok(
+        name.length > 0,
+        `línea ${index + 1}: nombre de cabecera vacío`,
+      );
       const values = current.headers.get(name) ?? [];
       values.push(value);
       current.headers.set(name, values);
@@ -190,7 +193,10 @@ describe("_headers (SEO-07)", () => {
       );
     }
     assert.equal(rules.length, EXPECTED_CACHE_CONTROL.size);
-    assert.equal(actual.get("/_astro/*"), "public, max-age=31536000, immutable");
+    assert.equal(
+      actual.get("/_astro/*"),
+      "public, max-age=31536000, immutable",
+    );
     for (const pattern of [
       "/images/*",
       "/video/*",
