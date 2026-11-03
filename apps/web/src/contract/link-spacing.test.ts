@@ -322,7 +322,8 @@ describe("espacios antes de enlaces y mails en el dist", () => {
       );
       const mutatedGuillemet = `<p>x</p>«\n<${tag}>hola</${tag}>»`;
       assert.throws(
-        () => assertNoPunctuationSpacing(mutatedGuillemet, "mut.html", "/mut"),
+        () =>
+          assertNoPunctuationSpacing(mutatedGuillemet, "mut.html", "/mut"),
         /espacio-despues-de-apertura/,
       );
     }
@@ -346,7 +347,8 @@ describe("espacios antes de enlaces y mails en el dist", () => {
       );
       const mutatedGuillemet = `<p>x</p>«\n<${tag}>hola</${tag}>»`;
       assert.throws(
-        () => assertNoPunctuationSpacing(mutatedGuillemet, "mut.html", "/mut"),
+        () =>
+          assertNoPunctuationSpacing(mutatedGuillemet, "mut.html", "/mut"),
         /espacio-despues-de-apertura/,
       );
     }
@@ -371,3 +373,4 @@ describe("espacios antes de enlaces y mails en el dist", () => {
     );
   });
 });
+

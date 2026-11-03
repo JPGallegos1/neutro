@@ -176,7 +176,8 @@ async function focusRingReport(link: Locator) {
       neutroBg,
       landingFocus,
       ring,
-      inViewportX: ring.left >= -0.5 && ring.right <= window.innerWidth + 0.5,
+      inViewportX:
+        ring.left >= -0.5 && ring.right <= window.innerWidth + 0.5,
       matchesFocusVisible: el.matches(":focus-visible"),
       position: style.position,
       zIndex: style.zIndex,
@@ -218,16 +219,21 @@ function assertInsetRing(
     opaque.length,
     `anillo inset necesita ≥2 sombras opacas (banda fondo + color); hay ${opaque.length}: ${report.afterBoxShadow}`,
   ).toBeGreaterThanOrEqual(2);
-  const neutroBg = String("neutroBg" in report ? report.neutroBg : "").trim();
+  const neutroBg = String(
+    "neutroBg" in report ? report.neutroBg : "",
+  ).trim();
   const landingFocus = String(
     "landingFocus" in report ? report.landingFocus : "",
   ).trim();
   expect(neutroBg.length, "falta --neutro-bg resuelto").toBeGreaterThan(0);
-  expect(landingFocus.length, "falta --landing-focus resuelto").toBeGreaterThan(
-    0,
-  );
+  expect(
+    landingFocus.length,
+    "falta --landing-focus resuelto",
+  ).toBeGreaterThan(0);
   const bandShadows = opaque.filter((s) => colorsEqual(s.color, neutroBg));
-  const focusShadows = opaque.filter((s) => colorsEqual(s.color, landingFocus));
+  const focusShadows = opaque.filter((s) =>
+    colorsEqual(s.color, landingFocus),
+  );
   expect(
     bandShadows.length,
     `falta banda --neutro-bg (${neutroBg}): ${report.afterBoxShadow}`,
@@ -334,9 +340,11 @@ test.describe("anillo de foco completo en work-card", () => {
       const links = page.locator(".work-index__grid a.work-card__inner");
       const count = await links.count();
       expect(count, "se esperaban cards en /trabajo").toBeGreaterThanOrEqual(3);
-      const indices = [0, Math.floor((count - 1) / 2), count - 1].filter(
-        (v, i, arr) => arr.indexOf(v) === i,
-      );
+      const indices = [
+        0,
+        Math.floor((count - 1) / 2),
+        count - 1,
+      ].filter((v, i, arr) => arr.indexOf(v) === i);
       for (const index of indices) {
         const link = await tabHastaNthCard(page, links, index);
         const report = await focusRingReport(link);

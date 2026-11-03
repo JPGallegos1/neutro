@@ -124,10 +124,7 @@ describe("Área de búsqueda", () => {
     });
     assert.equal((await d1.list()).length, 2);
     const sql = readFileSync(
-      join(
-        dirname(fileURLToPath(import.meta.url)),
-        "../../migrations/0001_search_areas.sql",
-      ),
+      join(dirname(fileURLToPath(import.meta.url)), "../../migrations/0001_search_areas.sql"),
       "utf8",
     );
     assert.match(sql, /search_areas/);

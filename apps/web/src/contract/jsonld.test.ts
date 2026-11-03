@@ -22,7 +22,8 @@ const INDEX_CRUMBS = [
 const CASE_TITLES: Record<string, string> = {
   "/trabajo/conexion-laboral":
     "Conexión Laboral: landing de asesoría | Neutro Solutions",
-  "/trabajo/afectiva": "Afectiva Comunicaciones: sitio web | Neutro Solutions",
+  "/trabajo/afectiva":
+    "Afectiva Comunicaciones: sitio web | Neutro Solutions",
   "/trabajo/capa-automotores":
     "Capa Automotores: catálogo con stock | Neutro Solutions",
   "/trabajo/suplementacion-ciencia":
@@ -291,13 +292,17 @@ describe("contrato JSON-LD (SEO-15)", () => {
         for (const key of REF_KEYS) {
           if (!(key in node)) {
             if (!caseCreative) continue;
-            problems.push(`${where(entry.page)} CreativeWork no tiene ${key}`);
+            problems.push(
+              `${where(entry.page)} CreativeWork no tiene ${key}`,
+            );
             continue;
           }
           const refs = referencedIds(node[key]);
           if (refs.length === 0) {
             const type = typesOf(node)[0] ?? "(sin @type)";
-            problems.push(`${where(entry.page)} ${type}.${key} no tiene @id`);
+            problems.push(
+              `${where(entry.page)} ${type}.${key} no tiene @id`,
+            );
             continue;
           }
           for (const id of refs) {
@@ -312,7 +317,8 @@ describe("contrato JSON-LD (SEO-15)", () => {
             if (key === "creator" || key === "publisher") {
               const organization = entry.nodes.some(
                 (item) =>
-                  item["@id"] === id && typesOf(item).includes("Organization"),
+                  item["@id"] === id &&
+                  typesOf(item).includes("Organization"),
               );
               if (id === ORGANIZATION_ID && organization) continue;
               problems.push(
@@ -321,7 +327,8 @@ describe("contrato JSON-LD (SEO-15)", () => {
               continue;
             }
             const website = entry.nodes.some(
-              (item) => item["@id"] === id && typesOf(item).includes("WebSite"),
+              (item) =>
+                item["@id"] === id && typesOf(item).includes("WebSite"),
             );
             if (id === WEBSITE_ID && website) continue;
             problems.push(
@@ -561,7 +568,11 @@ describe("contrato JSON-LD (SEO-15)", () => {
       const og = metaContents(entry.page.document, "og:title");
       const twitter = metaContents(entry.page.document, "twitter:title");
       const ogTitle = singleValue(og, `${label} og:title`, problems);
-      if (title === undefined || ogTitle === undefined || ogTitle !== title) {
+      if (
+        title === undefined ||
+        ogTitle === undefined ||
+        ogTitle !== title
+      ) {
         problems.push(
           `${label} title=${JSON.stringify(title ?? null)} og:title=${JSON.stringify(ogTitle ?? null)}; tienen que ser el mismo texto`,
         );

@@ -133,7 +133,10 @@ function expectedFontFromCqi(width: number, cqi: number): number {
   if (width < 1024) {
     return Math.min(MOBILE_MAX_PX, Math.max(MOBILE_FLOOR_PX, cqi * CQI_FACTOR));
   }
-  return Math.min(DESKTOP_MAX_PX, Math.max(DESKTOP_FLOOR_PX, cqi * CQI_FACTOR));
+  return Math.min(
+    DESKTOP_MAX_PX,
+    Math.max(DESKTOP_FLOOR_PX, cqi * CQI_FACTOR),
+  );
 }
 
 async function measureH1(
@@ -209,7 +212,9 @@ async function measureH1(
     );
     const lineEls = [...title.querySelectorAll(".work-case__title-line")];
     const lineStyle =
-      lineEls[0] instanceof HTMLElement ? getComputedStyle(lineEls[0]) : style;
+      lineEls[0] instanceof HTMLElement
+        ? getComputedStyle(lineEls[0])
+        : style;
     const wrapSample = lineStyle.overflowWrap;
     const titleWordBreak = lineStyle.wordBreak;
     const titleHyphens = lineStyle.hyphens;
@@ -252,7 +257,9 @@ async function measureH1(
       }
     }
     const article = document.querySelector("article.work-case");
-    const officialNodes = [...document.querySelectorAll("p.work-case__name")];
+    const officialNodes = [
+      ...document.querySelectorAll("p.work-case__name"),
+    ];
     const next = title.nextElementSibling;
     const officialEl =
       next instanceof HTMLParagraphElement &&
@@ -316,10 +323,7 @@ async function measureH1(
     const clipHides = (s: CSSStyleDeclaration): boolean => {
       const clip = s.getPropertyValue("clip").replace(/\s+/g, "");
       if (/^rect\(0px,0px,0px,0px\)$/i.test(clip)) return true;
-      const path = s
-        .getPropertyValue("clip-path")
-        .replace(/\s+/g, "")
-        .toLowerCase();
+      const path = s.getPropertyValue("clip-path").replace(/\s+/g, "").toLowerCase();
       if (path === "none" || path === "") return false;
       return (
         path.startsWith("inset(100%") ||
@@ -351,11 +355,7 @@ async function measureH1(
       officialNodes.length === 0
         ? null
         : {
-            text: (
-              officialEl?.textContent ??
-              officialNodes[0]?.textContent ??
-              ""
-            )
+            text: (officialEl?.textContent ?? officialNodes[0]?.textContent ?? "")
               .replace(/\s+/g, " ")
               .trim(),
             nextToH1: officialEl !== null,
@@ -374,9 +374,7 @@ async function measureH1(
             fontSize: officialFontSize,
             fontWeight: officialStyle?.fontWeight ?? "",
             lineHeightRatio:
-              officialFontSize > 0
-                ? officialLineHeightPx / officialFontSize
-                : 0,
+              officialFontSize > 0 ? officialLineHeightPx / officialFontSize : 0,
             lineHeightPx: officialLineHeightPx,
             letterSpacingEm:
               officialFontSize > 0
@@ -467,7 +465,9 @@ test.describe("H1 de fichas /trabajo — títulos cortos v34", () => {
         expect(
           report.letterSpacingEm,
           `letter-spacing em=${report.letterSpacingEm}; se exige ${LETTER_SPACING_EM}`,
-        ).toBeGreaterThanOrEqual(LETTER_SPACING_EM - LETTER_SPACING_TOLERANCE);
+        ).toBeGreaterThanOrEqual(
+          LETTER_SPACING_EM - LETTER_SPACING_TOLERANCE,
+        );
         expect(
           report.letterSpacingEm,
           `letter-spacing em=${report.letterSpacingEm}; se exige ${LETTER_SPACING_EM}`,
@@ -497,7 +497,9 @@ test.describe("H1 de fichas /trabajo — títulos cortos v34", () => {
             "work-case-title work-case-client",
           );
           const nameFont =
-            width < 1024 ? NAME_LINE_FONT_MOBILE_PX : NAME_LINE_FONT_DESKTOP_PX;
+            width < 1024
+              ? NAME_LINE_FONT_MOBILE_PX
+              : NAME_LINE_FONT_DESKTOP_PX;
           const expectedTagGap = width < 1024 ? 16 : 24;
           const expectedMarginBottom =
             width < 1024 ? 0 : NAME_LINE_MARGIN_BOTTOM_DESKTOP_PX;
@@ -513,7 +515,9 @@ test.describe("H1 de fichas /trabajo — títulos cortos v34", () => {
           expect(
             official.lineHeightRatio,
             `name LH ratio=${official.lineHeightRatio}`,
-          ).toBeGreaterThanOrEqual(NAME_LINE_LINE_HEIGHT - STYLE_TOLERANCE);
+          ).toBeGreaterThanOrEqual(
+            NAME_LINE_LINE_HEIGHT - STYLE_TOLERANCE,
+          );
           expect(
             official.lineHeightRatio,
             `name LH ratio=${official.lineHeightRatio}`,

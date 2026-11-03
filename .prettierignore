@@ -9,3 +9,4 @@ apps/web/src/pages/cookies.astro
 apps/web/src/pages/nosotros.astro
 apps/web/src/pages/privacidad.astro
 apps/web/src/pages/terminos.astro
+apps/web/src/pages/404.astro

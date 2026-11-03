@@ -69,11 +69,7 @@ describe("prioridad de imágenes (SEO-03 / SEO-02)", () => {
   it("home: tarjetas lazy sin fetchpriority y póster precargado con prioridad", () => {
     const root = readDistPage("index.html");
     const cards = cardImages(root);
-    assert.equal(
-      cards.length,
-      4,
-      `home tiene ${cards.length} cards; se exigen 4`,
-    );
+    assert.equal(cards.length, 4, `home tiene ${cards.length} cards; se exigen 4`);
     for (const [index, img] of cards.entries()) {
       assertLazyCard(img, `home card #${index + 1}`);
     }

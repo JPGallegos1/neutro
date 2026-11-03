@@ -166,11 +166,7 @@ function withDetailsPaddingRemoved(css: string): string {
     /(\.work-card__details(?:\[data-astro-cid-[^\]]+\])?\s*\{[^}]*?)padding-inline\s*:\s*var\(--landing-gutter\)\s*;?/gi,
     "$1",
   );
-  assert.notEqual(
-    next,
-    css,
-    "no se pudo quitar padding de .work-card__details",
-  );
+  assert.notEqual(next, css, "no se pudo quitar padding de .work-card__details");
   return next;
 }
 
@@ -197,7 +193,8 @@ describe("margen lateral de WorkCard en el dist", () => {
   it("falla si .work-card vuelve a tener padding-inline", () => {
     const css = pageCss("index.html");
     assert.throws(
-      () => assertWorkCardFlushImages(withCardPaddingInjected(css), "mutación"),
+      () =>
+        assertWorkCardFlushImages(withCardPaddingInjected(css), "mutación"),
       /padding-inline|imágenes al borde/,
     );
     assertWorkCardFlushImages(css, "dist/index.html");

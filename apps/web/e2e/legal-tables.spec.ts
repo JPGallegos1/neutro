@@ -63,9 +63,7 @@ async function tableMetrics(
           const range = document.createRange();
           range.setStart(node, start);
           range.setEnd(node, start + word.length);
-          const rects = [...range.getClientRects()].filter(
-            (r) => r.width > 0.5,
-          );
+          const rects = [...range.getClientRects()].filter((r) => r.width > 0.5);
           const tops = new Set(rects.map((r) => Math.round(r.top)));
           if (tops.size < 2) continue;
           const natural = measureTextWidth(word, el);
@@ -246,7 +244,11 @@ test.describe("tablas legales sin desborde en móvil", () => {
   }
 
   for (const width of [320, 324, 333, 340, 360] as const) {
-    for (const path of ["/privacidad", "/cookies", "/alerta-estafa"] as const) {
+    for (const path of [
+      "/privacidad",
+      "/cookies",
+      "/alerta-estafa",
+    ] as const) {
       test(`${path} a ${width}px sin desborde de página`, async ({ page }) => {
         const metrics = await tableMetrics(page, path, width);
         expect(metrics.length).toBeGreaterThan(0);
@@ -272,14 +274,12 @@ test.describe("tablas legales sin desborde en móvil", () => {
           !m.cls.includes("legal-table--denunciar") &&
           !m.cls.includes("legal-table--proveedores"),
       );
-      expect(
-        plain329.length,
-        `${path} a 329: falta tabla sin clase`,
-      ).toBeGreaterThan(0);
-      expect(
-        plain330.length,
-        `${path} a 330: falta tabla sin clase`,
-      ).toBeGreaterThan(0);
+      expect(plain329.length, `${path} a 329: falta tabla sin clase`).toBeGreaterThan(
+        0,
+      );
+      expect(plain330.length, `${path} a 330: falta tabla sin clase`).toBeGreaterThan(
+        0,
+      );
       for (const row of plain329) {
         expect(row.overflowWrap, `${path} a 329`).toBe("anywhere");
         expect(row.pageScroll).toBe(0);
@@ -311,10 +311,7 @@ test.describe("tablas legales sin desborde en móvil", () => {
       paraQue.width,
       `Para qué quedó en ${paraQue.width}px; hace falta ≥120`,
     ).toBeGreaterThanOrEqual(120);
-    const tableWidth = proveedores.cols.reduce(
-      (sum, col) => sum + col.width,
-      0,
-    );
+    const tableWidth = proveedores.cols.reduce((sum, col) => sum + col.width, 0);
     expect(tableWidth, "ancho total de columnas").toBeGreaterThan(0);
     const paraRatio = paraQue.width / tableWidth;
     expect(

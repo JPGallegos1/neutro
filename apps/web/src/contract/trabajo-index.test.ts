@@ -7,7 +7,8 @@ import { readDistPage } from "./dist.ts";
 
 const SITE = "https://neutro.solutions";
 const INDEX_CANONICAL = "https://neutro.solutions/trabajo";
-const TRABAJO_TITLE = "Casos de clientes: webs y sistemas | Neutro Solutions";
+const TRABAJO_TITLE =
+  "Casos de clientes: webs y sistemas | Neutro Solutions";
 const TRABAJO_DESCRIPTION =
   "Casos reales de Neutro Solutions: webs, tiendas online, catálogos y plataformas a medida. Mirá qué necesitaba cada cliente y qué resolvimos con cada uno.";
 const TRABAJO_H1 = "Casos de clientes";
@@ -335,9 +336,7 @@ describe("dist/trabajo.html", () => {
     );
 
     const root = readDistPage("trabajo.html");
-    const titles = root
-      .querySelectorAll("title")
-      .map((node) => node.text.trim());
+    const titles = root.querySelectorAll("title").map((node) => node.text.trim());
     assert.deepEqual(titles, [TRABAJO_TITLE]);
 
     const descriptions = root.querySelectorAll("meta").flatMap((meta) => {
@@ -382,10 +381,7 @@ describe("dist/trabajo.html", () => {
   });
 });
 
-function metaPropertyContents(
-  document: HTMLElement,
-  property: string,
-): string[] {
+function metaPropertyContents(document: HTMLElement, property: string): string[] {
   const needle = property.toLowerCase();
   return document.querySelectorAll("meta").flatMap((meta) => {
     if ((meta.getAttribute("property") ?? "").toLowerCase() !== needle) {

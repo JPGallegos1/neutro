@@ -190,23 +190,15 @@ describe("workCases", () => {
 
     for (const project of workProjects) {
       const related = relatedWorkProjects(project.slug);
-      const expected = workProjects.filter(
-        (item) => item.slug !== project.slug,
-      );
+      const expected = workProjects.filter((item) => item.slug !== project.slug);
       assert.deepEqual(
         related.map((item) => item.slug),
         expected.map((item) => item.slug),
         project.slug,
       );
       assert.equal(related.length, workProjects.length - 1, project.slug);
-      assert.equal(
-        new Set(related.map((item) => item.slug)).size,
-        related.length,
-      );
-      assert.ok(
-        related.every((item) => item.slug !== project.slug),
-        project.slug,
-      );
+      assert.equal(new Set(related.map((item) => item.slug)).size, related.length);
+      assert.ok(related.every((item) => item.slug !== project.slug), project.slug);
     }
 
     assert.deepEqual(relatedWorkProjects("no-existe"), []);
@@ -241,3 +233,4 @@ describe("workCases", () => {
     );
   });
 });
+

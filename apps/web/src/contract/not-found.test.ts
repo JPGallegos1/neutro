@@ -42,9 +42,7 @@ function jsonLdScripts(document: HTMLElement): HTMLElement[] {
 }
 
 function notFoundRoot(document: HTMLElement): HTMLElement {
-  const main = document.querySelector(
-    "main#contenido.not-found, main#contenido",
-  );
+  const main = document.querySelector("main#contenido.not-found, main#contenido");
   assert.ok(main, 'dist/404.html debe tener <main id="contenido">');
   return main;
 }
@@ -71,7 +69,9 @@ function pageStyles(document: HTMLElement): string {
 }
 
 function scopedBtnSelector(variant?: RecoveryVariant): string {
-  const base = variant ? `\\.not-found__btn--${variant}` : `\\.not-found__btn`;
+  const base = variant
+    ? `\\.not-found__btn--${variant}`
+    : `\\.not-found__btn`;
   return `${base}(?:\\[data-astro-cid-[^\\]]+\\])?`;
 }
 
@@ -96,9 +96,7 @@ function coversActiveNone(css: string, variant: RecoveryVariant): boolean {
 }
 
 function reducedMotionBlock(css: string): string {
-  const marker = css.search(
-    /@media\s*\(prefers-reduced-motion:\s*reduce\)\s*\{/,
-  );
+  const marker = css.search(/@media\s*\(prefers-reduced-motion:\s*reduce\)\s*\{/);
   assert.ok(
     marker >= 0,
     "dist/404.html debe incluir @media (prefers-reduced-motion: reduce)",
@@ -151,9 +149,7 @@ function assertNotFoundContract(document: HTMLElement): void {
     `dist/404.html <html lang> = ${JSON.stringify(html.getAttribute("lang"))}; se exige ${JSON.stringify(EXPECTED_LANG)}`,
   );
 
-  const titles = document
-    .querySelectorAll("title")
-    .map((node) => node.text.trim());
+  const titles = document.querySelectorAll("title").map((node) => node.text.trim());
   assert.equal(
     titles.length,
     1,
@@ -204,7 +200,7 @@ function assertNotFoundContract(document: HTMLElement): void {
   const work = document.querySelector('a[href="/trabajo"]');
   const mail = document.querySelector('a[href="mailto:hola@neutro.solutions"]');
   assert.ok(work, 'dist/404.html debe enlazar href="/trabajo"');
-  assert.ok(mail, "dist/404.html debe enlazar mailto:hola@neutro.solutions");
+  assert.ok(mail, 'dist/404.html debe enlazar mailto:hola@neutro.solutions');
 
   const tag = [...document.querySelectorAll("[aria-hidden]")].find((el) =>
     el.text.trim().toUpperCase().includes("ERROR 404"),
@@ -230,9 +226,7 @@ function assertNotFoundContract(document: HTMLElement): void {
     "dist/404.html debe incluir el footer del sitio",
   );
   assert.ok(
-    document.querySelector(
-      'a.skip-link[href="#contenido"], a[href="#contenido"]',
-    ),
+    document.querySelector('a.skip-link[href="#contenido"], a[href="#contenido"]'),
     "dist/404.html debe conservar el skip link a #contenido",
   );
 
@@ -240,7 +234,10 @@ function assertNotFoundContract(document: HTMLElement): void {
 }
 
 function withMutatedH1(html: string): string {
-  return html.replace(">Esta página no existe<", ">Esta página sí existe<");
+  return html.replace(
+    ">Esta página no existe<",
+    ">Esta página sí existe<",
+  );
 }
 
 function withoutNoindex(document: HTMLElement): HTMLElement {
@@ -285,7 +282,10 @@ function sharedActiveScaleRule(html: string): RegExpMatchArray {
   return match;
 }
 
-function withActiveScaleOnlyOn(html: string, keep: RecoveryVariant): string {
+function withActiveScaleOnlyOn(
+  html: string,
+  keep: RecoveryVariant,
+): string {
   const match = sharedActiveScaleRule(html);
   const scope = match[1] ?? "";
   const replacement = `.not-found__btn--${keep}${scope}:active{transform:scale(.97)}`;
@@ -338,13 +338,19 @@ describe("contrato 404 del dist", () => {
 
   it("falla si se quita el CTA Volver al inicio del contenido", () => {
     const mutated = withoutHomeCta(parse(page404().toString()));
-    assert.throws(() => assertNotFoundContract(mutated), /Volver al inicio/);
+    assert.throws(
+      () => assertNotFoundContract(mutated),
+      /Volver al inicio/,
+    );
     assertNotFoundContract(page404());
   });
 
   it("falla si se quita lang del html", () => {
     const mutated = withoutLang(parse(page404().toString()));
-    assert.throws(() => assertNotFoundContract(mutated), /<html lang>/);
+    assert.throws(
+      () => assertNotFoundContract(mutated),
+      /<html lang>/,
+    );
     assertNotFoundContract(page404());
   });
 
