@@ -26,7 +26,7 @@ URLs are **slashless**. Configure Astro with exactly `trailingSlash: 'never'`. D
 
 ### Title and structured data
 
-- Document title: `Casos y proyectos | Neutro Solutions`
+- Document title: `Casos de clientes: webs y sistemas en Rosario | Neutro Solutions`
 - JSON-LD: `CollectionPage` + `ItemList` (items = case URLs in the same order as the grid; no paginated URLs).
 
 ### Canonical
@@ -43,7 +43,7 @@ No query string. No trailing-slash variants. No `?page=N` canonicals.
 
 ### Title and structured data
 
-- Document title pattern: `<Cliente>: <qué se resolvió> | Neutro Solutions`
+- Document title pattern: `<Cliente>: <servicio> para <rubro> en Rosario | Neutro` (about 60 characters, max 65; ASCII `|`; short brand on most case titles). Luxury Cars (Suiza) omits Rosario and uses `| Neutro Solutions`.
 - Meta description: **140–155 characters**, from real approved data only.
 - JSON-LD: `Article` **or** `CreativeWork`, plus `BreadcrumbList`.
 - Breadcrumb trail: Inicio → Trabajo → current case (Spanish labels in the visible breadcrumb if shown).
@@ -118,13 +118,7 @@ Local/preview builds use the same checks against the preview origin. A passing c
 
 Titles, meta descriptions, H1, and schema text fields **must** come from real case data fields (or the shared work / work-cases modules). Meta description length is **140–155 characters**.
 
-Until an approved **outcome** line exists for the document title pattern `<Cliente>: <qué se resolvió>`, do **not** invent it. Use only approved segments; mark gaps explicitly in implementation PRs.
-
-| Field                       | Placeholder form (only when unapproved) |
-| --------------------------- | --------------------------------------- |
-| Outcome / “qué se resolvió” | `{qué se resolvió}`                     |
-
-Never invent outcome lines solely to fill the title pattern.
+Document titles use client, service, and rubro drawn from approved case fields (plus Rosario for local SEO). Do **not** invent facts. When the official client name already carries the rubro, the middle segment may compress (service + Rosario) instead of repeating it.
 
 ## Design (v34)
 

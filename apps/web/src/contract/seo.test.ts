@@ -6,8 +6,8 @@ import { fileURLToPath } from "node:url";
 import type { HTMLElement } from "node-html-parser";
 
 import {
-  BRAND_TITLE_SUFFIX,
   MAX_DOCUMENT_TITLE_LENGTH,
+  workCaseBrandTitleSuffix,
   workCaseDocumentTitle,
   workCaseHeadline,
   workCases,
@@ -398,20 +398,22 @@ const FORBIDDEN_STRUCTURED_NAMES = new Set([
 
 const JAKE_DOCUMENT_TITLES = {
   "conexion-laboral":
-    "Conexión Laboral: landing de asesoría | Neutro Solutions",
-  afectiva: "Afectiva Comunicaciones: sitio web | Neutro Solutions",
-  "capa-automotores": "Capa Automotores: catálogo con stock | Neutro Solutions",
+    "Conexión Laboral: web para reclutamiento en Rosario | Neutro",
+  afectiva: "Afectiva Comunicaciones: web para agencia en Rosario | Neutro",
+  "capa-automotores":
+    "Capa Automotores: catálogo para autos en Rosario | Neutro",
   "suplementacion-ciencia":
-    "Suplementación con Ciencia: tienda online | Neutro Solutions",
-  luxurycars: "Luxury Cars: plataforma de autos de lujo | Neutro Solutions",
+    "Suplementación con Ciencia: tienda online en Rosario | Neutro",
+  luxurycars: "Luxury Cars: plataforma para autos de lujo | Neutro Solutions",
 } as const;
 
 const JAKE_HEADLINES = {
-  "conexion-laboral": "Conexión Laboral: landing de asesoría",
-  afectiva: "Afectiva Comunicaciones: sitio web",
-  "capa-automotores": "Capa Automotores: catálogo con stock",
-  "suplementacion-ciencia": "Suplementación con Ciencia: tienda online",
-  luxurycars: "Luxury Cars: plataforma de autos de lujo",
+  "conexion-laboral": "Conexión Laboral: web para reclutamiento en Rosario",
+  afectiva: "Afectiva Comunicaciones: web para agencia en Rosario",
+  "capa-automotores": "Capa Automotores: catálogo para autos en Rosario",
+  "suplementacion-ciencia":
+    "Suplementación con Ciencia: tienda online en Rosario",
+  luxurycars: "Luxury Cars: plataforma para autos de lujo",
 } as const;
 
 const JAKE_OFFICIAL_NAMES = {
@@ -532,7 +534,7 @@ function creativeWorkNameProblems(
 describe("contrato SEO-04 y SEO-05 de fichas", () => {
   it("falla si se muta una palabra del title literal de Jake o del nombre oficial", () => {
     const title = JAKE_DOCUMENT_TITLES["conexion-laboral"];
-    const mutatedTitle = title.replace("asesoría", "consulta");
+    const mutatedTitle = title.replace("reclutamiento", "selección");
     assert.notEqual(mutatedTitle, title);
     assert.ok(
       caseTitleSocialProblems(
@@ -594,7 +596,7 @@ describe("contrato SEO-04 y SEO-05 de fichas", () => {
     );
   });
 
-  it("fija title exacto ≤ 60, og:title y twitter:title iguales, y headline sin marca", () => {
+  it("fija title exacto ≤ 65, og:title y twitter:title iguales, y headline sin marca", () => {
     const problems: string[] = [];
     for (const workCase of workCases) {
       const slug = workCase.slug as JakeCaseSlug;
@@ -604,7 +606,10 @@ describe("contrato SEO-04 y SEO-05 de fichas", () => {
       const expectedTitle = JAKE_DOCUMENT_TITLES[slug];
       const expectedHeadline = JAKE_HEADLINES[slug];
       const expectedName = JAKE_OFFICIAL_NAMES[slug];
-      assert.equal(expectedTitle, `${expectedHeadline}${BRAND_TITLE_SUFFIX}`);
+      assert.equal(
+        expectedTitle,
+        `${expectedHeadline}${workCaseBrandTitleSuffix(workCase)}`,
+      );
       assert.ok(
         expectedTitle.length <= MAX_DOCUMENT_TITLE_LENGTH,
         `${route} title length ${expectedTitle.length}`,

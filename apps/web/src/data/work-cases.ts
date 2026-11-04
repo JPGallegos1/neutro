@@ -19,6 +19,7 @@ export type WorkCase = {
   h1OfficialLine: string | null;
   clientName: string;
   seoTitle: string;
+  brandTitleSuffix?: string;
   outcomeTitle: string | null;
   metaDescription: string;
   tag: string;
@@ -36,9 +37,11 @@ export type WorkCase = {
   learnings: string[];
 };
 
-export const BRAND_TITLE_SUFFIX = " | Neutro Solutions";
+export const BRAND_TITLE_SUFFIX = " | Neutro";
 
-export const MAX_DOCUMENT_TITLE_LENGTH = 60;
+export const BRAND_TITLE_SUFFIX_FULL = " | Neutro Solutions";
+
+export const MAX_DOCUMENT_TITLE_LENGTH = 65;
 
 export const workCases: WorkCase[] = [
   {
@@ -49,7 +52,7 @@ export const workCases: WorkCase[] = [
     h1Lines: ["Conexión", "Laboral"],
     h1OfficialLine: null,
     clientName: "Conexión Laboral",
-    seoTitle: "Conexión Laboral: landing de asesoría",
+    seoTitle: "Conexión Laboral: web para reclutamiento en Rosario",
     outcomeTitle: "agendar una asesoría gratuita con una sola página",
     metaDescription:
       "Reclutamiento para PyMEs en Argentina: busca, filtra y presenta los 3 mejores candidatos con informe. Una sola página para agendar asesoría gratuita.",
@@ -94,7 +97,7 @@ export const workCases: WorkCase[] = [
     h1Lines: ["Afectiva"],
     h1OfficialLine: "Afectiva Comunicaciones",
     clientName: "Afectiva Comunicaciones",
-    seoTitle: "Afectiva Comunicaciones: sitio web",
+    seoTitle: "Afectiva Comunicaciones: web para agencia en Rosario",
     outcomeTitle: "un sitio propio para mostrar todo lo que hace la agencia",
     metaDescription:
       "Agencia de comunicación: estrategia, diseño, contenido y producción para marcas con historia. Sitio de una página con WhatsApp como acción principal.",
@@ -141,7 +144,7 @@ export const workCases: WorkCase[] = [
     h1Lines: ["Capa"],
     h1OfficialLine: "Capa Automotores",
     clientName: "Capa Automotores",
-    seoTitle: "Capa Automotores: catálogo con stock",
+    seoTitle: "Capa Automotores: catálogo para autos en Rosario",
     outcomeTitle: "un catálogo propio con panel para manejar el stock",
     metaDescription:
       "Concesionaria de usados y 0km en Rosario, con financiación hasta 60% y toma de tu usado. Catálogo propio con panel para actualizar el stock.",
@@ -185,7 +188,7 @@ export const workCases: WorkCase[] = [
     h1Lines: ["SCC"],
     h1OfficialLine: "Suplementación con Ciencia (SCC)",
     clientName: "Suplementación con Ciencia",
-    seoTitle: "Suplementación con Ciencia: tienda online",
+    seoTitle: "Suplementación con Ciencia: tienda online en Rosario",
     outcomeTitle: "una tienda online que muestra la ciencia detrás",
     metaDescription:
       "Tienda online de suplementos deportivos con información respaldada por ciencia y envíos a todo el país. Catálogo, pagos y diseño a medida sobre Tiendanube.",
@@ -228,7 +231,8 @@ export const workCases: WorkCase[] = [
     h1Lines: ["Luxury", "Cars"],
     h1OfficialLine: null,
     clientName: "Luxury Cars",
-    seoTitle: "Luxury Cars: plataforma de autos de lujo",
+    seoTitle: "Luxury Cars: plataforma para autos de lujo",
+    brandTitleSuffix: BRAND_TITLE_SUFFIX_FULL,
     outcomeTitle:
       "una plataforma a medida para el mercado de autos de lujo en Suiza",
     metaDescription:
@@ -280,8 +284,12 @@ export function workCaseHeadline(workCase: WorkCase): string {
   return workCase.seoTitle;
 }
 
+export function workCaseBrandTitleSuffix(workCase: WorkCase): string {
+  return workCase.brandTitleSuffix ?? BRAND_TITLE_SUFFIX;
+}
+
 export function workCaseDocumentTitle(workCase: WorkCase): string {
-  return `${workCase.seoTitle}${BRAND_TITLE_SUFFIX}`;
+  return `${workCase.seoTitle}${workCaseBrandTitleSuffix(workCase)}`;
 }
 
 export function getWorkCase(slug: string): WorkCase | undefined {

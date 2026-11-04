@@ -2,10 +2,10 @@ import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 
 import {
-  BRAND_TITLE_SUFFIX,
   getWorkCase,
   MAX_DOCUMENT_TITLE_LENGTH,
   relatedWorkProjects,
+  workCaseBrandTitleSuffix,
   workCaseCanonical,
   workCaseDocumentTitle,
   workCaseHeadline,
@@ -31,11 +31,12 @@ const EXPECTED_OFFICIAL_NAMES = {
 } as const;
 
 const EXPECTED_SEO_TITLES = {
-  "conexion-laboral": "Conexión Laboral: landing de asesoría",
-  afectiva: "Afectiva Comunicaciones: sitio web",
-  "capa-automotores": "Capa Automotores: catálogo con stock",
-  "suplementacion-ciencia": "Suplementación con Ciencia: tienda online",
-  luxurycars: "Luxury Cars: plataforma de autos de lujo",
+  "conexion-laboral": "Conexión Laboral: web para reclutamiento en Rosario",
+  afectiva: "Afectiva Comunicaciones: web para agencia en Rosario",
+  "capa-automotores": "Capa Automotores: catálogo para autos en Rosario",
+  "suplementacion-ciencia":
+    "Suplementación con Ciencia: tienda online en Rosario",
+  luxurycars: "Luxury Cars: plataforma para autos de lujo",
 } as const;
 
 const EXPECTED_OUTCOME_TITLES = {
@@ -141,14 +142,17 @@ describe("workCases", () => {
     }
   });
 
-  it("fija seoTitle corto y document title ≤ 60 con sufijo de marca", () => {
+  it("fija seoTitle con cliente, servicio, rubro y Rosario ≤ 65 con sufijo de marca", () => {
     for (const workCase of workCases) {
       const seoTitle =
         EXPECTED_SEO_TITLES[workCase.slug as keyof typeof EXPECTED_SEO_TITLES];
       assert.equal(workCase.seoTitle, seoTitle);
       assert.equal(workCaseHeadline(workCase), seoTitle);
       const documentTitle = workCaseDocumentTitle(workCase);
-      assert.equal(documentTitle, `${seoTitle}${BRAND_TITLE_SUFFIX}`);
+      assert.equal(
+        documentTitle,
+        `${seoTitle}${workCaseBrandTitleSuffix(workCase)}`,
+      );
       assert.ok(
         documentTitle.length <= MAX_DOCUMENT_TITLE_LENGTH,
         `${workCase.slug} title length ${documentTitle.length}`,
