@@ -97,7 +97,7 @@ describe("pageMeta.trabajo", () => {
     assert.equal(pageMeta.trabajo.path, "/trabajo");
     assert.equal(
       pageMeta.trabajo.title,
-      "Casos de clientes: webs y sistemas | Neutro Solutions",
+      "Casos de clientes: webs y sistemas en Rosario | Neutro Solutions",
     );
     assert.equal(
       pageMeta.trabajo.canonical,

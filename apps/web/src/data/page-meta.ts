@@ -33,7 +33,7 @@ export const pageMeta = {
   ),
   trabajo: page(
     "/trabajo",
-    "Casos de clientes: webs y sistemas | Neutro Solutions",
+    "Casos de clientes: webs y sistemas en Rosario | Neutro Solutions",
     "Casos reales de Neutro Solutions: webs, tiendas online, catálogos y plataformas a medida. Mirá qué necesitaba cada cliente y qué resolvimos con cada uno.",
     "Casos de clientes",
   ),

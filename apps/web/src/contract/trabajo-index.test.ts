@@ -7,7 +7,8 @@ import { readDistPage } from "./dist.ts";
 
 const SITE = "https://neutro.solutions";
 const INDEX_CANONICAL = "https://neutro.solutions/trabajo";
-const TRABAJO_TITLE = "Casos de clientes: webs y sistemas | Neutro Solutions";
+const TRABAJO_TITLE =
+  "Casos de clientes: webs y sistemas en Rosario | Neutro Solutions";
 const TRABAJO_DESCRIPTION =
   "Casos reales de Neutro Solutions: webs, tiendas online, catálogos y plataformas a medida. Mirá qué necesitaba cada cliente y qué resolvimos con cada uno.";
 const TRABAJO_H1 = "Casos de clientes";
@@ -327,7 +328,7 @@ describe("dist/trabajo.html", () => {
   });
 
   it("fija title, description, og/twitter y JSON-LD de /trabajo", () => {
-    assert.equal(TRABAJO_TITLE.length, 53);
+    assert.equal(TRABAJO_TITLE.length, 64);
     assert.equal(TRABAJO_DESCRIPTION.length, 153);
     assert.ok(
       TRABAJO_DESCRIPTION.includes("Mirá"),

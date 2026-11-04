@@ -68,12 +68,12 @@ No alternate locale URLs in this ADR (site is Spanish-only).
 
 **Index (`/trabajo`)**
 
-- `<title>`: `Casos de clientes: webs y sistemas | Neutro Solutions`
+- `<title>`: `Casos de clientes: webs y sistemas en Rosario | Neutro Solutions`
 - JSON-LD: `CollectionPage` **and** `ItemList` listing case URLs in display order (no paginated item URLs).
 
 **Case (`/trabajo/<slug>`)**
 
-- `<title>`: the per-case SEO title Jake fixed, with the suffix ` | Neutro Solutions`, at most **60 characters**. The same string is `og:title` and `twitter:title`. It is not built from `outcomeTitle`. The strings are listed in the SEO-15 amendment.
+- `<title>`: the per-case SEO title (client, service, industry, Rosario), with the suffix ` | Neutro`, about **60 characters** and at most **65**. The same string is `og:title` and `twitter:title`. It is not built from `outcomeTitle`. The strings are listed in the SEO-15 amendment.
 - Meta description: **140–155 characters**, from real approved data only.
 - JSON-LD: `Article` **or** `CreativeWork`, plus `BreadcrumbList` (`Inicio` → `Trabajo` → case).
 - Exactly one `<h1>` on the page.
@@ -121,7 +121,7 @@ On the case `CreativeWork` inside the page `@graph` (the layout still emits `htt
 
 - `creator` is `{ "@id": "https://neutro.solutions/#organization" }`. `publisher` keeps pointing at that same Organization.
 - `about` stays the client `Organization` and adds `url`: the client site, the same `href` as **Visitar sitio**. The `url` is an absolute `https` URL.
-- `headline` is the case SEO title without the suffix ` | Neutro Solutions`. It is not `outcomeTitle`. It does not contain `Neutro Solutions` and it is not longer than `<title>`.
+- `headline` is the case SEO title without the suffix ` | Neutro`. It is not `outcomeTitle`. It does not contain `Neutro` or `Neutro Solutions` and it is not longer than `<title>`.
 - `name` is the client’s official name. That same string is the matching card name on `/trabajo`, the `name` of that case in the `/trabajo` `ItemList`, position 3 of the case `BreadcrumbList`, and the value of the visible **Cliente** fact. The case `<h1>` is a short design title (Iris v34) and may be shorter than `name`; it is defined per slug in `h1Lines` and does not have to equal `name`. When the `<h1>` text is not equal to `name`, the full official name must appear as visible text in the initial HTML, in the case header, right after the `<h1>` (not inside it, not hidden, not injected by JS). `<title>`, `og:title`, `twitter:title`, `headline`, `about.name` and `BreadcrumbList` keep the official name.
 - Do not emit `datePublished` or `dateModified` on any JSON-LD node. There are no real dates; do not invent them.
 
@@ -139,15 +139,16 @@ Official names, confirmed by Juan, including Capa Automotores (slugs stay immuta
 
 **Case document title**
 
-- Each case `<title>` is the SEO title Jake fixed for that case. It is not built from `outcomeTitle`.
-- The string includes ` | Neutro Solutions`, is at most **60 characters** counting that suffix, and is the same in `<title>`, `og:title`, and `twitter:title`.
+- Each case `<title>` names the client, the service, the industry/rubro, and Rosario. It is not built from `outcomeTitle`.
+- Pattern: `<Cliente>: <servicio> para <rubro> en Rosario | Neutro` (service/industry wording may compress when the official name already carries the rubro). Separator is ASCII `|` (U+007C), not `¦`. Case titles use the short brand `Neutro` so the pattern fits about 60 characters; Organization JSON-LD and other pages keep `Neutro Solutions`.
+- The string includes ` | Neutro`, aims for about **60 characters**, is at most **65** counting that suffix, and is the same in `<title>`, `og:title`, and `twitter:title`.
 - The visible `<h1>` is `h1Lines`. `outcomeTitle` is a field on each case in `apps/web/src/data/work-cases.ts`. `apps/web/src/data/work-cases.test.ts` pins each value and checks that the document title does not include it. `outcomeTitle` is not rendered in `WorkCasePage.astro`, and it is not the `<h1>` or the `<title>`.
 
-- `/trabajo/conexion-laboral`: `Conexión Laboral: landing de asesoría | Neutro Solutions` (56)
-- `/trabajo/afectiva`: `Afectiva Comunicaciones: sitio web | Neutro Solutions` (53)
-- `/trabajo/capa-automotores`: `Capa Automotores: catálogo con stock | Neutro Solutions` (55)
-- `/trabajo/suplementacion-ciencia`: `Suplementación con Ciencia: tienda online | Neutro Solutions` (60)
-- `/trabajo/luxurycars`: `Luxury Cars: plataforma de autos de lujo | Neutro Solutions` (59)
+- `/trabajo/conexion-laboral`: `Conexión Laboral: web para reclutamiento en Rosario | Neutro` (60)
+- `/trabajo/afectiva`: `Afectiva Comunicaciones: web para marcas en Rosario | Neutro` (60)
+- `/trabajo/capa-automotores`: `Capa Automotores: catálogo para autos en Rosario | Neutro` (57)
+- `/trabajo/suplementacion-ciencia`: `Suplementación con Ciencia: tienda online en Rosario | Neutro` (61)
+- `/trabajo/luxurycars`: `Luxury Cars: plataforma para autos de lujo en Rosario | Neutro` (62)
 
 **Session decisions** (Juan)
 
@@ -155,7 +156,7 @@ Official names, confirmed by Juan, including Capa Automotores (slugs stay immuta
 - The landing always shows 4 cards. It has no link and no button `Ver todos` to `/trabajo`.
 - `/trabajo` loads 4. **Cargar más** reveals the remaining cases in batches of 4, or fewer when fewer remain. The accessible notice says `caso` or `casos`. Without JS every case is visible and the button does not appear.
 - The threshold of 12 published cases stays: reopen `/trabajo` pagination and evaluate a CMS.
-- The `/trabajo` `<title>` is `Casos de clientes: webs y sistemas | Neutro Solutions`.
+- The `/trabajo` `<title>` is `Casos de clientes: webs y sistemas en Rosario | Neutro Solutions`.
 
 **Más trabajo**
 

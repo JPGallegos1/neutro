@@ -10,7 +10,7 @@ const WEBSITE_ID = `${SITE}/#website`;
 const INDEX_ROUTE = "/trabajo";
 const CASE_ROUTE = /^\/trabajo\/[a-z0-9-]+$/;
 const BRAND = "Neutro Solutions";
-const TITLE_MAX = 60;
+const TITLE_MAX = 65;
 const REF_KEYS = ["creator", "publisher", "isPartOf"] as const;
 const DATE_KEYS = ["datePublished", "dateModified"] as const;
 
@@ -21,14 +21,15 @@ const INDEX_CRUMBS = [
 
 const CASE_TITLES: Record<string, string> = {
   "/trabajo/conexion-laboral":
-    "Conexión Laboral: landing de asesoría | Neutro Solutions",
-  "/trabajo/afectiva": "Afectiva Comunicaciones: sitio web | Neutro Solutions",
+    "Conexión Laboral: web para reclutamiento en Rosario | Neutro",
+  "/trabajo/afectiva":
+    "Afectiva Comunicaciones: web para marcas en Rosario | Neutro",
   "/trabajo/capa-automotores":
-    "Capa Automotores: catálogo con stock | Neutro Solutions",
+    "Capa Automotores: catálogo para autos en Rosario | Neutro",
   "/trabajo/suplementacion-ciencia":
-    "Suplementación con Ciencia: tienda online | Neutro Solutions",
+    "Suplementación con Ciencia: tienda online en Rosario | Neutro",
   "/trabajo/luxurycars":
-    "Luxury Cars: plataforma de autos de lujo | Neutro Solutions",
+    "Luxury Cars: plataforma para autos de lujo en Rosario | Neutro",
 };
 
 const CASE_H1: Record<string, string> = {
@@ -529,7 +530,7 @@ describe("contrato JSON-LD (SEO-15)", () => {
     assert.deepEqual(problems, [], problems.join("\n"));
   });
 
-  it("limita el title de cada ficha a 60 y lo iguala en og:title y en twitter:title", () => {
+  it("limita el title de cada ficha a 65 y lo iguala en og:title y en twitter:title", () => {
     const problems: string[] = [];
     const cases = casePages(loadPages());
     if (cases.length === 0) {
