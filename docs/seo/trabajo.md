@@ -43,7 +43,7 @@ No query string. No trailing-slash variants. No `?page=N` canonicals.
 
 ### Title and structured data
 
-- Document title pattern: `<Cliente>: <servicio> para <rubro> en Rosario | Neutro` (about 60 characters, max 65; ASCII `|`; short brand on case titles only)
+- Document title pattern: `<Cliente>: <servicio> para <rubro> en Rosario | Neutro` (about 60 characters, max 65; ASCII `|`; short brand on most case titles). Luxury Cars (Suiza) omits Rosario and uses `| Neutro Solutions`.
 - Meta description: **140–155 characters**, from real approved data only.
 - JSON-LD: `Article` **or** `CreativeWork`, plus `BreadcrumbList`.
 - Breadcrumb trail: Inicio → Trabajo → current case (Spanish labels in the visible breadcrumb if shown).

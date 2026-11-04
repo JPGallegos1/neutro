@@ -6,8 +6,8 @@ import { fileURLToPath } from "node:url";
 import type { HTMLElement } from "node-html-parser";
 
 import {
-  BRAND_TITLE_SUFFIX,
   MAX_DOCUMENT_TITLE_LENGTH,
+  workCaseBrandTitleSuffix,
   workCaseDocumentTitle,
   workCaseHeadline,
   workCases,
@@ -399,21 +399,21 @@ const FORBIDDEN_STRUCTURED_NAMES = new Set([
 const JAKE_DOCUMENT_TITLES = {
   "conexion-laboral":
     "Conexión Laboral: web para reclutamiento en Rosario | Neutro",
-  afectiva: "Afectiva Comunicaciones: web para marcas en Rosario | Neutro",
+  afectiva: "Afectiva Comunicaciones: web para agencia en Rosario | Neutro",
   "capa-automotores":
     "Capa Automotores: catálogo para autos en Rosario | Neutro",
   "suplementacion-ciencia":
     "Suplementación con Ciencia: tienda online en Rosario | Neutro",
-  luxurycars: "Luxury Cars: plataforma para autos de lujo en Rosario | Neutro",
+  luxurycars: "Luxury Cars: plataforma para autos de lujo | Neutro Solutions",
 } as const;
 
 const JAKE_HEADLINES = {
   "conexion-laboral": "Conexión Laboral: web para reclutamiento en Rosario",
-  afectiva: "Afectiva Comunicaciones: web para marcas en Rosario",
+  afectiva: "Afectiva Comunicaciones: web para agencia en Rosario",
   "capa-automotores": "Capa Automotores: catálogo para autos en Rosario",
   "suplementacion-ciencia":
     "Suplementación con Ciencia: tienda online en Rosario",
-  luxurycars: "Luxury Cars: plataforma para autos de lujo en Rosario",
+  luxurycars: "Luxury Cars: plataforma para autos de lujo",
 } as const;
 
 const JAKE_OFFICIAL_NAMES = {
@@ -606,7 +606,10 @@ describe("contrato SEO-04 y SEO-05 de fichas", () => {
       const expectedTitle = JAKE_DOCUMENT_TITLES[slug];
       const expectedHeadline = JAKE_HEADLINES[slug];
       const expectedName = JAKE_OFFICIAL_NAMES[slug];
-      assert.equal(expectedTitle, `${expectedHeadline}${BRAND_TITLE_SUFFIX}`);
+      assert.equal(
+        expectedTitle,
+        `${expectedHeadline}${workCaseBrandTitleSuffix(workCase)}`,
+      );
       assert.ok(
         expectedTitle.length <= MAX_DOCUMENT_TITLE_LENGTH,
         `${route} title length ${expectedTitle.length}`,

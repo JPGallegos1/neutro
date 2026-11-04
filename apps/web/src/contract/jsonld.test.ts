@@ -23,13 +23,13 @@ const CASE_TITLES: Record<string, string> = {
   "/trabajo/conexion-laboral":
     "Conexión Laboral: web para reclutamiento en Rosario | Neutro",
   "/trabajo/afectiva":
-    "Afectiva Comunicaciones: web para marcas en Rosario | Neutro",
+    "Afectiva Comunicaciones: web para agencia en Rosario | Neutro",
   "/trabajo/capa-automotores":
     "Capa Automotores: catálogo para autos en Rosario | Neutro",
   "/trabajo/suplementacion-ciencia":
     "Suplementación con Ciencia: tienda online en Rosario | Neutro",
   "/trabajo/luxurycars":
-    "Luxury Cars: plataforma para autos de lujo en Rosario | Neutro",
+    "Luxury Cars: plataforma para autos de lujo | Neutro Solutions",
 };
 
 const CASE_H1: Record<string, string> = {

@@ -140,15 +140,15 @@ Official names, confirmed by Juan, including Capa Automotores (slugs stay immuta
 **Case document title**
 
 - Each case `<title>` names the client, the service, the industry/rubro, and Rosario. It is not built from `outcomeTitle`.
-- Pattern: `<Cliente>: <servicio> para <rubro> en Rosario | Neutro` (service/industry wording may compress when the official name already carries the rubro). Separator is ASCII `|` (U+007C), not `¦`. Case titles use the short brand `Neutro` so the pattern fits about 60 characters; Organization JSON-LD and other pages keep `Neutro Solutions`.
-- The string includes ` | Neutro`, aims for about **60 characters**, is at most **65** counting that suffix, and is the same in `<title>`, `og:title`, and `twitter:title`.
+- Pattern: `<Cliente>: <servicio> para <rubro> en Rosario | Neutro` (service/industry wording may compress when the official name already carries the rubro). Separator is ASCII `|` (U+007C), not `¦`. Most case titles use the short brand `Neutro` so the pattern fits about 60 characters; Luxury Cars (market: Suiza) omits Rosario and keeps `| Neutro Solutions`. Organization JSON-LD and other pages keep `Neutro Solutions`.
+- Document titles aim for about **60 characters**, are at most **65** counting the brand suffix, and are the same in `<title>`, `og:title`, and `twitter:title`.
 - The visible `<h1>` is `h1Lines`. `outcomeTitle` is a field on each case in `apps/web/src/data/work-cases.ts`. `apps/web/src/data/work-cases.test.ts` pins each value and checks that the document title does not include it. `outcomeTitle` is not rendered in `WorkCasePage.astro`, and it is not the `<h1>` or the `<title>`.
 
 - `/trabajo/conexion-laboral`: `Conexión Laboral: web para reclutamiento en Rosario | Neutro` (60)
-- `/trabajo/afectiva`: `Afectiva Comunicaciones: web para marcas en Rosario | Neutro` (60)
+- `/trabajo/afectiva`: `Afectiva Comunicaciones: web para agencia en Rosario | Neutro` (61)
 - `/trabajo/capa-automotores`: `Capa Automotores: catálogo para autos en Rosario | Neutro` (57)
 - `/trabajo/suplementacion-ciencia`: `Suplementación con Ciencia: tienda online en Rosario | Neutro` (61)
-- `/trabajo/luxurycars`: `Luxury Cars: plataforma para autos de lujo en Rosario | Neutro` (62)
+- `/trabajo/luxurycars`: `Luxury Cars: plataforma para autos de lujo | Neutro Solutions` (61)
 
 **Session decisions** (Juan)
 

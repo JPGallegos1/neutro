@@ -19,6 +19,7 @@ export type WorkCase = {
   h1OfficialLine: string | null;
   clientName: string;
   seoTitle: string;
+  brandTitleSuffix?: string;
   outcomeTitle: string | null;
   metaDescription: string;
   tag: string;
@@ -37,6 +38,8 @@ export type WorkCase = {
 };
 
 export const BRAND_TITLE_SUFFIX = " | Neutro";
+
+export const BRAND_TITLE_SUFFIX_FULL = " | Neutro Solutions";
 
 export const MAX_DOCUMENT_TITLE_LENGTH = 65;
 
@@ -94,7 +97,7 @@ export const workCases: WorkCase[] = [
     h1Lines: ["Afectiva"],
     h1OfficialLine: "Afectiva Comunicaciones",
     clientName: "Afectiva Comunicaciones",
-    seoTitle: "Afectiva Comunicaciones: web para marcas en Rosario",
+    seoTitle: "Afectiva Comunicaciones: web para agencia en Rosario",
     outcomeTitle: "un sitio propio para mostrar todo lo que hace la agencia",
     metaDescription:
       "Agencia de comunicación: estrategia, diseño, contenido y producción para marcas con historia. Sitio de una página con WhatsApp como acción principal.",
@@ -228,7 +231,8 @@ export const workCases: WorkCase[] = [
     h1Lines: ["Luxury", "Cars"],
     h1OfficialLine: null,
     clientName: "Luxury Cars",
-    seoTitle: "Luxury Cars: plataforma para autos de lujo en Rosario",
+    seoTitle: "Luxury Cars: plataforma para autos de lujo",
+    brandTitleSuffix: BRAND_TITLE_SUFFIX_FULL,
     outcomeTitle:
       "una plataforma a medida para el mercado de autos de lujo en Suiza",
     metaDescription:
@@ -280,8 +284,12 @@ export function workCaseHeadline(workCase: WorkCase): string {
   return workCase.seoTitle;
 }
 
+export function workCaseBrandTitleSuffix(workCase: WorkCase): string {
+  return workCase.brandTitleSuffix ?? BRAND_TITLE_SUFFIX;
+}
+
 export function workCaseDocumentTitle(workCase: WorkCase): string {
-  return `${workCase.seoTitle}${BRAND_TITLE_SUFFIX}`;
+  return `${workCase.seoTitle}${workCaseBrandTitleSuffix(workCase)}`;
 }
 
 export function getWorkCase(slug: string): WorkCase | undefined {

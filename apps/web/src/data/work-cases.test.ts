@@ -2,10 +2,10 @@ import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 
 import {
-  BRAND_TITLE_SUFFIX,
   getWorkCase,
   MAX_DOCUMENT_TITLE_LENGTH,
   relatedWorkProjects,
+  workCaseBrandTitleSuffix,
   workCaseCanonical,
   workCaseDocumentTitle,
   workCaseHeadline,
@@ -32,11 +32,11 @@ const EXPECTED_OFFICIAL_NAMES = {
 
 const EXPECTED_SEO_TITLES = {
   "conexion-laboral": "Conexión Laboral: web para reclutamiento en Rosario",
-  afectiva: "Afectiva Comunicaciones: web para marcas en Rosario",
+  afectiva: "Afectiva Comunicaciones: web para agencia en Rosario",
   "capa-automotores": "Capa Automotores: catálogo para autos en Rosario",
   "suplementacion-ciencia":
     "Suplementación con Ciencia: tienda online en Rosario",
-  luxurycars: "Luxury Cars: plataforma para autos de lujo en Rosario",
+  luxurycars: "Luxury Cars: plataforma para autos de lujo",
 } as const;
 
 const EXPECTED_OUTCOME_TITLES = {
@@ -149,7 +149,10 @@ describe("workCases", () => {
       assert.equal(workCase.seoTitle, seoTitle);
       assert.equal(workCaseHeadline(workCase), seoTitle);
       const documentTitle = workCaseDocumentTitle(workCase);
-      assert.equal(documentTitle, `${seoTitle}${BRAND_TITLE_SUFFIX}`);
+      assert.equal(
+        documentTitle,
+        `${seoTitle}${workCaseBrandTitleSuffix(workCase)}`,
+      );
       assert.ok(
         documentTitle.length <= MAX_DOCUMENT_TITLE_LENGTH,
         `${workCase.slug} title length ${documentTitle.length}`,
