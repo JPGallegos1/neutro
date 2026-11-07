@@ -1,0 +1,203 @@
+---
+import { contactoChannels } from "@/data/contacto";
+---
+
+<section class="contacto-channels" aria-labelledby="canales-heading">
+  <ul class="contacto-channels__grid">
+    {
+      contactoChannels.map((channel) => {
+        if (channel.decorative) {
+          return (
+            <li
+              class:list={[
+                "contacto-channel",
+                "contacto-channel--blank",
+                channel.dark && "contacto-channel--dark",
+              ]}
+              aria-hidden="true"
+            />
+          );
+        }
+
+        const titleId =
+          channel.id === "heading" ? "canales-heading" : undefined;
+        const innerClass = channel.href
+          ? "contacto-channel__inner"
+          : "contacto-channel__inner contacto-channel__inner--off";
+
+        const body = (
+          <>
+            {channel.id === "heading" ? (
+              <h2 id={titleId} class="contacto-channel__title">
+                {channel.title}
+              </h2>
+            ) : (
+              <h2 class="contacto-channel__title">{channel.title}</h2>
+            )}
+            {channel.value ? (
+              <p class="contacto-channel__value">{channel.value}</p>
+            ) : null}
+          </>
+        );
+
+        return (
+          <li
+            class:list={[
+              "contacto-channel",
+              channel.dark && "contacto-channel--dark",
+              channel.id === "heading" && "contacto-channel--head",
+              channel.id === "facebook" && "contacto-channel--fb",
+            ]}
+          >
+            {channel.href ? (
+              <a
+                class={innerClass}
+                href={channel.href}
+                target={channel.blank ? "_blank" : undefined}
+                rel={channel.blank ? "noopener noreferrer" : undefined}
+              >
+                {body}
+              </a>
+            ) : (
+              <div class={innerClass}>{body}</div>
+            )}
+          </li>
+        );
+      })
+    }
+  </ul>
+</section>
+
+<style>
+  .contacto-channels {
+    background: #ffffff;
+    color: #0a0a0a;
+    padding-block: var(--landing-section-space)
+      calc(var(--landing-section-space) / 2);
+  }
+
+  .contacto-channels__grid {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: 0;
+    margin: 0;
+    padding: 0 1px 1px 0;
+    list-style: none;
+  }
+
+  @media (min-width: 1024px) {
+    .contacto-channels__grid {
+      grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    }
+  }
+
+  .contacto-channel {
+    aspect-ratio: 16 / 9;
+    min-width: 0;
+    background: #ffffff;
+    box-shadow:
+      1px 0 0 0 #0a0a0a,
+      0 1px 0 0 #0a0a0a,
+      1px 1px 0 0 #0a0a0a,
+      inset 1px 0 0 0 #0a0a0a,
+      inset 0 1px 0 0 #0a0a0a;
+  }
+
+  .contacto-channel--blank {
+    display: none;
+  }
+
+  @media (min-width: 1024px) {
+    .contacto-channel--blank {
+      display: block;
+    }
+
+    .contacto-channel--dark {
+      background: #0a0a0a;
+    }
+
+    .contacto-channel--dark .contacto-channel__inner {
+      color: #ffffff;
+    }
+
+    .contacto-channel--dark .contacto-channel__inner--off .contacto-channel__value {
+      color: #b4b4af;
+    }
+  }
+
+  .contacto-channel__inner {
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    height: 100%;
+    padding: 24px;
+    color: #0a0a0a;
+    text-decoration: none;
+    transition: background-color 150ms var(--ease-out);
+  }
+
+  @media (min-width: 1024px) {
+    .contacto-channel__inner {
+      padding: 40px;
+    }
+  }
+
+  .contacto-channel__title {
+    margin: 0;
+    font-size: 40px;
+    font-weight: 500;
+    line-height: 1;
+    letter-spacing: -0.8px;
+    text-transform: uppercase;
+    overflow-wrap: break-word;
+  }
+
+  @media (min-width: 1024px) {
+    .contacto-channel__title {
+      font-size: 56px;
+      letter-spacing: -1.96px;
+    }
+  }
+
+  .contacto-channel__value {
+    margin: 0;
+    align-self: flex-end;
+    text-align: right;
+    font-size: var(--landing-service-title-size);
+    font-weight: var(--landing-service-title-weight);
+    line-height: var(--landing-service-title-leading);
+    letter-spacing: var(--landing-service-title-tracking);
+  }
+
+  .contacto-channel__inner--off .contacto-channel__value {
+    color: #6b6b68;
+  }
+
+  @media (hover: hover) and (prefers-reduced-motion: no-preference) {
+    a.contacto-channel__inner:hover {
+      background: #f5f5f4;
+    }
+
+    a.contacto-channel__inner:hover .contacto-channel__value {
+      text-decoration: underline;
+      text-underline-offset: 6px;
+      text-decoration-thickness: 1px;
+    }
+
+    .contacto-channel--dark a.contacto-channel__inner:hover {
+      background: #1f1f1e;
+    }
+  }
+
+  a.contacto-channel__inner:focus-visible {
+    outline: 2px solid #c2410c;
+    outline-offset: -4px;
+  }
+
+  @media (min-width: 1024px) {
+    .contacto-channel--dark a.contacto-channel__inner:focus-visible {
+      outline: 2px solid #ffffff;
+      outline-offset: -6px;
+    }
+  }
+</style>

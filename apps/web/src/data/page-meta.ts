@@ -31,6 +31,12 @@ export const pageMeta = {
     "Somos Neutro Solutions: diseñamos webs, tiendas y sistemas para tu negocio. Definimos con vos qué necesitás antes de construir y medimos para decidir mejor.",
     "Quiénes somos y cómo trabajamos",
   ),
+  contacto: page(
+    "/contacto",
+    "Contacto | Neutro Solutions",
+    "Escribinos para tu sitio web, sistema a medida o automatización con IA. Somos un estudio de Rosario y trabajamos con empresas de toda Argentina.",
+    "Contacto | Neutro Solutions",
+  ),
   trabajo: page(
     "/trabajo",
     "Casos de clientes: webs y sistemas en Rosario | Neutro Solutions",

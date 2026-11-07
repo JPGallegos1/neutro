@@ -9,6 +9,10 @@ const routes = [
     path: "/nosotros",
     title: "Nosotros | Neutro Solutions",
   },
+  {
+    path: "/contacto",
+    title: "Contacto | Neutro Solutions",
+  },
 ] as const;
 
 for (const route of routes) {
