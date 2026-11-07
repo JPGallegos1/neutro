@@ -34,6 +34,7 @@ Same Worker, same headers (`X-Robots-Tag: noindex`, `Cache-Control: no-store`), 
 - Allowlist in `@neutro/core` (`prospect-codes.ts`). Codes are exactly 4 chars `[a-z0-9]`. Seeded with test codes `t001`–`t005` only.
 - Valid code: log `prospect_link_access` (PostHog when `POSTHOG_KEY` + `ANALYTICS_ENABLED`, else structured `console.log`), then 302 with `utm_source` / `utm_medium` / `utm_campaign` / `utm_content=<code>`. Defaults and per-code overrides live in the codes file. Codes with prefix `t` use campaign `prueba-prospeccion`; real codes use `prospeccion-2026-11-10` unless overridden.
 - **Unknown or invalid codes return 404** (empty body) with the same safety headers. They do **not** redirect to home and do **not** follow arbitrary URLs. Chosen over the flyer “untagged home” path so a typo or guessed code does not inflate home hits or look like a successful campaign open.
-- HEAD still 302s but is marked `method=HEAD` and `counts_as_access=false`. Preview bots (WhatsApp, facebookexternalhit, Twitterbot, Slackbot, TelegramBot, etc.) still 302 with `ua_class=preview` and `counts_as_access=false`.
+- Access classification is `access_class`: `automation_detected` (known preview bots/crawlers, or `HEAD`) or `unclassified` (UA not recognized). `unclassified` is **not** proof of a person — only that automation was not detected.
+- HEAD still 302s with `method=HEAD` and `access_class=automation_detected`. Preview bots (WhatsApp, facebookexternalhit, Twitterbot, Slackbot, TelegramBot, etc.) still 302 with `access_class=automation_detected`.
 - `/p/` is excluded from the sitemap. It is **not** Disallow’d in `robots.txt`.
 - No new Cloudflare paid storage (KV/D1/R2). Persistence beyond PostHog / Workers Logs would need a separate proposal.

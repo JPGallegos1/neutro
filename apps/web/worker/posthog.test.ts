@@ -54,8 +54,7 @@ const prospectEvent = {
 
 const prospectContext = {
   method: "GET",
-  uaClass: "other" as const,
-  countsAsAccess: true,
+  accessClass: "unclassified" as const,
 };
 
 describe("buildQrCapturePayload", () => {
@@ -95,7 +94,7 @@ describe("buildQrCapturePayload", () => {
 });
 
 describe("buildProspectCapturePayload", () => {
-  it("emits prospect_link_access with method and ua class", () => {
+  it("emits prospect_link_access with method and access_class", () => {
     const payload = buildProspectCapturePayload(
       "phc_test",
       prospectEvent,
@@ -109,31 +108,29 @@ describe("buildProspectCapturePayload", () => {
     assert.notEqual(payload.uuid, payload.distinct_id);
     assert.equal(payload.properties.code, "t001");
     assert.equal(payload.properties.method, "GET");
-    assert.equal(payload.properties.ua_class, "other");
-    assert.equal(payload.properties.counts_as_access, true);
+    assert.equal(payload.properties.access_class, "unclassified");
     assert.equal(payload.properties.$process_person_profile, false);
     assert.equal(payload.properties.$geoip_disable, true);
     assert.equal("$ip" in payload.properties, false);
   });
 
-  it("marks HEAD and preview as not counted", () => {
+  it("marks HEAD and known bots as automation_detected", () => {
     const head = buildProspectCapturePayload(
       "phc_test",
       prospectEvent,
-      { method: "HEAD", uaClass: "other", countsAsAccess: false },
+      { method: "HEAD", accessClass: "automation_detected" },
       ids,
     );
     assert.equal(head.properties.method, "HEAD");
-    assert.equal(head.properties.counts_as_access, false);
+    assert.equal(head.properties.access_class, "automation_detected");
 
     const preview = buildProspectCapturePayload(
       "phc_test",
       prospectEvent,
-      { method: "GET", uaClass: "preview", countsAsAccess: false },
+      { method: "GET", accessClass: "automation_detected" },
       ids,
     );
-    assert.equal(preview.properties.ua_class, "preview");
-    assert.equal(preview.properties.counts_as_access, false);
+    assert.equal(preview.properties.access_class, "automation_detected");
   });
 });
 
@@ -144,7 +141,7 @@ describe("logProspectLinkAccess", () => {
       assert.equal(logs.length, 1);
       assert.match(logs[0] ?? "", /^prospect_link_access /);
       assert.match(logs[0] ?? "", /"code":"t001"/);
-      assert.match(logs[0] ?? "", /"ua_class":"other"/);
+      assert.match(logs[0] ?? "", /"access_class":"unclassified"/);
       assert.equal((logs[0] ?? "").includes("email"), false);
       assert.equal((logs[0] ?? "").includes("phone"), false);
     });

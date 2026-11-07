@@ -1,6 +1,6 @@
 import type {
+  ProspectAccessClass,
   ProspectAccessEvent,
-  ProspectUaClass,
 } from "@neutro/core/prospect-redirects";
 import type { QrScanEvent } from "@neutro/core/qr-redirects";
 
@@ -38,8 +38,7 @@ export type QrCapturePayload = {
 
 export type ProspectCaptureContext = {
   method: string;
-  uaClass: ProspectUaClass;
-  countsAsAccess: boolean;
+  accessClass: ProspectAccessClass;
 };
 
 export type ProspectCapturePayload = {
@@ -55,8 +54,7 @@ export type ProspectCapturePayload = {
     medium: string;
     campaign: string;
     method: string;
-    ua_class: ProspectUaClass;
-    counts_as_access: boolean;
+    access_class: ProspectAccessClass;
     $lib: typeof QR_LIB;
     $process_person_profile: false;
     $geoip_disable: true;
@@ -197,8 +195,7 @@ export function buildProspectCapturePayload(
       medium: event.medium,
       campaign: event.campaign,
       method: context.method,
-      ua_class: context.uaClass,
-      counts_as_access: context.countsAsAccess,
+      access_class: context.accessClass,
       $lib: QR_LIB,
       $process_person_profile: false,
       $geoip_disable: true,
@@ -217,8 +214,7 @@ export function logProspectLinkAccess(
     medium: event.medium,
     campaign: event.campaign,
     method: context.method,
-    ua_class: context.uaClass,
-    counts_as_access: context.countsAsAccess ? 1 : 0,
+    access_class: context.accessClass,
     timestamp,
   });
 }
@@ -239,8 +235,7 @@ export async function captureProspectLinkAccess(
   const logged = {
     code: event.code,
     method: context.method,
-    ua_class: context.uaClass,
-    counts_as_access: context.countsAsAccess ? 1 : 0,
+    access_class: context.accessClass,
     event_id: ids.eventId,
     distinct_id: ids.distinctId,
     timestamp: ids.timestamp,

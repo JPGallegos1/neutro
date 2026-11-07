@@ -12,7 +12,7 @@ export const PROSPECT_REDIRECT_HEADERS = {
   "Cloudflare-CDN-Cache-Control": "no-store",
 } as const;
 
-export type ProspectUaClass = "preview" | "other";
+export type ProspectAccessClass = "automation_detected" | "unclassified";
 
 export type ProspectAccessEvent = {
   code: ProspectCode;
@@ -54,23 +54,17 @@ function landingUrl(params: URLSearchParams): string {
   return `${PROSPECT_LANDING_ORIGIN}/?${params.toString()}`;
 }
 
-export function classifyProspectUserAgent(
-  userAgent: string | null | undefined,
-): ProspectUaClass {
-  if (typeof userAgent !== "string" || userAgent.length === 0) {
-    return "other";
-  }
-  return PREVIEW_UA.test(userAgent) ? "preview" : "other";
-}
-
-export function prospectAccessCounts(
+export function classifyProspectAccess(
   method: string,
-  uaClass: ProspectUaClass,
-): boolean {
+  userAgent: string | null | undefined,
+): ProspectAccessClass {
   if (method.toUpperCase() === "HEAD") {
-    return false;
+    return "automation_detected";
   }
-  return uaClass !== "preview";
+  if (typeof userAgent === "string" && PREVIEW_UA.test(userAgent)) {
+    return "automation_detected";
+  }
+  return "unclassified";
 }
 
 export function resolveProspectRedirect(

@@ -8,10 +8,9 @@ import {
 } from "./prospect-codes.ts";
 import {
   PROSPECT_REDIRECT_HEADERS,
-  classifyProspectUserAgent,
+  classifyProspectAccess,
   createProspectNotFoundResponse,
   createProspectRedirectResponse,
-  prospectAccessCounts,
   resolveProspectRedirect,
 } from "./prospect-redirects.ts";
 
@@ -133,35 +132,53 @@ describe("createProspectRedirectResponse", () => {
   });
 });
 
-describe("classifyProspectUserAgent / prospectAccessCounts", () => {
-  it("flags preview bots", () => {
-    assert.equal(classifyProspectUserAgent("WhatsApp/2.0"), "preview");
+describe("classifyProspectAccess", () => {
+  it("marks known preview bots and crawlers as automation_detected", () => {
     assert.equal(
-      classifyProspectUserAgent("facebookexternalhit/1.1"),
-      "preview",
-    );
-    assert.equal(classifyProspectUserAgent("Twitterbot/1.0"), "preview");
-    assert.equal(
-      classifyProspectUserAgent("Slackbot-LinkExpanding"),
-      "preview",
+      classifyProspectAccess("GET", "WhatsApp/2.0"),
+      "automation_detected",
     );
     assert.equal(
-      classifyProspectUserAgent("TelegramBot (like TwitterBot)"),
-      "preview",
+      classifyProspectAccess("GET", "facebookexternalhit/1.1"),
+      "automation_detected",
     );
     assert.equal(
-      classifyProspectUserAgent(
-        "Mozilla/5.0 (Linux; Android 14) AppleWebKit/537.36 Chrome/120.0.0.0 Mobile Safari/537.36",
-      ),
-      "other",
+      classifyProspectAccess("GET", "Twitterbot/1.0"),
+      "automation_detected",
     );
-    assert.equal(classifyProspectUserAgent(null), "other");
+    assert.equal(
+      classifyProspectAccess("GET", "Slackbot-LinkExpanding"),
+      "automation_detected",
+    );
+    assert.equal(
+      classifyProspectAccess("GET", "TelegramBot (like TwitterBot)"),
+      "automation_detected",
+    );
   });
 
-  it("HEAD and preview do not count as people", () => {
-    assert.equal(prospectAccessCounts("GET", "other"), true);
-    assert.equal(prospectAccessCounts("HEAD", "other"), false);
-    assert.equal(prospectAccessCounts("GET", "preview"), false);
-    assert.equal(prospectAccessCounts("HEAD", "preview"), false);
+  it("marks HEAD as automation_detected regardless of UA", () => {
+    assert.equal(
+      classifyProspectAccess("HEAD", "WhatsApp/2.0"),
+      "automation_detected",
+    );
+    assert.equal(
+      classifyProspectAccess(
+        "HEAD",
+        "Mozilla/5.0 (Linux; Android 14) AppleWebKit/537.36 Chrome/120.0.0.0 Mobile Safari/537.36",
+      ),
+      "automation_detected",
+    );
+  });
+
+  it("marks unrecognized clients as unclassified (not proof of a person)", () => {
+    assert.equal(
+      classifyProspectAccess(
+        "GET",
+        "Mozilla/5.0 (Linux; Android 14) AppleWebKit/537.36 Chrome/120.0.0.0 Mobile Safari/537.36",
+      ),
+      "unclassified",
+    );
+    assert.equal(classifyProspectAccess("GET", null), "unclassified");
+    assert.equal(classifyProspectAccess("GET", ""), "unclassified");
   });
 });

@@ -792,7 +792,7 @@ describe("prospect /p/<code> redirects", () => {
     assert.deepEqual(calls, []);
   });
 
-  it("HEAD redirects the same Location without counting as GET", async () => {
+  it("HEAD redirects the same Location as automation_detected", async () => {
     const logs: string[] = [];
     const original = console.log;
     console.log = (...args: unknown[]) => {
@@ -813,7 +813,7 @@ describe("prospect /p/<code> redirects", () => {
           (line) =>
             line.startsWith("prospect_link_access ") &&
             line.includes('"method":"HEAD"') &&
-            line.includes('"counts_as_access":0'),
+            line.includes('"access_class":"automation_detected"'),
         ),
         true,
       );
@@ -822,7 +822,7 @@ describe("prospect /p/<code> redirects", () => {
     }
   });
 
-  it("preview UA still redirects and is flagged as preview", async () => {
+  it("preview UA still redirects and is automation_detected", async () => {
     const logs: string[] = [];
     const original = console.log;
     console.log = (...args: unknown[]) => {
@@ -839,8 +839,7 @@ describe("prospect /p/<code> redirects", () => {
         logs.some(
           (line) =>
             line.startsWith("prospect_link_access ") &&
-            line.includes('"ua_class":"preview"') &&
-            line.includes('"counts_as_access":0'),
+            line.includes('"access_class":"automation_detected"'),
         ),
         true,
       );

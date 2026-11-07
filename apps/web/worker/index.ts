@@ -1,8 +1,7 @@
 import {
-  classifyProspectUserAgent,
+  classifyProspectAccess,
   createProspectNotFoundResponse,
   createProspectRedirectResponse,
-  prospectAccessCounts,
   resolveProspectRedirect,
   type ProspectAccessEvent,
 } from "@neutro/core/prospect-redirects";
@@ -89,11 +88,12 @@ function recordProspectAccess(
   accessEvent: ProspectAccessEvent,
 ): void {
   const method = request.method;
-  const uaClass = classifyProspectUserAgent(request.headers.get("user-agent"));
   const context = {
     method,
-    uaClass,
-    countsAsAccess: prospectAccessCounts(method, uaClass),
+    accessClass: classifyProspectAccess(
+      method,
+      request.headers.get("user-agent"),
+    ),
   };
 
   if (isServerAnalyticsEnabled(env) && env.POSTHOG_KEY) {
