@@ -84,6 +84,14 @@ describe("ContactoForm", () => {
     assert.doesNotMatch(script, /¡Gracias!|success|hidden\s*=\s*false/);
   });
 
+  it("deja espacio entre oraciones del intro en markup", () => {
+    const template = astroTemplate(formSource);
+    assert.match(
+      template,
+      /class="contacto-form__line">\{line\}<\/span>\{\s*" "\s*\}/,
+    );
+  });
+
   it("marca requeridos del Pen y deja Mensaje opcional", () => {
     const template = astroTemplate(formSource);
     assert.match(template, /name="nombre"[\s\S]*?\brequired\b/);

@@ -9,7 +9,9 @@ import { contactoCountries, contactoFormCopy } from "@/data/contacto";
       <p class="contacto-form__lead">
         {
           contactoFormCopy.lines.map((line) => (
-            <span class="contacto-form__line">{line}</span>
+            <>
+              <span class="contacto-form__line">{line}</span>{" "}
+            </>
           ))
         }
         <span class="contacto-form__line">
