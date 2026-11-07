@@ -59,6 +59,18 @@ describe("ContactoChannels", () => {
       /@media\s*\(min-width:\s*1024px\)\s*\{[\s\S]*\.contacto-channel--dark\s*\{[^}]*background:\s*#0a0a0a/,
     );
   });
+
+  it("limita el hover oscuro de --dark a desktop ≥1024", () => {
+    const css = extractStyle(channelsSource);
+    assert.match(
+      css,
+      /@media\s*\(hover:\s*hover\)\s*and\s*\(prefers-reduced-motion:\s*no-preference\)\s*and\s*\(min-width:\s*1024px\)\s*\{[\s\S]*\.contacto-channel--dark\s+a\.contacto-channel__inner:hover\s*\{[^}]*background:\s*#1f1f1e/,
+    );
+    assert.doesNotMatch(
+      css,
+      /@media\s*\(hover:\s*hover\)\s*and\s*\(prefers-reduced-motion:\s*no-preference\)\s*\{[^}]*\.contacto-channel--dark\s+a\.contacto-channel__inner:hover/,
+    );
+  });
 });
 
 describe("ContactoForm", () => {
