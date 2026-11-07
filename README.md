@@ -116,7 +116,7 @@ Effect complementa a TypeScript con validación en ejecución y modelado de efec
 
 ## Cloudflare
 
-La web se publica como Worker `neutro-web` con Static Assets. Astro genera un sitio estático; el entry `apps/web/worker/index.ts` corre primero (`run_worker_first`): redirects QR (`/f/*`, `/t`), proxy PostHog en `/ingest` y redirección 301 de trailing slash a URL sin barra. Wrangler sirve `dist` y usa `404.html` para rutas inexistentes. Ver [`docs/adr/0002-qr-redirect-routes.md`](docs/adr/0002-qr-redirect-routes.md).
+La web se publica como Worker `neutro-web` con Static Assets. Astro genera un sitio estático; el entry `apps/web/worker/index.ts` corre primero (`run_worker_first`): redirects QR (`/f/*`, `/t`), links de prospección (`/p/<code>`), proxy PostHog en `/ingest` y redirección 301 de trailing slash a URL sin barra. Wrangler sirve `dist` y usa `404.html` para rutas inexistentes. Ver [`docs/adr/0002-qr-redirect-routes.md`](docs/adr/0002-qr-redirect-routes.md).
 
 Para login y deploy:
 

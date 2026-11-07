@@ -5,11 +5,13 @@
   "type": "module",
   "exports": {
     "./site": "./src/site.ts",
-    "./qr-redirects": "./src/qr-redirects.ts"
+    "./qr-redirects": "./src/qr-redirects.ts",
+    "./prospect-redirects": "./src/prospect-redirects.ts",
+    "./prospect-codes": "./src/prospect-codes.ts"
   },
   "scripts": {
     "check": "tsc --noEmit",
-    "test": "node --test --experimental-strip-types src/qr-redirects.test.ts"
+    "test": "node --test --experimental-strip-types src/qr-redirects.test.ts src/prospect-redirects.test.ts"
   },
   "dependencies": {
     "effect": "4.0.5"

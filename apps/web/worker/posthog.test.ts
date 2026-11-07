@@ -5,11 +5,14 @@ import {
   POSTHOG_EU_API_HOST,
   POSTHOG_EU_ASSET_HOST,
   POSTHOG_EU_CAPTURE,
+  buildProspectCapturePayload,
   buildQrCapturePayload,
   captureAck,
+  captureProspectLinkAccess,
   captureQrScanned,
   isPosthogIngestPath,
   isServerAnalyticsEnabled,
+  logProspectLinkAccess,
   proxyPosthogIngest,
   type PosthogAssetCache,
 } from "./posthog.ts";
@@ -40,6 +43,19 @@ const ids = {
   eventId: "11111111-1111-4111-8111-111111111111",
   distinctId: "22222222-2222-4222-8222-222222222222",
   timestamp: "2026-10-21T15:11:42.000Z",
+};
+
+const prospectEvent = {
+  code: "t001" as const,
+  source: "whatsapp",
+  medium: "outbound",
+  campaign: "prueba-prospeccion",
+};
+
+const prospectContext = {
+  method: "GET",
+  uaClass: "other" as const,
+  countsAsAccess: true,
 };
 
 describe("buildQrCapturePayload", () => {
@@ -75,6 +91,97 @@ describe("buildQrCapturePayload", () => {
       },
       event,
     );
+  });
+});
+
+describe("buildProspectCapturePayload", () => {
+  it("emits prospect_link_access with method and ua class", () => {
+    const payload = buildProspectCapturePayload(
+      "phc_test",
+      prospectEvent,
+      prospectContext,
+      ids,
+    );
+
+    assert.equal(payload.event, "prospect_link_access");
+    assert.equal(payload.uuid, ids.eventId);
+    assert.equal(payload.distinct_id, ids.distinctId);
+    assert.notEqual(payload.uuid, payload.distinct_id);
+    assert.equal(payload.properties.code, "t001");
+    assert.equal(payload.properties.method, "GET");
+    assert.equal(payload.properties.ua_class, "other");
+    assert.equal(payload.properties.counts_as_access, true);
+    assert.equal(payload.properties.$process_person_profile, false);
+    assert.equal(payload.properties.$geoip_disable, true);
+    assert.equal("$ip" in payload.properties, false);
+  });
+
+  it("marks HEAD and preview as not counted", () => {
+    const head = buildProspectCapturePayload(
+      "phc_test",
+      prospectEvent,
+      { method: "HEAD", uaClass: "other", countsAsAccess: false },
+      ids,
+    );
+    assert.equal(head.properties.method, "HEAD");
+    assert.equal(head.properties.counts_as_access, false);
+
+    const preview = buildProspectCapturePayload(
+      "phc_test",
+      prospectEvent,
+      { method: "GET", uaClass: "preview", countsAsAccess: false },
+      ids,
+    );
+    assert.equal(preview.properties.ua_class, "preview");
+    assert.equal(preview.properties.counts_as_access, false);
+  });
+});
+
+describe("logProspectLinkAccess", () => {
+  it("writes a structured Workers log without PII fields", async () => {
+    await withCapturedLogs(async (logs) => {
+      logProspectLinkAccess(prospectEvent, prospectContext, ids.timestamp);
+      assert.equal(logs.length, 1);
+      assert.match(logs[0] ?? "", /^prospect_link_access /);
+      assert.match(logs[0] ?? "", /"code":"t001"/);
+      assert.match(logs[0] ?? "", /"ua_class":"other"/);
+      assert.equal((logs[0] ?? "").includes("email"), false);
+      assert.equal((logs[0] ?? "").includes("phone"), false);
+    });
+  });
+});
+
+describe("captureProspectLinkAccess", () => {
+  it("posts to the EU capture host and logs the access", async () => {
+    const apiKey = "phc_test_secret_value";
+    const calls: Array<{ url: string; init: RequestInit }> = [];
+
+    await withCapturedLogs(async (logs) => {
+      await captureProspectLinkAccess(
+        apiKey,
+        prospectEvent,
+        prospectContext,
+        (async (url, init) => {
+          calls.push({ url: String(url), init: init ?? {} });
+          return new Response('{"status":"Ok"}', { status: 200 });
+        }) as typeof fetch,
+      );
+
+      assert.equal(calls.length, 1);
+      assert.equal(calls[0]?.url, POSTHOG_EU_CAPTURE);
+      assert.equal(
+        logs.some((line) => line.startsWith("prospect_link_access ")),
+        true,
+      );
+      assert.equal(
+        logs.some((line) => line.startsWith("posthog_capture_accepted ")),
+        true,
+      );
+      assert.equal(
+        logs.some((line) => line.includes(apiKey)),
+        false,
+      );
+    });
   });
 });
 

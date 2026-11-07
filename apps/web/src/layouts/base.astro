@@ -30,7 +30,7 @@ function publicPathname(pathname: string): string {
 
 function pageCanonical(url: URL, siteUrl: URL | undefined): string {
   const canonicalUrl = new URL(publicPathname(url.pathname), siteUrl ?? url);
-  canonicalUrl.search = url.search;
+  canonicalUrl.search = "";
   return canonicalUrl.href;
 }
 

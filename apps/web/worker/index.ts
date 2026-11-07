@@ -1,13 +1,23 @@
 import {
+  classifyProspectUserAgent,
+  createProspectNotFoundResponse,
+  createProspectRedirectResponse,
+  prospectAccessCounts,
+  resolveProspectRedirect,
+  type ProspectAccessEvent,
+} from "@neutro/core/prospect-redirects";
+import {
   createQrRedirectResponse,
   resolveQrRedirect,
 } from "@neutro/core/qr-redirects";
 
 import { withAssetErrorCacheControl } from "./asset-cache.ts";
 import {
+  captureProspectLinkAccess,
   captureQrScanned,
   isPosthogIngestPath,
   isServerAnalyticsEnabled,
+  logProspectLinkAccess,
   proxyPosthogIngest,
 } from "./posthog.ts";
 import { withSecurityHeaders } from "./security-headers.ts";
@@ -18,7 +28,7 @@ export interface Env {
   ASSETS: Fetcher;
 }
 
-const RESERVED_ROOTS = ["/f", "/t", "/ingest"] as const;
+const RESERVED_ROOTS = ["/f", "/t", "/p", "/ingest"] as const;
 
 export function isWorkersDevHost(hostname: string): boolean {
   return hostname === "workers.dev" || hostname.endsWith(".workers.dev");
@@ -72,6 +82,30 @@ function respond(response: Response, hostname: string): Response {
   );
 }
 
+function recordProspectAccess(
+  request: Request,
+  env: Env,
+  ctx: ExecutionContext,
+  accessEvent: ProspectAccessEvent,
+): void {
+  const method = request.method;
+  const uaClass = classifyProspectUserAgent(request.headers.get("user-agent"));
+  const context = {
+    method,
+    uaClass,
+    countsAsAccess: prospectAccessCounts(method, uaClass),
+  };
+
+  if (isServerAnalyticsEnabled(env) && env.POSTHOG_KEY) {
+    ctx.waitUntil(
+      captureProspectLinkAccess(env.POSTHOG_KEY, accessEvent, context),
+    );
+    return;
+  }
+
+  logProspectLinkAccess(accessEvent, context);
+}
+
 export default {
   async fetch(
     request: Request,
@@ -89,6 +123,15 @@ export default {
         }),
         url.hostname,
       );
+    }
+
+    const prospect = resolveProspectRedirect(url.pathname);
+    if (prospect) {
+      if (prospect.kind === "redirect") {
+        recordProspectAccess(request, env, ctx, prospect.accessEvent);
+        return respond(createProspectRedirectResponse(prospect), url.hostname);
+      }
+      return respond(createProspectNotFoundResponse(prospect), url.hostname);
     }
 
     const redirect = resolveQrRedirect(url.pathname);

@@ -7,6 +7,12 @@
     "paths": {
       "@neutro/core/qr-redirects": [
         "../../../packages/core/src/qr-redirects.ts"
+      ],
+      "@neutro/core/prospect-redirects": [
+        "../../../packages/core/src/prospect-redirects.ts"
+      ],
+      "@neutro/core/prospect-codes": [
+        "../../../packages/core/src/prospect-codes.ts"
       ]
     }
   },

@@ -1,3 +1,7 @@
+import type {
+  ProspectAccessEvent,
+  ProspectUaClass,
+} from "@neutro/core/prospect-redirects";
 import type { QrScanEvent } from "@neutro/core/qr-redirects";
 
 const POSTHOG_REGION = "eu";
@@ -26,6 +30,33 @@ export type QrCapturePayload = {
     id: string;
     source: string;
     campaign: string;
+    $lib: typeof QR_LIB;
+    $process_person_profile: false;
+    $geoip_disable: true;
+  };
+};
+
+export type ProspectCaptureContext = {
+  method: string;
+  uaClass: ProspectUaClass;
+  countsAsAccess: boolean;
+};
+
+export type ProspectCapturePayload = {
+  api_key: string;
+  uuid: string;
+  event: "prospect_link_access";
+  distinct_id: string;
+  timestamp: string;
+  sent_at: string;
+  properties: {
+    code: string;
+    source: string;
+    medium: string;
+    campaign: string;
+    method: string;
+    ua_class: ProspectUaClass;
+    counts_as_access: boolean;
     $lib: typeof QR_LIB;
     $process_person_profile: false;
     $geoip_disable: true;
@@ -110,6 +141,106 @@ export async function captureQrScanned(
   const logged = {
     slug: event.slug,
     id: event.id,
+    event_id: ids.eventId,
+    distinct_id: ids.distinctId,
+    timestamp: ids.timestamp,
+  };
+
+  try {
+    const response = await fetchImpl(POSTHOG_EU_CAPTURE, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(payload),
+      cache: "no-store",
+      redirect: "manual",
+    });
+    const body = (await response.text()).trim();
+    const ack = captureAck(response.status, body);
+    captureLog(
+      ack === "accepted"
+        ? "posthog_capture_accepted"
+        : "posthog_capture_rejected",
+      {
+        ...logged,
+        status: response.status,
+        body: redactSecrets(body, apiKey).slice(0, 120),
+      },
+    );
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    captureLog("posthog_capture_error", {
+      ...logged,
+      name: error instanceof Error ? error.name : "unknown",
+      message: redactSecrets(message, apiKey).slice(0, 120),
+    });
+  }
+}
+
+export function buildProspectCapturePayload(
+  apiKey: string,
+  event: ProspectAccessEvent,
+  context: ProspectCaptureContext,
+  ids: QrCaptureIds,
+): ProspectCapturePayload {
+  return {
+    api_key: apiKey,
+    uuid: ids.eventId,
+    event: "prospect_link_access",
+    distinct_id: ids.distinctId,
+    timestamp: ids.timestamp,
+    sent_at: ids.timestamp,
+    properties: {
+      code: event.code,
+      source: event.source,
+      medium: event.medium,
+      campaign: event.campaign,
+      method: context.method,
+      ua_class: context.uaClass,
+      counts_as_access: context.countsAsAccess,
+      $lib: QR_LIB,
+      $process_person_profile: false,
+      $geoip_disable: true,
+    },
+  };
+}
+
+export function logProspectLinkAccess(
+  event: ProspectAccessEvent,
+  context: ProspectCaptureContext,
+  timestamp: string = new Date().toISOString(),
+): void {
+  captureLog("prospect_link_access", {
+    code: event.code,
+    source: event.source,
+    medium: event.medium,
+    campaign: event.campaign,
+    method: context.method,
+    ua_class: context.uaClass,
+    counts_as_access: context.countsAsAccess ? 1 : 0,
+    timestamp,
+  });
+}
+
+export async function captureProspectLinkAccess(
+  apiKey: string,
+  event: ProspectAccessEvent,
+  context: ProspectCaptureContext,
+  fetchImpl: typeof fetch = fetch,
+): Promise<void> {
+  const ids: QrCaptureIds = {
+    eventId: crypto.randomUUID(),
+    distinctId: crypto.randomUUID(),
+    timestamp: new Date().toISOString(),
+  };
+  const payload = buildProspectCapturePayload(apiKey, event, context, ids);
+  logProspectLinkAccess(event, context, ids.timestamp);
+  const logged = {
+    code: event.code,
+    method: context.method,
+    ua_class: context.uaClass,
+    counts_as_access: context.countsAsAccess ? 1 : 0,
     event_id: ids.eventId,
     distinct_id: ids.distinctId,
     timestamp: ids.timestamp,
