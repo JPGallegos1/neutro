@@ -56,11 +56,13 @@ function assetEnv(body = "page") {
 async function fetchWorker(
   url: string,
   env: { ASSETS: { fetch: (input: RequestInfo | URL) => Promise<Response> } },
+  init?: RequestInit,
+  ctx: ExecutionContext = executionContext(),
 ): Promise<Response> {
   return worker.fetch(
-    new Request(url),
+    new Request(url, init),
     env as unknown as Parameters<typeof worker.fetch>[1],
-    executionContext(),
+    ctx,
   );
 }
 
@@ -760,5 +762,97 @@ describe("SEO-10 security headers", () => {
       assertNoCsp(response);
       assertSimpleSecurityHeaders(response);
     }
+  });
+});
+
+describe("prospect /p/<code> redirects", () => {
+  it("valid test code redirects with UTMs and noindex", async () => {
+    const { calls, env } = assetEnv("unused");
+    const response = await fetchWorker(`${PRODUCTION}/p/t001`, env);
+
+    assert.equal(response.status, 302);
+    assert.equal(
+      response.headers.get("Location"),
+      `${PRODUCTION}/?utm_source=whatsapp&utm_medium=outbound&utm_campaign=prueba-prospeccion&utm_content=t001`,
+    );
+    assert.equal(response.headers.get("X-Robots-Tag"), "noindex");
+    assert.equal(response.headers.get("Cache-Control"), "no-store");
+    assertSimpleSecurityHeaders(response);
+    assert.deepEqual(calls, []);
+  });
+
+  it("unknown code returns 404 with noindex and no Location", async () => {
+    const { calls, env } = assetEnv("unused");
+    const response = await fetchWorker(`${PRODUCTION}/p/zzzz`, env);
+
+    assert.equal(response.status, 404);
+    assert.equal(response.headers.get("Location"), null);
+    assert.equal(response.headers.get("X-Robots-Tag"), "noindex");
+    assert.equal(response.headers.get("Cache-Control"), "no-store");
+    assert.deepEqual(calls, []);
+  });
+
+  it("HEAD redirects the same Location as automation_detected", async () => {
+    const logs: string[] = [];
+    const original = console.log;
+    console.log = (...args: unknown[]) => {
+      logs.push(args.map(String).join(" "));
+    };
+    try {
+      const { env } = assetEnv("unused");
+      const response = await fetchWorker(`${PRODUCTION}/p/t002`, env, {
+        method: "HEAD",
+      });
+      assert.equal(response.status, 302);
+      assert.equal(
+        response.headers.get("Location"),
+        `${PRODUCTION}/?utm_source=whatsapp&utm_medium=outbound&utm_campaign=prueba-prospeccion&utm_content=t002`,
+      );
+      assert.equal(
+        logs.some(
+          (line) =>
+            line.startsWith("prospect_link_access ") &&
+            line.includes('"method":"HEAD"') &&
+            line.includes('"access_class":"automation_detected"'),
+        ),
+        true,
+      );
+    } finally {
+      console.log = original;
+    }
+  });
+
+  it("preview UA still redirects and is automation_detected", async () => {
+    const logs: string[] = [];
+    const original = console.log;
+    console.log = (...args: unknown[]) => {
+      logs.push(args.map(String).join(" "));
+    };
+    try {
+      const { env } = assetEnv("unused");
+      const response = await fetchWorker(`${PRODUCTION}/p/t003`, env, {
+        headers: { "user-agent": "WhatsApp/2.23.20.0" },
+      });
+      assert.equal(response.status, 302);
+      assert.match(response.headers.get("Location") ?? "", /utm_content=t003/);
+      assert.equal(
+        logs.some(
+          (line) =>
+            line.startsWith("prospect_link_access ") &&
+            line.includes('"access_class":"automation_detected"'),
+        ),
+        true,
+      );
+    } finally {
+      console.log = original;
+    }
+  });
+
+  it("does not 301 trailing slash on /p/ before resolving", async () => {
+    const { calls, env } = assetEnv("unused");
+    const response = await fetchWorker(`${PRODUCTION}/p/t001/`, env);
+    assert.equal(response.status, 302);
+    assert.match(response.headers.get("Location") ?? "", /utm_content=t001/);
+    assert.deepEqual(calls, []);
   });
 });

@@ -34,7 +34,13 @@ export default defineConfig({
     sitemap({
       filter(page) {
         const pathname = new URL(page).pathname.replace(/\/+$/, "") || "/";
-        return pathname !== "/404";
+        if (pathname === "/404") {
+          return false;
+        }
+        if (pathname === "/p" || pathname.startsWith("/p/")) {
+          return false;
+        }
+        return true;
       },
       customPages: [...slashlessPaths, ...trabajoCasePaths].map(
         (path) => new URL(path, site).href,
