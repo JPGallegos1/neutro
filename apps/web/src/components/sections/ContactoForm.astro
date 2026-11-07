@@ -1,0 +1,478 @@
+---
+import { contactoCountries, contactoFormCopy } from "@/data/contacto";
+---
+
+<section class="contacto-form" aria-labelledby="form-t">
+  <div class="contacto-form__inner">
+    <div class="contacto-form__intro">
+      <h2 id="form-t" class="contacto-form__title">{contactoFormCopy.title}</h2>
+      <p class="contacto-form__lead">
+        {
+          contactoFormCopy.lines.map((line) => (
+            <>
+              <span class="contacto-form__line">{line}</span>{" "}
+            </>
+          ))
+        }
+        <span class="contacto-form__line">
+          <a class="contacto-form__link" href={contactoFormCopy.workLinkHref}>
+            {contactoFormCopy.workLinkLabel}
+          </a>
+        </span>
+      </p>
+    </div>
+
+    <form id="contacto-form" class="contacto-form__form" novalidate data-contacto-form>
+      <div class="contacto-field">
+        <label for="f-nombre"
+          >Nombre<span class="contacto-field__ast" aria-hidden="true">*</span
+          ></label
+        >
+        <input
+          id="f-nombre"
+          name="nombre"
+          type="text"
+          autocomplete="given-name"
+          required
+          aria-describedby="f-nombre-e"
+        />
+        <span class="contacto-field__msg" id="f-nombre-e"
+          >Completá tu nombre.</span
+        >
+      </div>
+      <div class="contacto-field">
+        <label for="f-apellido"
+          >Apellido<span class="contacto-field__ast" aria-hidden="true">*</span
+          ></label
+        >
+        <input
+          id="f-apellido"
+          name="apellido"
+          type="text"
+          autocomplete="family-name"
+          required
+          aria-describedby="f-apellido-e"
+        />
+        <span class="contacto-field__msg" id="f-apellido-e"
+          >Completá tu apellido.</span
+        >
+      </div>
+      <div class="contacto-field">
+        <label for="f-empresa"
+          >Empresa<span class="contacto-field__ast" aria-hidden="true">*</span
+          ></label
+        >
+        <input
+          id="f-empresa"
+          name="empresa"
+          type="text"
+          autocomplete="organization"
+          required
+          aria-describedby="f-empresa-e"
+        />
+        <span class="contacto-field__msg" id="f-empresa-e"
+          >Completá el nombre de tu empresa.</span
+        >
+      </div>
+      <div class="contacto-field">
+        <label for="f-email"
+          >Email<span class="contacto-field__ast" aria-hidden="true">*</span
+          ></label
+        >
+        <input
+          id="f-email"
+          name="email"
+          type="email"
+          autocomplete="email"
+          required
+          aria-describedby="f-email-e"
+        />
+        <span class="contacto-field__msg" id="f-email-e"
+          >Ingresá un email válido, por ejemplo nombre@empresa.com.</span
+        >
+      </div>
+      <div class="contacto-field">
+        <label for="f-ciudad"
+          >Ciudad<span class="contacto-field__ast" aria-hidden="true">*</span
+          ></label
+        >
+        <input
+          id="f-ciudad"
+          name="ciudad"
+          type="text"
+          autocomplete="address-level2"
+          required
+          aria-describedby="f-ciudad-e"
+        />
+        <span class="contacto-field__msg" id="f-ciudad-e"
+          >Completá tu ciudad.</span
+        >
+      </div>
+      <div class="contacto-field">
+        <label for="f-pais"
+          >País<span class="contacto-field__ast" aria-hidden="true">*</span
+          ></label
+        >
+        <select id="f-pais" name="pais" autocomplete="country-name" required>
+          {
+            contactoCountries.map((country, index) => (
+              <option selected={index === 0}>{country}</option>
+            ))
+          }
+        </select>
+      </div>
+      <div class="contacto-field">
+        <label for="f-mensaje"
+          >Mensaje <span class="contacto-field__opt">(opcional)</span></label
+        >
+        <textarea id="f-mensaje" name="mensaje" rows="3"></textarea>
+      </div>
+      <label class="contacto-consent">
+        <input type="checkbox" name="consent" required data-contacto-consent />
+        <span>
+          {contactoFormCopy.consentBefore}<a href={contactoFormCopy.privacyHref}
+            >{contactoFormCopy.privacyLabel}</a
+          >{contactoFormCopy.consentMiddle}<a href={contactoFormCopy.termsHref}
+            >{contactoFormCopy.termsLabel}</a
+          ><span class="contacto-field__ast" aria-hidden="true">*</span>
+        </span>
+      </label>
+      <p class="contacto-form__hint" id="f-hint">{contactoFormCopy.hint}</p>
+      <button
+        class="contacto-form__send"
+        type="submit"
+        disabled
+        aria-describedby="f-hint"
+        data-contacto-submit
+      >
+        {contactoFormCopy.submit}
+      </button>
+    </form>
+  </div>
+</section>
+
+<script>
+  function initContactoForm() {
+    const form = document.querySelector<HTMLFormElement>("[data-contacto-form]");
+    if (!form || form.dataset.ready === "true") return;
+    form.dataset.ready = "true";
+
+    const consent = form.querySelector<HTMLInputElement>("[data-contacto-consent]");
+    const submit = form.querySelector<HTMLButtonElement>("[data-contacto-submit]");
+    if (!consent || !submit) return;
+
+    const syncSubmit = () => {
+      submit.disabled = !consent.checked;
+    };
+    consent.addEventListener("change", syncSubmit);
+    syncSubmit();
+
+    function check(el: HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement) {
+      const field = el.closest(".contacto-field");
+      if (!field || !el.required) return true;
+      const ok = el.checkValidity() && el.value.trim() !== "";
+      field.classList.toggle("err", !ok);
+      el.setAttribute("aria-invalid", String(!ok));
+      return ok;
+    }
+
+    form
+      .querySelectorAll<HTMLInputElement | HTMLTextAreaElement>(
+        "input:not([type=checkbox]),textarea",
+      )
+      .forEach((el) => {
+        el.addEventListener("blur", () => {
+          if (el.value) check(el);
+        });
+      });
+
+    form.addEventListener("submit", (event) => {
+      event.preventDefault();
+      let firstInvalid: string | null = null;
+      const fields = form.querySelectorAll(
+        "input:not([type=checkbox]),textarea,select",
+      );
+      for (const node of fields) {
+        if (
+          !(node instanceof HTMLInputElement) &&
+          !(node instanceof HTMLTextAreaElement) &&
+          !(node instanceof HTMLSelectElement)
+        ) {
+          continue;
+        }
+        if (!check(node) && !firstInvalid) firstInvalid = node.id;
+      }
+      if (!consent.checked) {
+        submit.disabled = true;
+        consent.focus();
+        return;
+      }
+      if (firstInvalid) {
+        document.getElementById(firstInvalid)?.focus();
+        return;
+      }
+    });
+  }
+
+  initContactoForm();
+  document.addEventListener("astro:page-load", initContactoForm);
+</script>
+
+<style>
+  .contacto-form {
+    background: #ffffff;
+    color: #0a0a0a;
+    padding-block: var(--landing-section-space)
+      calc(var(--landing-section-space) * 1.25);
+  }
+
+  .contacto-form__inner {
+    padding-inline: var(--landing-gutter);
+  }
+
+  .contacto-form__intro {
+    margin-bottom: 32px;
+  }
+
+  @media (min-width: 1024px) {
+    .contacto-form__intro {
+      margin-bottom: 48px;
+    }
+  }
+
+  .contacto-form__title {
+    margin: 0 0 16px;
+    font-size: 40px;
+    font-weight: 500;
+    line-height: 1;
+    letter-spacing: -0.8px;
+    text-transform: uppercase;
+    color: #0a0a0a;
+  }
+
+  @media (min-width: 1024px) {
+    .contacto-form__title {
+      font-size: 56px;
+      letter-spacing: -1.96px;
+    }
+  }
+
+  .contacto-form__lead {
+    margin: 0;
+    font-size: 16px;
+    font-weight: 400;
+    line-height: 1.45;
+    color: #62625d;
+  }
+
+  @media (min-width: 1024px) {
+    .contacto-form__lead {
+      font-size: 17px;
+      max-width: none;
+    }
+
+    .contacto-form__line {
+      display: block;
+    }
+  }
+
+  .contacto-form__link {
+    color: #0a0a0a;
+    text-decoration: underline;
+    text-underline-offset: 4px;
+    text-decoration-thickness: 1px;
+  }
+
+  @media (hover: hover) {
+    .contacto-form__link:hover {
+      text-decoration-thickness: 2px;
+    }
+  }
+
+  .contacto-form__link:focus-visible {
+    outline: 2px solid #c2410c;
+    outline-offset: 3px;
+  }
+
+  .contacto-form__form {
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+    max-width: none;
+  }
+
+  .contacto-field {
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+    padding-top: 28px;
+    min-height: 60px;
+  }
+
+  .contacto-field + .contacto-field {
+    margin-top: 12px;
+  }
+
+  .contacto-field label {
+    font-size: 14px;
+    font-weight: 400;
+    line-height: 1.3;
+    color: #0a0a0a;
+  }
+
+  .contacto-field__ast {
+    color: #d92d20;
+    margin-left: 2px;
+  }
+
+  .contacto-field__opt {
+    color: #6b6b68;
+  }
+
+  .contacto-field input[type="text"],
+  .contacto-field input[type="email"],
+  .contacto-field select,
+  .contacto-field textarea {
+    font: inherit;
+    font-size: 16px;
+    color: #0a0a0a;
+    background: transparent;
+    border: 0;
+    border-bottom: 1px solid #8a8a85;
+    border-radius: 0;
+    padding: 10px 0;
+    min-height: 44px;
+    width: 100%;
+    box-shadow: none;
+    transition:
+      border-color 150ms var(--ease-out),
+      box-shadow 150ms var(--ease-out);
+  }
+
+  .contacto-field select {
+    appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8'%3E%3Cpath d='M1 1l5 5 5-5' fill='none' stroke='%230A0A0A' stroke-width='1.5'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 0 center;
+  }
+
+  .contacto-field textarea {
+    resize: vertical;
+  }
+
+  @media (hover: hover) {
+    .contacto-field input:hover,
+    .contacto-field select:hover,
+    .contacto-field textarea:hover {
+      border-color: #3a3a38;
+    }
+  }
+
+  .contacto-field input:focus-visible,
+  .contacto-field select:focus-visible,
+  .contacto-field textarea:focus-visible {
+    outline: none;
+    border-color: #e8590c;
+    box-shadow: 0 1px 0 0 #e8590c;
+  }
+
+  .contacto-field.err input,
+  .contacto-field.err select,
+  .contacto-field.err textarea {
+    border-color: #b42318;
+    box-shadow: none;
+  }
+
+  .contacto-field__msg {
+    display: none;
+    margin-top: 8px;
+    font-size: 13px;
+    color: #b42318;
+  }
+
+  .contacto-field.err .contacto-field__msg {
+    display: block;
+  }
+
+  .contacto-consent {
+    display: flex;
+    gap: 12px;
+    align-items: flex-start;
+    margin-top: 48px;
+    font-size: 14px;
+    line-height: 1.5;
+    color: #0a0a0a;
+  }
+
+  .contacto-consent input {
+    width: 20px;
+    height: 20px;
+    margin: 1px 0 0;
+    flex: none;
+    accent-color: #c2410c;
+  }
+
+  .contacto-consent a {
+    color: #0a0a0a;
+    text-decoration: underline;
+  }
+
+  .contacto-consent input:focus-visible {
+    outline: 2px solid #c2410c;
+    outline-offset: 3px;
+  }
+
+  .contacto-form__hint {
+    margin: 16px 0 24px;
+    font-size: 13px;
+    color: #6b6b68;
+  }
+
+  .contacto-form__send {
+    align-self: flex-start;
+    font: inherit;
+    font-weight: 500;
+    font-size: 16px;
+    background: #c2410c;
+    color: #ffffff;
+    border: 0;
+    border-radius: 0;
+    padding: 16px 32px;
+    min-height: 52px;
+    cursor: pointer;
+    transition:
+      transform 160ms var(--ease-out),
+      background-color 150ms var(--ease-out);
+  }
+
+  .contacto-form__send:disabled {
+    background: #e7e7e4;
+    color: #5c5c58;
+    cursor: not-allowed;
+  }
+
+  @media (hover: hover) {
+    .contacto-form__send:hover:not(:disabled) {
+      background: #9a3412;
+    }
+  }
+
+  .contacto-form__send:active:not(:disabled) {
+    transform: scale(0.97);
+  }
+
+  .contacto-form__send:focus-visible {
+    outline: 2px solid #c2410c;
+    outline-offset: 3px;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .contacto-form__send {
+      transition: none;
+    }
+
+    .contacto-form__send:active:not(:disabled) {
+      transform: none;
+    }
+  }
+</style>
