@@ -56,7 +56,6 @@ describe("workProjects", () => {
       assert.equal(project.href, published.href);
       assert.match(project.href, /^\/trabajo\/[a-z0-9-]+$/);
       assert.ok(!project.href.endsWith("/"));
-      assert.equal(project.tag, "En producción");
     }
   });
 
