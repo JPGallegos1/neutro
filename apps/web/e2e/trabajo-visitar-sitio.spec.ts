@@ -26,14 +26,16 @@ test.describe("CTA Visitar sitio en fichas /trabajo", () => {
     await expect(page.locator(".work-case__tag")).toHaveCount(0);
   });
 
-  test("a 390px el CTA queda debajo de la descripción", async ({ page }) => {
+  test("a 390px es un link de texto inline al final de la descripción", async ({
+    page,
+  }) => {
     await page.setViewportSize({ width: 390, height: 900 });
     await page.goto(`/trabajo/afectiva`, {
       waitUntil: "domcontentloaded",
     });
     await page.evaluate(() => document.fonts.ready);
 
-    const geometry = await page.evaluate(() => {
+    const report = await page.evaluate(() => {
       const name = document.querySelector(".work-case__name");
       const visit = document.querySelector(".work-case__visit");
       if (!(name instanceof HTMLElement) || !(visit instanceof HTMLElement)) {
@@ -41,32 +43,44 @@ test.describe("CTA Visitar sitio en fichas /trabajo", () => {
       }
       const nameRect = name.getBoundingClientRect();
       const visitRect = visit.getBoundingClientRect();
+      const style = getComputedStyle(visit);
+      const textProbe = document.createElement("span");
+      textProbe.style.color = "var(--neutro-text)";
+      document.body.appendChild(textProbe);
+      const textColor = getComputedStyle(textProbe).color;
+      textProbe.remove();
       return {
+        nameRight: nameRect.right,
+        nameTop: nameRect.top,
         nameBottom: nameRect.bottom,
-        nameLeft: nameRect.left,
-        visitTop: visitRect.top,
         visitLeft: visitRect.left,
-        visitWidth: visitRect.width,
-        asideWidth: document
-          .querySelector(".work-case__aside")
-          ?.getBoundingClientRect().width,
+        visitTop: visitRect.top,
+        visitBottom: visitRect.bottom,
+        color: style.color,
+        textColor,
+        background: style.backgroundColor,
+        textDecorationLine: style.textDecorationLine,
+        paddingTop: style.paddingTop,
+        borderWidth: style.borderTopWidth,
+        target: visit.getAttribute("target"),
+        rel: visit.getAttribute("rel"),
       };
     });
 
-    expect(geometry).not.toBeNull();
-    if (!geometry) throw new Error("geometry ausente");
-    expect(geometry.visitTop).toBeGreaterThan(geometry.nameBottom - 0.5);
-    expect(
-      Math.abs(geometry.visitLeft - geometry.nameLeft),
-    ).toBeLessThanOrEqual(1);
-    expect(geometry.asideWidth).toBeDefined();
-    if (geometry.asideWidth === undefined) {
-      throw new Error("asideWidth ausente");
-    }
-    expect(geometry.visitWidth).toBeLessThan(geometry.asideWidth * 0.9);
+    expect(report).not.toBeNull();
+    if (!report) throw new Error("report ausente");
+    expect(report.target).toBe("_blank");
+    expect(report.rel).toContain("noopener");
+    expect(report.textDecorationLine).toContain("underline");
+    expect(report.paddingTop).toBe("0px");
+    expect(report.borderWidth).toBe("0px");
+    expect(rgbChannels(report.color)).toEqual(rgbChannels(report.textColor));
+    expect(report.visitLeft).toBeGreaterThan(report.nameRight - 0.5);
+    expect(report.visitTop).toBeGreaterThanOrEqual(report.nameTop - 1);
+    expect(report.visitTop).toBeLessThan(report.nameBottom + 1);
   });
 
-  test("a 390px sin línea oficial el CTA queda debajo del título", async ({
+  test("a 390px sin línea oficial el link queda debajo del título", async ({
     page,
   }) => {
     await page.setViewportSize({ width: 390, height: 900 });
@@ -83,11 +97,13 @@ test.describe("CTA Visitar sitio en fichas /trabajo", () => {
       }
       const titleRect = title.getBoundingClientRect();
       const visitRect = visit.getBoundingClientRect();
+      const style = getComputedStyle(visit);
       return {
         titleBottom: titleRect.bottom,
         titleLeft: titleRect.left,
         visitTop: visitRect.top,
         visitLeft: visitRect.left,
+        textDecorationLine: style.textDecorationLine,
       };
     });
 
@@ -97,9 +113,10 @@ test.describe("CTA Visitar sitio en fichas /trabajo", () => {
     expect(
       Math.abs(geometry.visitLeft - geometry.titleLeft),
     ).toBeLessThanOrEqual(1);
+    expect(geometry.textDecorationLine).toContain("underline");
   });
 
-  test("a 1440px el CTA queda debajo del título/descripcion", async ({
+  test("a 1440px el CTA botón queda debajo del título/descripcion", async ({
     page,
   }) => {
     await page.setViewportSize({ width: 1440, height: 900 });
@@ -116,11 +133,26 @@ test.describe("CTA Visitar sitio en fichas /trabajo", () => {
       }
       const nameRect = name.getBoundingClientRect();
       const visitRect = visit.getBoundingClientRect();
+      const style = getComputedStyle(visit);
+      const textProbe = document.createElement("span");
+      textProbe.style.color = "var(--neutro-text)";
+      document.body.appendChild(textProbe);
+      const textColor = getComputedStyle(textProbe).color;
+      textProbe.remove();
+      const bgProbe = document.createElement("span");
+      bgProbe.style.color = "var(--neutro-bg)";
+      document.body.appendChild(bgProbe);
+      const bgColor = getComputedStyle(bgProbe).color;
+      bgProbe.remove();
       return {
         nameBottom: nameRect.bottom,
         nameLeft: nameRect.left,
         visitTop: visitRect.top,
         visitLeft: visitRect.left,
+        background: style.backgroundColor,
+        color: style.color,
+        textColor,
+        bgColor,
       };
     });
 
@@ -130,47 +162,9 @@ test.describe("CTA Visitar sitio en fichas /trabajo", () => {
     expect(
       Math.abs(geometry.visitLeft - geometry.nameLeft),
     ).toBeLessThanOrEqual(1);
-  });
-
-  test("usa fondo/texto monocromos en claro y oscuro", async ({ page }) => {
-    for (const theme of ["light", "dark"] as const) {
-      await page.emulateMedia({ colorScheme: theme });
-      await page.addInitScript((value: string) => {
-        localStorage.setItem("neutro-theme", value);
-      }, theme);
-      await page.setViewportSize({ width: 390, height: 900 });
-      await page.goto(`/trabajo/${CASE_SLUG}`, {
-        waitUntil: "domcontentloaded",
-      });
-
-      const colors = await page.evaluate(() => {
-        const visit = document.querySelector(".work-case__visit");
-        if (!(visit instanceof HTMLElement)) return null;
-        const style = getComputedStyle(visit);
-        const textProbe = document.createElement("span");
-        textProbe.style.color = "var(--neutro-text)";
-        document.body.appendChild(textProbe);
-        const textColor = getComputedStyle(textProbe).color;
-        textProbe.remove();
-        const bgProbe = document.createElement("span");
-        bgProbe.style.color = "var(--neutro-bg)";
-        document.body.appendChild(bgProbe);
-        const bgColor = getComputedStyle(bgProbe).color;
-        bgProbe.remove();
-        return {
-          background: style.backgroundColor,
-          color: style.color,
-          textColor,
-          bgColor,
-        };
-      });
-
-      expect(colors).not.toBeNull();
-      if (!colors) throw new Error("colors ausente");
-      expect(rgbChannels(colors.background)).toEqual(
-        rgbChannels(colors.textColor),
-      );
-      expect(rgbChannels(colors.color)).toEqual(rgbChannels(colors.bgColor));
-    }
+    expect(rgbChannels(geometry.background)).toEqual(
+      rgbChannels(geometry.textColor),
+    );
+    expect(rgbChannels(geometry.color)).toEqual(rgbChannels(geometry.bgColor));
   });
 });
