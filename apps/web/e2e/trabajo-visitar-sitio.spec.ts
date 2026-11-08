@@ -26,7 +26,7 @@ test.describe("CTA Visitar sitio en fichas /trabajo", () => {
     await expect(page.locator(".work-case__tag")).toHaveCount(0);
   });
 
-  test("a 390px queda a la derecha de la descripción", async ({ page }) => {
+  test("a 390px el CTA queda debajo de la descripción", async ({ page }) => {
     await page.setViewportSize({ width: 390, height: 900 });
     await page.goto(`/trabajo/afectiva`, {
       waitUntil: "domcontentloaded",
@@ -34,36 +34,39 @@ test.describe("CTA Visitar sitio en fichas /trabajo", () => {
     await page.evaluate(() => document.fonts.ready);
 
     const geometry = await page.evaluate(() => {
-      const title = document.querySelector(".work-case__title");
       const name = document.querySelector(".work-case__name");
       const visit = document.querySelector(".work-case__visit");
-      if (
-        !(title instanceof HTMLElement) ||
-        !(name instanceof HTMLElement) ||
-        !(visit instanceof HTMLElement)
-      ) {
+      if (!(name instanceof HTMLElement) || !(visit instanceof HTMLElement)) {
         return null;
       }
-      const titleRect = title.getBoundingClientRect();
       const nameRect = name.getBoundingClientRect();
       const visitRect = visit.getBoundingClientRect();
       return {
-        titleBottom: titleRect.bottom,
-        nameRight: nameRect.right,
         nameBottom: nameRect.bottom,
-        visitLeft: visitRect.left,
+        nameLeft: nameRect.left,
         visitTop: visitRect.top,
+        visitLeft: visitRect.left,
+        visitWidth: visitRect.width,
+        asideWidth: document
+          .querySelector(".work-case__aside")
+          ?.getBoundingClientRect().width,
       };
     });
 
     expect(geometry).not.toBeNull();
     if (!geometry) throw new Error("geometry ausente");
-    expect(geometry.visitLeft).toBeGreaterThan(geometry.nameRight - 0.5);
-    expect(geometry.visitTop).toBeGreaterThanOrEqual(geometry.titleBottom - 1);
-    expect(geometry.visitTop).toBeLessThan(geometry.nameBottom + 1);
+    expect(geometry.visitTop).toBeGreaterThan(geometry.nameBottom - 0.5);
+    expect(
+      Math.abs(geometry.visitLeft - geometry.nameLeft),
+    ).toBeLessThanOrEqual(1);
+    expect(geometry.asideWidth).toBeDefined();
+    if (geometry.asideWidth === undefined) {
+      throw new Error("asideWidth ausente");
+    }
+    expect(geometry.visitWidth).toBeLessThan(geometry.asideWidth * 0.9);
   });
 
-  test("a 390px sin línea oficial el CTA queda a la derecha bajo el título", async ({
+  test("a 390px sin línea oficial el CTA queda debajo del título", async ({
     page,
   }) => {
     await page.setViewportSize({ width: 390, height: 900 });
@@ -75,32 +78,25 @@ test.describe("CTA Visitar sitio en fichas /trabajo", () => {
     const geometry = await page.evaluate(() => {
       const title = document.querySelector(".work-case__title");
       const visit = document.querySelector(".work-case__visit");
-      const aside = document.querySelector(".work-case__aside");
-      if (
-        !(title instanceof HTMLElement) ||
-        !(visit instanceof HTMLElement) ||
-        !(aside instanceof HTMLElement)
-      ) {
+      if (!(title instanceof HTMLElement) || !(visit instanceof HTMLElement)) {
         return null;
       }
       const titleRect = title.getBoundingClientRect();
       const visitRect = visit.getBoundingClientRect();
-      const asideRect = aside.getBoundingClientRect();
       return {
         titleBottom: titleRect.bottom,
+        titleLeft: titleRect.left,
         visitTop: visitRect.top,
         visitLeft: visitRect.left,
-        visitRight: visitRect.right,
-        asideRight: asideRect.right,
-        asideMid: (asideRect.left + asideRect.right) / 2,
       };
     });
 
     expect(geometry).not.toBeNull();
     if (!geometry) throw new Error("geometry ausente");
     expect(geometry.visitTop).toBeGreaterThan(geometry.titleBottom - 0.5);
-    expect(geometry.visitLeft).toBeGreaterThan(geometry.asideMid);
-    expect(geometry.asideRight - geometry.visitRight).toBeLessThanOrEqual(1);
+    expect(
+      Math.abs(geometry.visitLeft - geometry.titleLeft),
+    ).toBeLessThanOrEqual(1);
   });
 
   test("a 1440px el CTA queda debajo del título/descripcion", async ({

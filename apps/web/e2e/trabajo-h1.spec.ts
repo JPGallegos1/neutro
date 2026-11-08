@@ -559,22 +559,11 @@ test.describe("H1 de fichas /trabajo — títulos cortos v34", () => {
             official.availableWidth,
             official.nowrapWidth,
           );
-          if (width >= 1024) {
-            expect(
-              official.lineCount,
-              `lineCount=${official.lineCount}; available=${official.availableWidth} nowrap=${official.nowrapWidth} ⇒ ${fromWidths}`,
-            ).toBe(fromWidths);
-          } else {
-            expect(
-              official.lineCount,
-              `lineCount=${official.lineCount}; available=${official.availableWidth} nowrap=${official.nowrapWidth} ⇒ ≥${fromWidths}`,
-            ).toBeGreaterThanOrEqual(fromWidths);
-            expect(official.lineCount).toBeLessThanOrEqual(fromWidths + 1);
-          }
-          if (
-            (item.slug === "afectiva" || item.slug === "capa-automotores") &&
-            width >= 1024
-          ) {
+          expect(
+            official.lineCount,
+            `lineCount=${official.lineCount}; available=${official.availableWidth} nowrap=${official.nowrapWidth} ⇒ ${fromWidths}`,
+          ).toBe(fromWidths);
+          if (item.slug === "afectiva" || item.slug === "capa-automotores") {
             expect(
               official.lineCount,
               `${item.slug} lineCount=${official.lineCount} a ${width}px`,
