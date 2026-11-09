@@ -117,6 +117,8 @@ describe("ContactoHero", () => {
     assert.match(css, /repeating-linear-gradient/);
     assert.match(script, /shouldAnimate/);
     assert.match(script, /prefers-reduced-motion:\s*reduce/);
+    assert.match(script, /hasFlagPixels/);
+    assert.match(script, /nextDrawableFlagIndex/);
   });
 });
 

@@ -19,7 +19,8 @@ import { contactoHeroFlags } from "@/data/contacto";
     contactoHeroTiming,
     flagSrc,
     gridColumns,
-    nextFlagIndex,
+    hasFlagPixels,
+    nextDrawableFlagIndex,
     pitchForWidth,
     shouldAnimate,
     type FlagPixel,
@@ -82,10 +83,12 @@ import { contactoHeroFlags } from "@/data/contacto";
       const ox = textWidth + contactoFlagCell.gap;
       if (flag) {
         const pixels = flagData[flag];
-        if (pixels) {
+        if (hasFlagPixels(pixels)) {
           for (let y = 0; y < contactoFlagCell.height; y++) {
             for (let i = 0; i < cols; i++) {
-              const [r, g, b] = pixels[y * contactoFlagCell.width + i]!;
+              const pixel = pixels[y * contactoFlagCell.width + i];
+              if (!pixel) continue;
+              const [r, g, b] = pixel;
               dot(ox + i, y, `rgb(${r},${g},${b})`, true);
             }
           }
@@ -149,8 +152,15 @@ import { contactoHeroFlags } from "@/data/contacto";
           ? Math.floor(start) % Math.max(flags.length, 1)
           : 0;
 
+      const flagFiles = flags.map((flag) => flag.file);
+
       if (!shouldAnimate(reduce.matches, staticMode)) {
-        const file = flags[startIndex]?.file ?? flags[0]?.file ?? null;
+        let file = flags[startIndex]?.file ?? flags[0]?.file ?? null;
+        if (file && !hasFlagPixels(flagData[file])) {
+          const next = nextDrawableFlagIndex(startIndex, flagFiles, flagData);
+          file = flagFiles[next] ?? null;
+          if (file && !hasFlagPixels(flagData[file])) file = null;
+        }
         state = { flag: file, cols: contactoFlagCell.width };
         draw(state.flag, state.cols, true);
         return;
@@ -166,11 +176,25 @@ import { contactoHeroFlags } from "@/data/contacto";
       while (true) {
         if (reduce.matches) {
           const file = flags[0]?.file ?? null;
-          state = { flag: file, cols: contactoFlagCell.width };
+          state = {
+            flag: file && hasFlagPixels(flagData[file]) ? file : null,
+            cols: contactoFlagCell.width,
+          };
           draw(state.flag, state.cols, true);
           return;
         }
         const file = flags[i]?.file ?? null;
+        if (!file || !hasFlagPixels(flagData[file])) {
+          const next = nextDrawableFlagIndex(i, flagFiles, flagData);
+          if (next === i) {
+            state = { flag: null, cols: 0 };
+            draw(state.flag, state.cols, true);
+            await wait(contactoHeroTiming.gapMs);
+            continue;
+          }
+          i = next;
+          continue;
+        }
         state.flag = file;
         for (let c = 1; c <= contactoFlagCell.width; c++) {
           state.cols = c;
@@ -184,7 +208,7 @@ import { contactoHeroFlags } from "@/data/contacto";
           await wait(contactoHeroTiming.eraseMs);
         }
         await wait(contactoHeroTiming.gapMs);
-        i = nextFlagIndex(i, flags.length);
+        i = nextDrawableFlagIndex(i, flagFiles, flagData);
       }
     })();
   }

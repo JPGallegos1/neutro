@@ -60,4 +60,26 @@ export function flagSrc(file: string): string {
   return `${flagAssetBase}${file}`;
 }
 
+export function hasFlagPixels(
+  pixels: FlagPixel[] | undefined | null,
+): pixels is FlagPixel[] {
+  return Array.isArray(pixels) && pixels.length > 0;
+}
+
+export function nextDrawableFlagIndex(
+  current: number,
+  flagFiles: readonly string[],
+  flagData: Record<string, FlagPixel[] | undefined>,
+): number {
+  const total = flagFiles.length;
+  if (total <= 0) return 0;
+  let index = nextFlagIndex(current, total);
+  for (let step = 0; step < total; step++) {
+    const file = flagFiles[index];
+    if (file && hasFlagPixels(flagData[file])) return index;
+    index = nextFlagIndex(index, total);
+  }
+  return current;
+}
+
 export { contactoHeroTiming, contactoHeroFlags, contactoFlagCell };
