@@ -16,6 +16,7 @@
   },
   "vars": {
     "ANALYTICS_ENABLED": "true",
+    "CONTACT_ENABLED": "true",
     "CONTACT_TO": "hola@neutro.solutions",
     "CONTACT_FROM": "no-reply@send.neutro.solutions",
     "TURNSTILE_EXPECTED_HOSTNAME": "neutro.solutions",
