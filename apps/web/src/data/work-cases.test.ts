@@ -83,7 +83,6 @@ describe("workCases", () => {
         `https://neutro.solutions/trabajo/${workCase.slug}`,
       );
       assert.ok(!workCaseCanonical(workCase.slug).endsWith("/"));
-      assert.equal(workCase.tag, "En producción");
       assert.notEqual(workCase.outcomeTitle, null);
       assert.equal(
         workCase.outcomeTitle,

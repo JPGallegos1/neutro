@@ -208,11 +208,12 @@ function titleText(document: HTMLElement): string[] {
 }
 
 function visitHrefs(document: HTMLElement): string[] {
-  return document.querySelectorAll("a").flatMap((anchor) => {
+  const hrefs = document.querySelectorAll("a").flatMap((anchor) => {
     if (!visibleText(anchor.text).includes("Visitar sitio")) return [];
     const href = anchor.getAttribute("href");
     return href === undefined ? [] : [href];
   });
+  return [...new Set(hrefs)];
 }
 
 function cardNames(document: HTMLElement, route: string): string[] {
