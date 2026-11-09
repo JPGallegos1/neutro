@@ -33,12 +33,11 @@ apps/
   web/                  # Astro + React + Vite; única aplicación desplegable
     public/             # Favicon, robots, video e imágenes
     src/
-      components/       # Logo, ThemeToggle y secciones de la landing
+      components/       # Logo y secciones de la landing
       data/             # Nav, trabajo, servicios, sociales y page-meta
       layouts/          # Documento HTML (base) y layout legal
       lib/              # Sitio y analytics del navegador (vars de build)
       pages/            # Home, nosotros, legales y 404
-      scripts/          # Controles de tema
       styles/           # Estilos de la landing
     worker/             # Worker: QR, /ingest y slashless
     astro.config.mjs
@@ -81,7 +80,7 @@ Ejecutar desde la raíz con `pnpm` o `corepack pnpm`:
 
 ## UI y estilos
 
-Tailwind CSS 4 se integra como plugin de Vite en `apps/web/astro.config.mjs`. El tema y los tokens de shadcn/ui se encuentran en `packages/ui/src/styles/globals.css` (mapeados a la paleta Neutro, con clase `.dark` en `<html>`). El layout de Astro importa ese CSS global y autoaloja Geist Sans (400/500/700) y Geist Mono. Las fuentes de Tailwind incluyen tanto la aplicación como los componentes compartidos.
+Tailwind CSS 4 se integra como plugin de Vite en `apps/web/astro.config.mjs`. El tema fijo y los tokens de shadcn/ui se encuentran en `packages/ui/src/styles/globals.css` (paleta Neutro clara para el contenido; header, heroes y footer usan un bloque `.dark` local). El layout de Astro importa ese CSS global y autoaloja Geist Sans (400/500/700) y Geist Mono. Las fuentes de Tailwind incluyen tanto la aplicación como los componentes compartidos.
 
 En producción el analytics del navegador está activo desde el deploy del 24/10/2026. Se prende en el build de Astro con `PUBLIC_POSTHOG_KEY` y `PUBLIC_ANALYTICS_ENABLED=true`: sin las dos, `apps/web/src/lib/analytics.ts` no descarga `posthog-js` (import dinámico) y el SDK no corre. La otra puerta es el Worker: manda `qr_scanned` server-side con `POSTHOG_KEY` y `ANALYTICS_ENABLED="true"` en `wrangler.jsonc`. Previews y `staging` quedan con analytics apagado ([ADR 0006](docs/adr/0006-workers-builds-delivery.md), estado Propuesto). Ver [`docs/adr/0001-analytics-off-by-default.md`](docs/adr/0001-analytics-off-by-default.md).
 
@@ -106,7 +105,7 @@ export function CallToAction() {
 }
 ```
 
-Astro renderiza React como HTML por defecto. Usá `client:load` o `client:visible` al importar una isla React que necesite interacción. La landing actual es HTML/CSS con scripts Astro para tema, menú móvil, video y acordeón de servicios.
+Astro renderiza React como HTML por defecto. Usá `client:load` o `client:visible` al importar una isla React que necesite interacción. La landing actual es HTML/CSS con scripts Astro para menú móvil, video y acordeón de servicios.
 
 ## TypeScript y Effect
 

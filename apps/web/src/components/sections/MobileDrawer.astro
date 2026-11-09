@@ -1,6 +1,5 @@
 ---
 import Logo from "@/components/Logo.astro";
-import ThemeToggle from "@/components/ThemeToggle.astro";
 import { ArrowUpRight, X } from "@lucide/astro";
 import { socialLinks } from "@/data/socials";
 
@@ -86,9 +85,6 @@ const { navItems } = Astro.props;
       </ul>
     </nav>
 
-    <div class="mobile-drawer__theme">
-      <ThemeToggle variant="drawer" />
-    </div>
   </div>
 </dialog>
 
@@ -413,12 +409,6 @@ const { navItems } = Astro.props;
 
   .mobile-drawer__social :global(.social-arrow) {
     color: var(--neutro-text-muted);
-  }
-
-  .mobile-drawer__theme {
-    margin-top: 40px;
-    padding-top: 24px;
-    border-top: 0;
   }
 
   @media (min-width: 1024px) {

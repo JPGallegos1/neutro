@@ -189,9 +189,6 @@ for (const ruta of rutasPublicas) {
           height: viewport.height,
         });
         await page.emulateMedia({ colorScheme: tema.valor });
-        await page.addInitScript((value: string) => {
-          localStorage.setItem("neutro-theme", value);
-        }, tema.valor);
 
         const response = await page.goto(ruta);
         expect(response?.ok(), ruta).toBe(true);
@@ -199,7 +196,7 @@ for (const ruta of rutasPublicas) {
         const oscuro = await page
           .locator("html")
           .evaluate((el) => el.classList.contains("dark"));
-        expect(oscuro, tema.nombre).toBe(tema.valor === "dark");
+        expect(oscuro, tema.nombre).toBe(false);
 
         const results = await new AxeBuilder({ page })
           .withTags([...etiquetasAxe])

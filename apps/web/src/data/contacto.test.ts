@@ -97,6 +97,9 @@ describe("contacto hero helpers", () => {
     assert.equal(nextDrawableFlagIndex(0, files, data), 1);
     assert.equal(nextDrawableFlagIndex(1, files, data), 1);
     assert.equal(nextDrawableFlagIndex(2, files, data), 1);
-    assert.equal(nextDrawableFlagIndex(0, files, { "a.svg": [], "b.svg": [], "c.svg": [] }), 0);
+    assert.equal(
+      nextDrawableFlagIndex(0, files, { "a.svg": [], "b.svg": [], "c.svg": [] }),
+      0,
+    );
   });
 });
