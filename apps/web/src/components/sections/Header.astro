@@ -3,6 +3,31 @@ import Logo from "@/components/Logo.astro";
 import MobileDrawer from "@/components/sections/MobileDrawer.astro";
 import { Menu } from "@lucide/astro";
 import { navItems } from "@/data/nav";
+
+function publicPathname(pathname: string): string {
+  let path = pathname;
+  if (path.endsWith("/index.html")) {
+    path = path.slice(0, -"index.html".length);
+  } else if (path.endsWith(".html")) {
+    path = path.slice(0, -".html".length);
+  }
+  if (path.length > 1) {
+    path = path.replace(/\/+$/, "");
+  }
+  if (path === "") {
+    path = "/";
+  }
+  return path;
+}
+
+const pathname = publicPathname(Astro.url.pathname);
+
+function navIsCurrent(href: string): boolean {
+  const path = href.split("#")[0] || "/";
+  const normalized = publicPathname(path);
+  if (normalized === "/") return false;
+  return pathname === normalized || pathname.startsWith(`${normalized}/`);
+}
 ---
 
 <header class="site-header dark">
@@ -13,7 +38,11 @@ import { navItems } from "@/data/nav";
       <ul class="site-header__nav-list">
         {navItems.map((item) => (
           <li>
-            <a class="landing-link site-header__nav-link" href={item.href}>
+            <a
+              class="landing-link site-header__nav-link"
+              href={item.href}
+              aria-current={navIsCurrent(item.href) ? "page" : undefined}
+            >
               {item.label}
             </a>
           </li>
@@ -109,6 +138,12 @@ import { navItems } from "@/data/nav";
       font-size: 13px;
       font-weight: 400;
       color: var(--neutro-text);
+      padding-block: 6px;
+    }
+
+    .site-header__nav-link[aria-current="page"] {
+      border-bottom: 1.5px solid var(--neutro-accent-orange);
+      text-decoration: none;
     }
   }
 </style>
