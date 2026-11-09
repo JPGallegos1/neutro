@@ -256,13 +256,44 @@ const contactoTurnstileSiteKey = resolveContactoTurnstileSiteKey(
     let submissionId = crypto.randomUUID();
     let busy = false;
 
+    function requiredFieldValid(
+      el: HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement,
+    ) {
+      const field = el.closest(".contacto-field");
+      if (!field || field.classList.contains("contacto-field--honeypot")) {
+        return true;
+      }
+      if (!el.required) return true;
+      return el.checkValidity() && el.value.trim() !== "";
+    }
+
+    function requiredFieldsValid(root: HTMLFormElement) {
+      const fields = root.querySelectorAll(
+        "input:not([type=checkbox]):not([name=website]),textarea,select",
+      );
+      for (const node of fields) {
+        if (
+          !(node instanceof HTMLInputElement) &&
+          !(node instanceof HTMLTextAreaElement) &&
+          !(node instanceof HTMLSelectElement)
+        ) {
+          continue;
+        }
+        if (!requiredFieldValid(node)) return false;
+      }
+      return true;
+    }
+
     const syncSubmit = () => {
-      submit.disabled = busy || !consent.checked;
+      if (!form) return;
+      submit.disabled = busy || !consent.checked || !requiredFieldsValid(form);
       submit.textContent = busy
         ? contactoFormCopy.submitting
         : contactoFormCopy.submit;
     };
     consent.addEventListener("change", syncSubmit);
+    form.addEventListener("input", syncSubmit);
+    form.addEventListener("change", syncSubmit);
     syncSubmit();
 
     form.addEventListener("input", () => {
@@ -279,7 +310,7 @@ const contactoTurnstileSiteKey = resolveContactoTurnstileSiteKey(
         return true;
       }
       if (!el.required) return true;
-      const ok = el.checkValidity() && el.value.trim() !== "";
+      const ok = requiredFieldValid(el);
       field.classList.toggle("err", !ok);
       el.setAttribute("aria-invalid", String(!ok));
       return ok;
@@ -587,7 +618,7 @@ const contactoTurnstileSiteKey = resolveContactoTurnstileSiteKey(
     height: 20px;
     margin: 1px 0 0;
     flex: none;
-    accent-color: #c2410c;
+    accent-color: #0a0a0a;
   }
 
   .contacto-consent a {
@@ -596,8 +627,14 @@ const contactoTurnstileSiteKey = resolveContactoTurnstileSiteKey(
   }
 
   .contacto-consent input:focus-visible {
-    outline: 2px solid #c2410c;
+    outline: 2px solid #0a0a0a;
     outline-offset: 3px;
+  }
+
+  @media (hover: hover) {
+    .contacto-consent input:hover {
+      accent-color: #0a0a0a;
+    }
   }
 
   .contacto-form__hint {
@@ -611,7 +648,7 @@ const contactoTurnstileSiteKey = resolveContactoTurnstileSiteKey(
     font: inherit;
     font-weight: 500;
     font-size: 16px;
-    background: #c2410c;
+    background: #0a0a0a;
     color: #ffffff;
     border: 0;
     border-radius: 0;
@@ -620,7 +657,8 @@ const contactoTurnstileSiteKey = resolveContactoTurnstileSiteKey(
     cursor: pointer;
     transition:
       transform 160ms var(--ease-out),
-      background-color 150ms var(--ease-out);
+      background-color 150ms var(--ease-out),
+      opacity 150ms var(--ease-out);
   }
 
   .contacto-form__send:disabled {
@@ -631,7 +669,7 @@ const contactoTurnstileSiteKey = resolveContactoTurnstileSiteKey(
 
   @media (hover: hover) {
     .contacto-form__send:hover:not(:disabled) {
-      background: #9a3412;
+      background: #262624;
     }
   }
 
@@ -640,7 +678,7 @@ const contactoTurnstileSiteKey = resolveContactoTurnstileSiteKey(
   }
 
   .contacto-form__send:focus-visible {
-    outline: 2px solid #c2410c;
+    outline: 2px solid #0a0a0a;
     outline-offset: 3px;
   }
 
