@@ -48,6 +48,47 @@ test.describe("/contacto", () => {
     }
   });
 
+  test("con reduced-motion el canvas queda estático", async ({ page }) => {
+    await page.emulateMedia({ reducedMotion: "reduce" });
+    await page.goto("/contacto?static&i=0");
+    const canvas = page.locator("#contacto-dots");
+    await expect(canvas).toBeVisible();
+    const first = await canvas.evaluate((node) => {
+      const el = node as HTMLCanvasElement;
+      return el.toDataURL();
+    });
+    await page.waitForTimeout(200);
+    const second = await canvas.evaluate((node) => {
+      const el = node as HTMLCanvasElement;
+      return el.toDataURL();
+    });
+    expect(second).toBe(first);
+  });
+
+  test("si una bandera falla al cargar, el ciclo LED sigue", async ({ page }) => {
+    const pageErrors: string[] = [];
+    page.on("pageerror", (error) => {
+      pageErrors.push(error.message);
+    });
+    await page.emulateMedia({ reducedMotion: "no-preference" });
+    await page.route("**/images/contacto/flags/argentina.svg", (route) =>
+      route.abort(),
+    );
+    await page.goto("/contacto?i=0");
+    const canvas = page.locator("#contacto-dots");
+    await expect(canvas).toBeVisible();
+    await page.waitForTimeout(600);
+    const frames: string[] = [];
+    for (let n = 0; n < 5; n++) {
+      frames.push(
+        await canvas.evaluate((node) => (node as HTMLCanvasElement).toDataURL()),
+      );
+      await page.waitForTimeout(350);
+    }
+    expect(pageErrors).toEqual([]);
+    expect(new Set(frames).size).toBeGreaterThan(1);
+  });
+
   test("incluye Contacto en nav desktop y drawer mobile", async ({ page }) => {
     await page.setViewportSize({ width: 1280, height: 800 });
     await page.goto("/contacto");

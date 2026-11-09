@@ -110,14 +110,15 @@ describe("ContactoForm", () => {
   });
 });
 
-describe("ContactoHero stub", () => {
-  it("expone hero C estático sin canvas LED", () => {
+describe("ContactoHero", () => {
+  it("usa hero C y respeta prefers-reduced-motion vía helper", () => {
     const css = extractStyle(heroSource);
-    const template = astroTemplate(heroSource);
+    const script = extractScript(heroSource);
     assert.match(css, /repeating-linear-gradient/);
-    assert.match(template, /Contacto \| Neutro Solutions/);
-    assert.doesNotMatch(template, /<canvas\b|#contacto-dots|contacto-hero__canvas/);
-    assert.doesNotMatch(heroSource, /<script>/);
+    assert.match(script, /shouldAnimate/);
+    assert.match(script, /prefers-reduced-motion:\s*reduce/);
+    assert.match(script, /hasFlagPixels/);
+    assert.match(script, /nextDrawableFlagIndex/);
   });
 });
 
