@@ -63,12 +63,11 @@ const contactoTurnstileSiteKey = resolveContactoTurnstileSiteKey(
         />
       </div>
       <div class="contacto-field">
-        <label for="f-nombre">
-          Nombre
-          <span class="contacto-field__ast" aria-hidden="true">
-            *
-          </span>
-        </label>
+        <!-- prettier-ignore -->
+        <label for="f-nombre"
+          >Nombre<span class="contacto-field__ast" aria-hidden="true">*</span
+          ></label
+        >
         <input
           id="f-nombre"
           name="nombre"
@@ -83,12 +82,11 @@ const contactoTurnstileSiteKey = resolveContactoTurnstileSiteKey(
         </span>
       </div>
       <div class="contacto-field">
-        <label for="f-apellido">
-          Apellido
-          <span class="contacto-field__ast" aria-hidden="true">
-            *
-          </span>
-        </label>
+        <!-- prettier-ignore -->
+        <label for="f-apellido"
+          >Apellido<span class="contacto-field__ast" aria-hidden="true">*</span
+          ></label
+        >
         <input
           id="f-apellido"
           name="apellido"
@@ -103,12 +101,11 @@ const contactoTurnstileSiteKey = resolveContactoTurnstileSiteKey(
         </span>
       </div>
       <div class="contacto-field">
-        <label for="f-empresa">
-          Empresa
-          <span class="contacto-field__ast" aria-hidden="true">
-            *
-          </span>
-        </label>
+        <!-- prettier-ignore -->
+        <label for="f-empresa"
+          >Empresa<span class="contacto-field__ast" aria-hidden="true">*</span
+          ></label
+        >
         <input
           id="f-empresa"
           name="empresa"
@@ -123,12 +120,11 @@ const contactoTurnstileSiteKey = resolveContactoTurnstileSiteKey(
         </span>
       </div>
       <div class="contacto-field">
-        <label for="f-email">
-          Email
-          <span class="contacto-field__ast" aria-hidden="true">
-            *
-          </span>
-        </label>
+        <!-- prettier-ignore -->
+        <label for="f-email"
+          >Email<span class="contacto-field__ast" aria-hidden="true">*</span
+          ></label
+        >
         <input
           id="f-email"
           name="email"
@@ -143,12 +139,11 @@ const contactoTurnstileSiteKey = resolveContactoTurnstileSiteKey(
         </span>
       </div>
       <div class="contacto-field">
-        <label for="f-ciudad">
-          Ciudad
-          <span class="contacto-field__ast" aria-hidden="true">
-            *
-          </span>
-        </label>
+        <!-- prettier-ignore -->
+        <label for="f-ciudad"
+          >Ciudad<span class="contacto-field__ast" aria-hidden="true">*</span
+          ></label
+        >
         <input
           id="f-ciudad"
           name="ciudad"
@@ -163,12 +158,11 @@ const contactoTurnstileSiteKey = resolveContactoTurnstileSiteKey(
         </span>
       </div>
       <div class="contacto-field">
-        <label for="f-pais">
-          País
-          <span class="contacto-field__ast" aria-hidden="true">
-            *
-          </span>
-        </label>
+        <!-- prettier-ignore -->
+        <label for="f-pais"
+          >País<span class="contacto-field__ast" aria-hidden="true">*</span
+          ></label
+        >
         <select id="f-pais" name="pais" autocomplete="country-name" required>
           {contactoCountries.map((country, index) => (
             <option selected={index === 0}>{country}</option>
@@ -194,18 +188,15 @@ const contactoTurnstileSiteKey = resolveContactoTurnstileSiteKey(
           data-contacto-turnstile
         ></div>
       </div>
+      <!-- prettier-ignore -->
       <label class="contacto-consent">
         <input type="checkbox" name="consent" required data-contacto-consent />
         <span>
-          {contactoFormCopy.consentBefore}
-          <a href={contactoFormCopy.privacyHref}>
-            {contactoFormCopy.privacyLabel}
-          </a>
-          {contactoFormCopy.consentMiddle}
-          <a href={contactoFormCopy.termsHref}>{contactoFormCopy.termsLabel}</a>
-          <span class="contacto-field__ast" aria-hidden="true">
-            *
-          </span>
+          {contactoFormCopy.consentBefore}<a href={contactoFormCopy.privacyHref}
+            >{contactoFormCopy.privacyLabel}</a
+          >{contactoFormCopy.consentMiddle}<a href={contactoFormCopy.termsHref}
+            >{contactoFormCopy.termsLabel}</a
+          ><span class="contacto-field__ast" aria-hidden="true">*</span>
         </span>
       </label>
       <p class="contacto-form__hint" id="f-hint">
