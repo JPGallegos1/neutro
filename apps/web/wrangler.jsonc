@@ -16,5 +16,19 @@
   },
   "vars": {
     "ANALYTICS_ENABLED": "true",
+    "CONTACT_TO": "hola@neutro.solutions",
+    "CONTACT_FROM": "no-reply@send.neutro.solutions",
+    "TURNSTILE_EXPECTED_HOSTNAME": "neutro.solutions",
+    "TURNSTILE_EXPECTED_ACTION": "contacto",
   },
+  "ratelimits": [
+    {
+      "name": "CONTACT_RATE_LIMIT",
+      "namespace_id": "1001",
+      "simple": {
+        "limit": 5,
+        "period": 60,
+      },
+    },
+  ],
 }
