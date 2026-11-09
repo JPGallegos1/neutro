@@ -256,13 +256,44 @@ const contactoTurnstileSiteKey = resolveContactoTurnstileSiteKey(
     let submissionId = crypto.randomUUID();
     let busy = false;
 
+    function requiredFieldValid(
+      el: HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement,
+    ) {
+      const field = el.closest(".contacto-field");
+      if (!field || field.classList.contains("contacto-field--honeypot")) {
+        return true;
+      }
+      if (!el.required) return true;
+      return el.checkValidity() && el.value.trim() !== "";
+    }
+
+    function requiredFieldsValid(root: HTMLFormElement) {
+      const fields = root.querySelectorAll(
+        "input:not([type=checkbox]):not([name=website]),textarea,select",
+      );
+      for (const node of fields) {
+        if (
+          !(node instanceof HTMLInputElement) &&
+          !(node instanceof HTMLTextAreaElement) &&
+          !(node instanceof HTMLSelectElement)
+        ) {
+          continue;
+        }
+        if (!requiredFieldValid(node)) return false;
+      }
+      return true;
+    }
+
     const syncSubmit = () => {
-      submit.disabled = busy || !consent.checked;
+      if (!form) return;
+      submit.disabled = busy || !consent.checked || !requiredFieldsValid(form);
       submit.textContent = busy
         ? contactoFormCopy.submitting
         : contactoFormCopy.submit;
     };
     consent.addEventListener("change", syncSubmit);
+    form.addEventListener("input", syncSubmit);
+    form.addEventListener("change", syncSubmit);
     syncSubmit();
 
     form.addEventListener("input", () => {
@@ -279,7 +310,7 @@ const contactoTurnstileSiteKey = resolveContactoTurnstileSiteKey(
         return true;
       }
       if (!el.required) return true;
-      const ok = el.checkValidity() && el.value.trim() !== "";
+      const ok = requiredFieldValid(el);
       field.classList.toggle("err", !ok);
       el.setAttribute("aria-invalid", String(!ok));
       return ok;

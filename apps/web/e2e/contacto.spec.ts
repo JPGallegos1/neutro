@@ -21,13 +21,35 @@ test.describe("/contacto", () => {
     ).toHaveCount(0);
   });
 
-  test("gating de consentimiento en el botón Enviar", async ({ page }) => {
+  test("gating de Enviar: campos válidos y consentimiento", async ({
+    page,
+  }) => {
     await page.goto("/contacto");
     const submit = page.getByRole("button", { name: "Enviar" });
+    const consent = page.locator("[data-contacto-consent]");
+
     await expect(submit).toBeDisabled();
-    await page.locator("[data-contacto-consent]").check();
+
+    await consent.check();
+    await expect(submit).toBeDisabled();
+    await consent.uncheck();
+
+    await page.locator("#f-nombre").fill("Ana");
+    await page.locator("#f-apellido").fill("García");
+    await page.locator("#f-empresa").fill("Neutro");
+    await page.locator("#f-email").fill("ana@ejemplo.com");
+    await page.locator("#f-ciudad").fill("Rosario");
+    await expect(submit).toBeDisabled();
+
+    await consent.check();
     await expect(submit).toBeEnabled();
-    await page.locator("[data-contacto-consent]").uncheck();
+
+    await page.locator("#f-email").fill("no-es-email");
+    await expect(submit).toBeDisabled();
+    await page.locator("#f-email").fill("ana@ejemplo.com");
+    await expect(submit).toBeEnabled();
+
+    await page.locator("#f-nombre").fill("");
     await expect(submit).toBeDisabled();
   });
 

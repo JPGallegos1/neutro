@@ -75,7 +75,7 @@ describe("ContactoChannels", () => {
 });
 
 describe("ContactoForm", () => {
-  it("deshabilita Enviar hasta el consentimiento y postea al API", () => {
+  it("deshabilita Enviar hasta campos válidos y consentimiento, y postea al API", () => {
     const template = astroTemplate(formSource);
     const script = extractScript(formSource);
     assert.match(template, /data-contacto-submit/);
@@ -83,9 +83,15 @@ describe("ContactoForm", () => {
     assert.match(template, /data-contacto-success/);
     assert.match(template, /data-contacto-error/);
     assert.match(template, /cf-turnstile/);
+    assert.match(script, /function requiredFieldsValid\s*\(/);
     assert.match(
       script,
-      /submit\.disabled\s*=\s*busy\s*\|\|\s*!consent\.checked/,
+      /submit\.disabled\s*=\s*busy\s*\|\|\s*!consent\.checked\s*\|\|\s*!requiredFieldsValid\(\s*form\s*\)/,
+    );
+    assert.match(script, /form\.addEventListener\(\s*"input"\s*,\s*syncSubmit/);
+    assert.match(
+      script,
+      /form\.addEventListener\(\s*"change"\s*,\s*syncSubmit/,
     );
     assert.match(script, /event\.preventDefault\(\)/);
     assert.match(script, /fetch\(contactoFormCopy\.endpoint/);
