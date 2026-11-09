@@ -1,0 +1,557 @@
+---
+import { ArrowRight, ArrowUpRight } from "@lucide/astro";
+import ServiceCta from "@/components/sections/ServiceCta.astro";
+import {
+  SHOW_WEB_SITIO_PRESUPUESTO_LINE,
+  SHOW_WEB_TURNOS_SUMAR_A_WEB_ACTUAL_LINE,
+  WEB_SITIO_PRESUPUESTO_LINE,
+  WEB_TURNOS_SUMAR_A_WEB_ACTUAL_LINE,
+  serviceContactHref,
+  servicePageCases,
+  type ServicePageCopy,
+} from "@/data/service-pages";
+
+interface Props {
+  page: ServicePageCopy;
+}
+
+const { page } = Astro.props;
+const cases = servicePageCases(page);
+const contactHref = serviceContactHref(page.path);
+const showSitioPresupuesto =
+  page.path === "/web" && SHOW_WEB_SITIO_PRESUPUESTO_LINE;
+const showTurnosSumar =
+  page.path === "/web" && SHOW_WEB_TURNOS_SUMAR_A_WEB_ACTUAL_LINE;
+---
+
+<main id="contenido" class="service-page">
+  <section class="service-hero" aria-labelledby="service-h1">
+    <div class="landing-shell landing-gutter service-hero__inner">
+      <nav class="service-crumbs" aria-label="Ruta">
+        <ol class="service-crumbs__list">
+          <li>
+            <a class="landing-link" href="/#que-hacemos">
+              Servicios
+            </a>
+          </li>
+          <li aria-current="page">{page.crumb}</li>
+        </ol>
+      </nav>
+      <h1 id="service-h1" class="service-hero__h1">
+        {page.heading}
+      </h1>
+      <div class="service-hero__foot">
+        <p class="service-hero__lead">{page.lead}</p>
+        <ServiceCta
+          href={contactHref}
+          label={page.ctaLabel}
+          origen={page.path}
+          onDark
+        />
+      </div>
+    </div>
+  </section>
+
+  {page.casesTitle && cases.length > 0 ? (
+    <section class="service-cases" id="casos" aria-labelledby="service-cases-h">
+      <div class="landing-shell landing-gutter service-cases__head">
+        <h2 id="service-cases-h" class="service-cases__h">
+          {page.casesTitle}
+        </h2>
+      </div>
+      <div class="service-cases__grid">
+        {cases.map((project) => (
+          <a class="service-tile" href={project.href}>
+            <span
+              class="service-tile__img"
+              style={`--service-tint: ${project.tint}`}
+            >
+              <img
+                src={project.imageSrc}
+                alt=""
+                width="1440"
+                height="810"
+                loading="lazy"
+                decoding="async"
+              />
+            </span>
+            <span class="service-tile__meta">
+              <h3 class="service-tile__name">
+                {project.title}
+                <span class="service-tile__go" aria-hidden="true">
+                  <ArrowUpRight size={18} />
+                </span>
+              </h3>
+              <span class="service-tile__desc">{project.description}</span>
+            </span>
+          </a>
+        ))}
+      </div>
+    </section>
+  ) : null}
+
+  <div class="service-svcs">
+    <div class="landing-shell landing-gutter service-svcs__grid">
+      {page.blocks.map((block) => (
+        <section class="service-svc" aria-labelledby={`svc-${block.id}`}>
+          <h2 id={`svc-${block.id}`} class="service-svc__t">
+            {block.title}
+          </h2>
+          {block.paragraphs.map((paragraph) => (
+            <p class="service-svc__p">{paragraph}</p>
+          ))}
+          {block.id === "sitio" && showSitioPresupuesto ? (
+            <p class="service-svc__p">{WEB_SITIO_PRESUPUESTO_LINE}</p>
+          ) : null}
+          {block.id === "turnos" && showTurnosSumar ? (
+            <p class="service-svc__p">{WEB_TURNOS_SUMAR_A_WEB_ACTUAL_LINE}</p>
+          ) : null}
+        </section>
+      ))}
+    </div>
+  </div>
+
+  <nav class="service-rel" aria-labelledby="service-rel-h">
+    <div class="landing-shell landing-gutter">
+      <h2 id="service-rel-h" class="service-rel__h">
+        También te puede servir
+      </h2>
+      <ul class="service-rel__list">
+        {page.related.map((item) => (
+          <li>
+            <a class="service-rel__link" href={item.href}>
+              {item.label}
+              <ArrowRight size={24} aria-hidden="true" />
+            </a>
+          </li>
+        ))}
+      </ul>
+    </div>
+  </nav>
+
+  <section class="service-close" aria-labelledby="service-close-h">
+    <div class="landing-shell landing-gutter service-close__inner">
+      <h2 id="service-close-h" class="sr-only">
+        Contacto
+      </h2>
+      <p class="service-close__t">{page.closing}</p>
+      <ServiceCta
+        href={contactHref}
+        label={page.ctaLabel}
+        origen={page.path}
+        onDark
+      />
+    </div>
+  </section>
+</main>
+
+<style>
+  .service-page {
+    --service-sp-xl: 88px;
+    --service-sp-l: 56px;
+    background: var(--neutro-bg);
+    color: var(--neutro-text);
+  }
+
+  @media (min-width: 1024px) {
+    .service-page {
+      --service-sp-xl: 144px;
+      --service-sp-l: 80px;
+    }
+  }
+
+  .sr-only {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
+  }
+
+  .service-hero {
+    background: #0a0a0a;
+    color: #f6f6f4;
+  }
+
+  .service-hero__inner {
+    display: flex;
+    flex-direction: column;
+    gap: 32px;
+    padding-block: 24px 56px;
+  }
+
+  @media (min-width: 1024px) {
+    .service-hero__inner {
+      gap: 48px;
+      padding-block: 32px 88px;
+    }
+  }
+
+  .service-crumbs {
+    margin: 0;
+    font-family: var(--font-mono);
+    font-size: 13px;
+    letter-spacing: 0.01em;
+    color: #b4b4af;
+  }
+
+  .service-crumbs__list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  .service-crumbs__list li + li::before {
+    content: "/";
+    margin-right: 8px;
+    opacity: 0.6;
+  }
+
+  .service-hero__h1 {
+    margin: 0;
+    max-width: 17ch;
+    font-weight: 700;
+    text-transform: uppercase;
+    line-height: 0.92;
+    letter-spacing: -0.04em;
+    font-size: clamp(34px, 8.6vw, 112px);
+  }
+
+  .service-hero__foot {
+    display: flex;
+    flex-direction: column;
+    gap: 28px;
+    align-items: flex-start;
+  }
+
+  @media (min-width: 1024px) {
+    .service-hero__foot {
+      flex-direction: row;
+      justify-content: space-between;
+      align-items: flex-end;
+      gap: 64px;
+    }
+  }
+
+  .service-hero__lead {
+    margin: 0;
+    max-width: 34rem;
+    font-size: 18px;
+    line-height: 1.45;
+    color: #d6d6d2;
+  }
+
+  @media (min-width: 1024px) {
+    .service-hero__lead {
+      font-size: 20px;
+    }
+  }
+
+  .service-cases {
+    padding-block: var(--service-sp-l) 0;
+  }
+
+  .service-cases__head {
+    margin-bottom: 24px;
+  }
+
+  @media (min-width: 1024px) {
+    .service-cases__head {
+      margin-bottom: 32px;
+    }
+  }
+
+  .service-cases__h {
+    margin: 0;
+    font-size: 28px;
+    font-weight: 700;
+    letter-spacing: -0.03em;
+    line-height: 1;
+    text-transform: uppercase;
+  }
+
+  @media (min-width: 1024px) {
+    .service-cases__h {
+      font-size: 40px;
+    }
+  }
+
+  .service-cases__grid {
+    display: grid;
+    grid-template-columns: repeat(6, minmax(0, 1fr));
+  }
+
+  .service-tile {
+    grid-column: span 2;
+    display: flex;
+    flex-direction: column;
+    text-decoration: none;
+    color: inherit;
+    background: var(--neutro-bg);
+  }
+
+  .service-tile:nth-child(-n + 2) {
+    grid-column: span 3;
+  }
+
+  .service-tile__img {
+    position: relative;
+    display: block;
+    aspect-ratio: 16 / 9;
+    overflow: hidden;
+    background: var(--service-tint);
+  }
+
+  .service-tile__img img {
+    display: block;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    object-position: center top;
+    transition: filter 200ms var(--ease-out);
+  }
+
+  @media (hover: hover) and (prefers-reduced-motion: no-preference) {
+    .service-tile:hover .service-tile__img img {
+      filter: brightness(1.06);
+    }
+  }
+
+  .service-tile__meta {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    padding: 20px 32px 48px 24px;
+  }
+
+  .service-tile:first-child .service-tile__meta,
+  .service-tile:nth-child(3) .service-tile__meta {
+    padding-left: var(--landing-gutter);
+  }
+
+  .service-tile__name {
+    margin: 0;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 24px;
+    font-weight: 400;
+    letter-spacing: -0.02em;
+    line-height: 1.15;
+  }
+
+  .service-tile:nth-child(-n + 2) .service-tile__name {
+    font-size: 28px;
+  }
+
+  .service-tile__go {
+    display: inline-flex;
+    line-height: 0;
+  }
+
+  .service-tile__go :global(svg) {
+    transition: transform 160ms var(--ease-out);
+  }
+
+  @media (hover: hover) and (prefers-reduced-motion: no-preference) {
+    .service-tile:hover .service-tile__go :global(svg) {
+      transform: translate(2px, -2px);
+    }
+  }
+
+  .service-tile__desc {
+    color: var(--neutro-text-muted);
+    font-size: 15px;
+    line-height: 1.45;
+    max-width: 44ch;
+  }
+
+  @media (max-width: 1023px) {
+    .service-cases__grid {
+      display: flex;
+      overflow-x: auto;
+      scroll-snap-type: x mandatory;
+      gap: 12px;
+      padding-inline: var(--landing-gutter);
+      scroll-padding-inline: var(--landing-gutter);
+      scrollbar-width: none;
+      padding-bottom: 8px;
+    }
+
+    .service-tile {
+      flex: 0 0 82%;
+      scroll-snap-align: start;
+    }
+
+    .service-tile .service-tile__meta,
+    .service-tile:first-child .service-tile__meta,
+    .service-tile:nth-child(3) .service-tile__meta {
+      padding: 16px 0 24px;
+    }
+
+    .service-tile .service-tile__name,
+    .service-tile:nth-child(-n + 2) .service-tile__name {
+      font-size: 22px;
+    }
+  }
+
+  .service-svcs {
+    background: #ffffff;
+    padding-block: var(--service-sp-xl);
+  }
+
+  .service-svcs__grid {
+    display: grid;
+    gap: 56px;
+  }
+
+  @media (min-width: 1024px) {
+    .service-svcs__grid {
+      grid-template-columns: 1fr 1fr;
+      column-gap: 96px;
+      row-gap: 96px;
+    }
+  }
+
+  .service-svc {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    max-width: 36rem;
+  }
+
+  .service-svc__t {
+    margin: 0;
+    font-size: 30px;
+    font-weight: 500;
+    letter-spacing: -0.03em;
+    line-height: 1.05;
+  }
+
+  @media (min-width: 1024px) {
+    .service-svc__t {
+      font-size: 44px;
+    }
+  }
+
+  .service-svc__p {
+    margin: 0;
+    font-size: 17px;
+    line-height: 1.5;
+    color: var(--neutro-text-muted);
+  }
+
+  @media (min-width: 1024px) {
+    .service-svc__p {
+      font-size: 19px;
+    }
+  }
+
+  .service-rel {
+    padding-block: var(--service-sp-l);
+  }
+
+  .service-rel__h {
+    margin: 0;
+    font-family: var(--font-mono);
+    font-size: 13px;
+    font-weight: 400;
+    color: var(--neutro-text-muted);
+    letter-spacing: 0.01em;
+  }
+
+  @media (min-width: 1024px) {
+    .service-rel__h {
+      font-size: 15px;
+    }
+  }
+
+  .service-rel__list {
+    list-style: none;
+    margin: 20px 0 0;
+    padding: 0;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px 56px;
+  }
+
+  .service-rel__link {
+    display: inline-flex;
+    align-items: center;
+    gap: 12px;
+    font-size: 36px;
+    font-weight: 500;
+    letter-spacing: -0.03em;
+    color: inherit;
+    text-decoration: none;
+    line-height: 1.15;
+  }
+
+  @media (min-width: 1024px) {
+    .service-rel__link {
+      font-size: 64px;
+    }
+  }
+
+  .service-rel__link :global(svg) {
+    width: 0.6em;
+    height: 0.6em;
+    transition: transform 160ms var(--ease-out);
+  }
+
+  @media (hover: hover) and (prefers-reduced-motion: no-preference) {
+    .service-rel__link:hover {
+      text-decoration: underline;
+      text-underline-offset: 8px;
+      text-decoration-thickness: 2px;
+    }
+
+    .service-rel__link:hover :global(svg) {
+      transform: translate(3px, -3px);
+    }
+  }
+
+  .service-close {
+    background: #151514;
+    color: #f6f6f4;
+  }
+
+  .service-close__inner {
+    display: flex;
+    flex-direction: column;
+    gap: 32px;
+    align-items: flex-start;
+    padding-block: 72px;
+  }
+
+  @media (min-width: 1024px) {
+    .service-close__inner {
+      flex-direction: row;
+      justify-content: space-between;
+      align-items: flex-end;
+      padding-block: 112px;
+    }
+  }
+
+  .service-close__t {
+    margin: 0;
+    font-size: 30px;
+    font-weight: 500;
+    letter-spacing: -0.03em;
+    line-height: 1.1;
+    max-width: 20ch;
+  }
+
+  @media (min-width: 1024px) {
+    .service-close__t {
+      font-size: 52px;
+    }
+  }
+</style>

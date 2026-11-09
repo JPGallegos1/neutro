@@ -1,0 +1,95 @@
+---
+import { ArrowRight } from "@lucide/astro";
+
+interface Props {
+  href: string;
+  label: string;
+  origen: string;
+  onDark?: boolean;
+}
+
+const { href, label, origen, onDark = false } = Astro.props;
+---
+
+<a
+  class:list={["service-cta", onDark && "service-cta--on-dark"]}
+  href={href}
+  data-origen={origen}
+  data-cta="contacto"
+>
+  {label}
+  <ArrowRight size={16} aria-hidden="true" />
+</a>
+
+<style>
+  .service-cta {
+    box-sizing: border-box;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    min-height: 56px;
+    padding: 0 28px;
+    border: 0;
+    border-radius: 0;
+    font-family: inherit;
+    font-size: 16px;
+    font-weight: 500;
+    line-height: 1;
+    text-decoration: none;
+    width: fit-content;
+    background: #0a0a0a;
+    color: #ffffff;
+    transition:
+      transform 160ms var(--ease-out),
+      background-color 150ms var(--ease-out),
+      color 150ms var(--ease-out);
+  }
+
+  .service-cta--on-dark {
+    background: #ffffff;
+    color: #0a0a0a;
+  }
+
+  .service-cta :global(svg) {
+    flex: none;
+    transition: transform 160ms var(--ease-out);
+  }
+
+  @media (hover: hover) and (prefers-reduced-motion: no-preference) {
+    .service-cta:hover {
+      background: #262624;
+    }
+
+    .service-cta--on-dark:hover {
+      background: #e7e7e4;
+    }
+
+    .service-cta:hover :global(svg) {
+      transform: translateX(3px);
+    }
+  }
+
+  .service-cta:active {
+    transform: scale(0.97);
+  }
+
+  .service-cta:focus-visible {
+    outline: 2px solid #0a0a0a;
+    outline-offset: 3px;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .service-cta {
+      transition: none;
+    }
+
+    .service-cta:active {
+      transform: none;
+    }
+
+    .service-cta :global(svg) {
+      transition: none;
+    }
+  }
+</style>

@@ -67,6 +67,18 @@ export const pageMeta = {
     "¿Te escribieron en nombre de Neutro Solutions? Te contamos cuáles son nuestros únicos canales oficiales, cómo detectar una suplantación y dónde denunciarla.",
     "Alerta de estafa: cómo reconocer nuestros canales oficiales",
   ),
+  web: page(
+    "/web",
+    "Diseño web en Rosario para negocios | Neutro Solutions",
+    "Hacemos webs claras para negocios de Rosario y todo el país: sitio, turnos online, rediseño y medición. Ves el diseño antes de que lo construyamos.",
+    "Diseño web en Rosario para que te elijan antes de preguntar",
+  ),
+  automatizacionIa: page(
+    "/automatizacion-ia",
+    "Automatización con IA y bots de WhatsApp | Neutro Solutions",
+    "Automatizamos lo que hoy hacés a mano: asistente de IA en WhatsApp, recordatorios, tareas repetitivas e integraciones entre tus herramientas.",
+    "Automatización con IA para que lo que hacés a mano funcione solo",
+  ),
 } as const;
 
 export const organizationLogoPath = "/images/neutro/ns-icono-c-positivo.png";

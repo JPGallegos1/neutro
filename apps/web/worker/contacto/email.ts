@@ -14,6 +14,7 @@ export function renderContactEmail(lead: ContactLead): {
     `Email: ${lead.email}`,
     `Ciudad: ${lead.ciudad}`,
     `País: ${lead.pais}`,
+    ...(lead.origen ? [`Origen: ${lead.origen}`] : []),
     "",
     "Mensaje:",
     lead.mensaje.length > 0 ? lead.mensaje : "(sin mensaje)",

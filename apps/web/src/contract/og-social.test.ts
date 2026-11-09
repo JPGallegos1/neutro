@@ -16,6 +16,8 @@ const REQUIRED_ROUTES = [
   "/trabajo/luxurycars",
   "/nosotros",
   "/contacto",
+  "/web",
+  "/automatizacion-ia",
   "/cookies",
   "/privacidad",
   "/terminos",

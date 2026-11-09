@@ -1,0 +1,17 @@
+---
+import Footer from "@/components/sections/Footer.astro";
+import Header from "@/components/sections/Header.astro";
+import ServicePage from "@/components/sections/ServicePage.astro";
+import { servicePageJsonLd, servicePages } from "@/data/service-pages";
+import Base from "@/layouts/base.astro";
+
+const page = servicePages.web;
+const jsonLd = servicePageJsonLd(page);
+---
+
+<Base title={page.title} description={page.description}>
+  <Header />
+  <ServicePage page={page} />
+  <Footer />
+  <script type="application/ld+json" set:html={JSON.stringify(jsonLd)} />
+</Base>

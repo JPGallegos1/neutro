@@ -108,6 +108,23 @@ describe("contacto API", () => {
       `contacto/${submissionId}`,
     );
     assert.equal(parseContactRequest({ ...validBody, extra: 1 }).ok, false);
+    const withOrigen = parseContactRequest({
+      ...validBody,
+      origen: "/web",
+    });
+    assert.equal(withOrigen.ok, true);
+    if (withOrigen.ok) {
+      assert.equal(withOrigen.lead.origen, "/web");
+      assert.match(
+        buildResendPayload(withOrigen.lead, "hola@neutro.solutions", "from")
+          .text,
+        /Origen: \/web/,
+      );
+    }
+    assert.equal(
+      parseContactRequest({ ...validBody, origen: "x".repeat(501) }).ok,
+      false,
+    );
     const big = await readJsonBody(
       new Request("https://neutro.solutions/api/contacto", {
         method: "POST",
