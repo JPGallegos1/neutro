@@ -103,4 +103,68 @@ test.describe("/contacto", () => {
       page.locator("[data-drawer]").getByRole("link", { name: "Contacto" }),
     ).toHaveAttribute("href", "/contacto");
   });
+
+  test("muestra éxito o error según la respuesta del API (sin Resend real)", async ({
+    page,
+  }) => {
+    await page.addInitScript(() => {
+      (
+        window as Window & {
+          turnstile?: {
+            reset: () => void;
+            getResponse: () => string;
+          };
+        }
+      ).turnstile = {
+        reset() {},
+        getResponse() {
+          return "test-token";
+        },
+      };
+    });
+
+    await page.route("**/api/contacto", async (route) => {
+      await route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify({ ok: true }),
+      });
+    });
+    await page.goto("/contacto");
+    await page.locator("#f-nombre").fill("Ana");
+    await page.locator("#f-apellido").fill("García");
+    await page.locator("#f-empresa").fill("Neutro");
+    await page.locator("#f-email").fill("ana@ejemplo.com");
+    await page.locator("#f-ciudad").fill("Rosario");
+    await page.locator("[data-contacto-consent]").check();
+    await page.locator("[data-contacto-submit]").click();
+    await expect(page.locator("[data-contacto-success]")).toBeVisible();
+    await expect(page.locator("[data-contacto-success]")).toHaveText(
+      "Tu consulta fue enviada para su entrega",
+    );
+
+    await page.unroute("**/api/contacto");
+    await page.route("**/api/contacto", async (route) => {
+      await route.fulfill({
+        status: 503,
+        contentType: "application/json",
+        body: JSON.stringify({
+          ok: false,
+          errors: [{ field: "_", code: "disabled" }],
+        }),
+      });
+    });
+    await page.goto("/contacto");
+    await page.locator("#f-nombre").fill("Ana");
+    await page.locator("#f-apellido").fill("García");
+    await page.locator("#f-empresa").fill("Neutro");
+    await page.locator("#f-email").fill("ana@ejemplo.com");
+    await page.locator("#f-ciudad").fill("Rosario");
+    await page.locator("[data-contacto-consent]").check();
+    await page.locator("[data-contacto-submit]").click();
+    await expect(page.locator("[data-contacto-error]")).toBeVisible();
+    await expect(page.locator("[data-contacto-error]")).toHaveText(
+      "No pudimos confirmar el envío. Probá de nuevo o escribinos a hola@neutro.solutions",
+    );
+  });
 });

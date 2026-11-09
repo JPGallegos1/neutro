@@ -1,5 +1,10 @@
 ---
-import { contactoCountries, contactoFormCopy } from "@/data/contacto";
+import {
+  contactoCountries,
+  contactoFormCopy,
+  contactoFormLimits,
+  contactoTurnstileSiteKey,
+} from "@/data/contacto";
 ---
 
 <section class="contacto-form" aria-labelledby="form-t">
@@ -18,7 +23,36 @@ import { contactoCountries, contactoFormCopy } from "@/data/contacto";
       </p>
     </div>
 
+    <p
+      class="contacto-form__status contacto-form__status--success"
+      data-contacto-success
+      hidden
+      role="status"
+      aria-live="polite"
+    >
+      {contactoFormCopy.success}
+    </p>
+    <p
+      class="contacto-form__status contacto-form__status--error"
+      data-contacto-error
+      hidden
+      role="alert"
+      aria-live="assertive"
+    >
+      {contactoFormCopy.error}
+    </p>
+
     <form id="contacto-form" class="contacto-form__form" novalidate data-contacto-form>
+      <div class="contacto-field contacto-field--honeypot" aria-hidden="true">
+        <label for="f-website">Website</label>
+        <input
+          id="f-website"
+          name="website"
+          type="text"
+          tabindex="-1"
+          autocomplete="off"
+        />
+      </div>
       <div class="contacto-field">
         <label for="f-nombre"
           >Nombre<span class="contacto-field__ast" aria-hidden="true">*</span
@@ -30,6 +64,7 @@ import { contactoCountries, contactoFormCopy } from "@/data/contacto";
           type="text"
           autocomplete="given-name"
           required
+          maxlength={contactoFormLimits.line}
           aria-describedby="f-nombre-e"
         />
         <span class="contacto-field__msg" id="f-nombre-e"
@@ -47,6 +82,7 @@ import { contactoCountries, contactoFormCopy } from "@/data/contacto";
           type="text"
           autocomplete="family-name"
           required
+          maxlength={contactoFormLimits.line}
           aria-describedby="f-apellido-e"
         />
         <span class="contacto-field__msg" id="f-apellido-e"
@@ -64,6 +100,7 @@ import { contactoCountries, contactoFormCopy } from "@/data/contacto";
           type="text"
           autocomplete="organization"
           required
+          maxlength={contactoFormLimits.line}
           aria-describedby="f-empresa-e"
         />
         <span class="contacto-field__msg" id="f-empresa-e"
@@ -81,6 +118,7 @@ import { contactoCountries, contactoFormCopy } from "@/data/contacto";
           type="email"
           autocomplete="email"
           required
+          maxlength={contactoFormLimits.email}
           aria-describedby="f-email-e"
         />
         <span class="contacto-field__msg" id="f-email-e"
@@ -98,6 +136,7 @@ import { contactoCountries, contactoFormCopy } from "@/data/contacto";
           type="text"
           autocomplete="address-level2"
           required
+          maxlength={contactoFormLimits.line}
           aria-describedby="f-ciudad-e"
         />
         <span class="contacto-field__msg" id="f-ciudad-e"
@@ -121,7 +160,20 @@ import { contactoCountries, contactoFormCopy } from "@/data/contacto";
         <label for="f-mensaje"
           >Mensaje <span class="contacto-field__opt">(opcional)</span></label
         >
-        <textarea id="f-mensaje" name="mensaje" rows="3"></textarea>
+        <textarea
+          id="f-mensaje"
+          name="mensaje"
+          rows="3"
+          maxlength={contactoFormLimits.message}></textarea>
+      </div>
+      <div class="contacto-turnstile" data-contacto-turnstile-wrap>
+        <div
+          class="cf-turnstile"
+          data-sitekey={contactoTurnstileSiteKey}
+          data-action={contactoFormCopy.turnstileAction}
+          data-contacto-turnstile
+        >
+        </div>
       </div>
       <label class="contacto-consent">
         <input type="checkbox" name="consent" required data-contacto-consent />
@@ -147,7 +199,22 @@ import { contactoCountries, contactoFormCopy } from "@/data/contacto";
   </div>
 </section>
 
+<script is:inline src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>
+
 <script>
+  import {
+    contactoFormCopy,
+  } from "../../data/contacto.ts";
+
+  type TurnstileApi = {
+    reset: (widgetId?: string) => void;
+    getResponse: (widgetId?: string) => string;
+  };
+
+  function turnstileApi(): TurnstileApi | undefined {
+    return (window as Window & { turnstile?: TurnstileApi }).turnstile;
+  }
+
   function initContactoForm() {
     const form = document.querySelector<HTMLFormElement>("[data-contacto-form]");
     if (!form || form.dataset.ready === "true") return;
@@ -155,17 +222,34 @@ import { contactoCountries, contactoFormCopy } from "@/data/contacto";
 
     const consent = form.querySelector<HTMLInputElement>("[data-contacto-consent]");
     const submit = form.querySelector<HTMLButtonElement>("[data-contacto-submit]");
-    if (!consent || !submit) return;
+    const success = document.querySelector<HTMLElement>("[data-contacto-success]");
+    const error = document.querySelector<HTMLElement>("[data-contacto-error]");
+    if (!consent || !submit || !success || !error) return;
+
+    let submissionId = crypto.randomUUID();
+    let busy = false;
 
     const syncSubmit = () => {
-      submit.disabled = !consent.checked;
+      submit.disabled = busy || !consent.checked;
+      submit.textContent = busy
+        ? contactoFormCopy.submitting
+        : contactoFormCopy.submit;
     };
     consent.addEventListener("change", syncSubmit);
     syncSubmit();
 
+    form.addEventListener("input", () => {
+      if (!error.hidden) {
+        submissionId = crypto.randomUUID();
+      }
+    });
+
     function check(el: HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement) {
       const field = el.closest(".contacto-field");
-      if (!field || !el.required) return true;
+      if (!field || field.classList.contains("contacto-field--honeypot")) {
+        return true;
+      }
+      if (!el.required) return true;
       const ok = el.checkValidity() && el.value.trim() !== "";
       field.classList.toggle("err", !ok);
       el.setAttribute("aria-invalid", String(!ok));
@@ -174,7 +258,7 @@ import { contactoCountries, contactoFormCopy } from "@/data/contacto";
 
     form
       .querySelectorAll<HTMLInputElement | HTMLTextAreaElement>(
-        "input:not([type=checkbox]),textarea",
+        "input:not([type=checkbox]):not([name=website]),textarea",
       )
       .forEach((el) => {
         el.addEventListener("blur", () => {
@@ -182,11 +266,22 @@ import { contactoCountries, contactoFormCopy } from "@/data/contacto";
         });
       });
 
-    form.addEventListener("submit", (event) => {
+    function resetTurnstile() {
+      try {
+        turnstileApi()?.reset();
+      } catch {}
+    }
+
+    form.addEventListener("submit", async (event) => {
       event.preventDefault();
+      if (busy) return;
+
+      success.hidden = true;
+      error.hidden = true;
+
       let firstInvalid: string | null = null;
       const fields = form.querySelectorAll(
-        "input:not([type=checkbox]),textarea,select",
+        "input:not([type=checkbox]):not([name=website]),textarea,select",
       );
       for (const node of fields) {
         if (
@@ -206,6 +301,52 @@ import { contactoCountries, contactoFormCopy } from "@/data/contacto";
       if (firstInvalid) {
         document.getElementById(firstInvalid)?.focus();
         return;
+      }
+
+      const token = turnstileApi()?.getResponse() ?? "";
+      if (!token) {
+        error.hidden = false;
+        resetTurnstile();
+        return;
+      }
+
+      const data = new FormData(form);
+      const payload = {
+        nombre: String(data.get("nombre") ?? ""),
+        apellido: String(data.get("apellido") ?? ""),
+        empresa: String(data.get("empresa") ?? ""),
+        email: String(data.get("email") ?? ""),
+        ciudad: String(data.get("ciudad") ?? ""),
+        pais: String(data.get("pais") ?? ""),
+        mensaje: String(data.get("mensaje") ?? ""),
+        consent: true,
+        turnstileToken: token,
+        submissionId,
+        website: String(data.get("website") ?? ""),
+      };
+
+      busy = true;
+      syncSubmit();
+      try {
+        const response = await fetch(contactoFormCopy.endpoint, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload),
+        });
+        if (response.ok) {
+          success.hidden = false;
+          form.hidden = true;
+          submissionId = crypto.randomUUID();
+          return;
+        }
+        error.hidden = false;
+        resetTurnstile();
+      } catch {
+        error.hidden = false;
+        resetTurnstile();
+      } finally {
+        busy = false;
+        syncSubmit();
       }
     });
   }
@@ -272,6 +413,19 @@ import { contactoCountries, contactoFormCopy } from "@/data/contacto";
     }
   }
 
+  .contacto-form__status {
+    margin: 0 0 24px;
+    font-size: 16px;
+    line-height: 1.45;
+  }
+
+  .contacto-form__status--success {
+    color: #0a0a0a;
+  }
+
+  .contacto-form__status--error {
+    color: #b42318;
+  }
 
   .contacto-form__form {
     display: flex;
@@ -290,6 +444,18 @@ import { contactoCountries, contactoFormCopy } from "@/data/contacto";
 
   .contacto-field + .contacto-field {
     margin-top: 12px;
+  }
+
+  .contacto-field--honeypot {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+    white-space: nowrap;
+    margin: -1px;
+    padding: 0;
+    border: 0;
   }
 
   .contacto-field label {
@@ -371,6 +537,10 @@ import { contactoCountries, contactoFormCopy } from "@/data/contacto";
 
   .contacto-field.err .contacto-field__msg {
     display: block;
+  }
+
+  .contacto-turnstile {
+    margin-top: 32px;
   }
 
   .contacto-consent {

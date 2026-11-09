@@ -74,14 +74,18 @@ describe("ContactoChannels", () => {
 });
 
 describe("ContactoForm", () => {
-  it("deshabilita Enviar hasta el consentimiento", () => {
+  it("deshabilita Enviar hasta el consentimiento y postea al API", () => {
     const template = astroTemplate(formSource);
     const script = extractScript(formSource);
     assert.match(template, /data-contacto-submit/);
     assert.match(template, /\bdisabled\b/);
-    assert.match(script, /submit\.disabled\s*=\s*!consent\.checked/);
+    assert.match(template, /data-contacto-success/);
+    assert.match(template, /data-contacto-error/);
+    assert.match(template, /cf-turnstile/);
+    assert.match(script, /submit\.disabled\s*=\s*busy\s*\|\|\s*!consent\.checked/);
     assert.match(script, /event\.preventDefault\(\)/);
-    assert.doesNotMatch(script, /¡Gracias!|success|hidden\s*=\s*false/);
+    assert.match(script, /fetch\(contactoFormCopy\.endpoint/);
+    assert.match(script, /turnstileApi\(\)\?\.reset/);
   });
 
   it("deja espacio entre oraciones del intro en markup", () => {
@@ -101,6 +105,7 @@ describe("ContactoForm", () => {
     assert.match(template, /name="email"[\s\S]*?\brequired\b/);
     assert.match(template, /name="ciudad"[\s\S]*?\brequired\b/);
     assert.match(template, /name="pais"[\s\S]*?\brequired\b/);
+    assert.match(template, /maxlength=\{contactoFormLimits\.line\}/);
     assert.match(
       template,
       /<textarea\b[^>]*\bname="mensaje"[^>]*>|<textarea\b[^>]*\brows="3"[^>]*>/,

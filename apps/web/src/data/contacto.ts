@@ -86,6 +86,12 @@ export const contactoCountries = [
   "Otro",
 ] as const;
 
+export const contactoFormLimits = {
+  line: 100,
+  email: 254,
+  message: 2000,
+} as const;
+
 export const contactoFormCopy = {
   title: "Construyamos algo juntos",
   lines: [
@@ -100,6 +106,12 @@ export const contactoFormCopy = {
   termsHref: "/terminos",
   hint: "Para enviar, aceptá la política de privacidad y los términos.",
   submit: "Enviar",
+  submitting: "Enviando…",
+  success: "Tu consulta fue enviada para su entrega",
+  error:
+    "No pudimos confirmar el envío. Probá de nuevo o escribinos a hola@neutro.solutions",
+  endpoint: "/api/contacto",
+  turnstileAction: "contacto",
 } as const;
 
 export const contactoHeroFlags = [
@@ -147,3 +159,10 @@ export const contactoHeroGlyphs: Record<string, string[]> = {
 
 export const contactoHeroText = "Hola Mundo";
 export const contactoFlagCell = { width: 14, height: 9, gap: 3 } as const;
+
+const publicEnv = (
+  import.meta as ImportMeta & { env?: Record<string, string | undefined> }
+).env;
+
+export const contactoTurnstileSiteKey =
+  publicEnv?.PUBLIC_TURNSTILE_SITE_KEY || "1x00000000000000000000AA";
