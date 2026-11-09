@@ -183,7 +183,7 @@ export async function handleContactoRequest(
   const message = buildResendPayload(parsed.lead, deps.to, deps.from);
   const sent = await deps.mail.send(message);
   if (sent.kind === "accepted") {
-    logContact("ok", 200, started, 200, sent.id);
+    logContact("ok", 200, started, sent.status, sent.id);
     return jsonResponse(200, { ok: true });
   }
 

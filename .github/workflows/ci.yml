@@ -86,5 +86,10 @@ jobs:
           cache: pnpm
       - name: Install
         run: pnpm install --frozen-lockfile
-      - name: Build (analytics off, no PUBLIC_POSTHOG_KEY or PUBLIC_ANALYTICS_ENABLED)
-        run: pnpm build
+      - name: Build (analytics off, Turnstile test sitekey)
+        env:
+          PUBLIC_TURNSTILE_SITE_KEY: 1x00000000000000000000AA
+        run: |
+          unset PUBLIC_POSTHOG_KEY
+          unset PUBLIC_ANALYTICS_ENABLED
+          pnpm build

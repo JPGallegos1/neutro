@@ -20,7 +20,7 @@ export type MailMessage = {
   idempotencyKey: string;
 };
 
-export type MailAccepted = { kind: "accepted"; id: string };
+export type MailAccepted = { kind: "accepted"; id: string; status?: number };
 export type MailRejected = {
   kind: "rejected";
   reason:
@@ -73,9 +73,13 @@ export const CONTACT_HONEYPOT_FIELD = "website";
 
 const UUID_RE =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
-const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+const EMAIL_LOCAL_RE = /^[A-Za-z0-9.!#$%&'*+/=?^_`{|}~-]+$/;
+const EMAIL_DOMAIN_LABEL_RE =
+  /^[A-Za-z0-9](?:[A-Za-z0-9-]{0,61}[A-Za-z0-9])?$/;
 const CONTROL_RE = /[\u0000-\u001f\u007f]/;
-const MESSAGE_FORBIDDEN_CONTROL_RE = /[\u0000-\u0009\u000b\u000c\u000e-\u001f\u007f]/;
+const UNICODE_LINE_BREAK_RE = /[\u0085\u2028\u2029]/;
+const MESSAGE_FORBIDDEN_CONTROL_RE =
+  /[\u0000-\u0009\u000b\u000c\u000e-\u001f\u007f\u0085\u2028\u2029]/;
 const COUNTRY_SET = new Set<string>(contactoCountries);
 
 const ALLOWED_KEYS = new Set([
@@ -107,7 +111,9 @@ function cleanLine(value: unknown, max: number): string | null {
   if (typeof value !== "string") return null;
   const trimmed = value.trim();
   if (trimmed.length < 1 || trimmed.length > max) return null;
-  if (CONTROL_RE.test(trimmed) || /[\r\n]/.test(trimmed)) return null;
+  if (CONTROL_RE.test(trimmed) || UNICODE_LINE_BREAK_RE.test(trimmed)) {
+    return null;
+  }
   return trimmed;
 }
 
@@ -120,10 +126,22 @@ function cleanMessage(value: unknown): string | null {
   return normalized;
 }
 
+function isSingleAddrSpec(value: string): boolean {
+  if (value.includes(",") || /[<>"]/.test(value)) return false;
+  const parts = value.split("@");
+  if (parts.length !== 2) return false;
+  const [local, domain] = parts;
+  if (!local || !domain) return false;
+  if (!EMAIL_LOCAL_RE.test(local)) return false;
+  const labels = domain.split(".");
+  if (labels.length < 2) return false;
+  return labels.every((label) => EMAIL_DOMAIN_LABEL_RE.test(label));
+}
+
 function cleanEmail(value: unknown): string | null {
   const line = cleanLine(value, CONTACT_EMAIL_MAX);
   if (!line) return null;
-  if (!EMAIL_RE.test(line)) return null;
+  if (!isSingleAddrSpec(line)) return null;
   return line.toLowerCase();
 }
 

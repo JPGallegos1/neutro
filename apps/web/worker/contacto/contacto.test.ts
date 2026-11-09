@@ -11,12 +11,16 @@ import {
 } from "./handler.ts";
 import {
   CONTACT_BODY_LIMIT,
+  CONTACT_EMAIL_MAX,
+  CONTACT_LINE_MAX,
+  CONTACT_MESSAGE_MAX,
   parseContactRequest,
   readJsonBody,
 } from "./parse.ts";
 import type { MailMessage } from "./parse.ts";
 import { createResendMailSender } from "./resend.ts";
 import { createTurnstileVerifier } from "./turnstile.ts";
+import { contactoFormLimits } from "../../src/data/contacto.ts";
 
 const submissionId = "11111111-1111-4111-8111-111111111111";
 const validBody = {
@@ -121,9 +125,12 @@ describe("contacto API", () => {
       idempotencyKey: `contacto/${submissionId}`,
     };
     assert.deepEqual(
-      await createResendMailSender("re_test", (async () =>
-        Response.json({ id: "email_123" })) as typeof fetch).send(message),
-      { kind: "accepted", id: "email_123" },
+      await createResendMailSender(
+        "re_test",
+        (async () =>
+          Response.json({ id: "email_123" }, { status: 200 })) as typeof fetch,
+      ).send(message),
+      { kind: "accepted", id: "email_123", status: 200 },
     );
     const conflict = await createResendMailSender(
       "re_test",
@@ -281,5 +288,285 @@ describe("contacto API", () => {
     );
     assert.equal(tab.status, 400);
     assert.equal(sends, 0);
+  });
+
+  it("email: una sola addr-spec; rechaza comas, <>, comillas y varias direcciones", () => {
+    assert.equal(parseContactRequest(validBody).ok, true);
+    for (const email of [
+      "a@b.com,c@d.com",
+      "Ana <ana@ejemplo.com>",
+      '"ana"@ejemplo.com',
+      "ana@ejemplo.com>",
+      "<ana@ejemplo.com>",
+      "ana@ejemplo.com ana2@ejemplo.com",
+    ]) {
+      const parsed = parseContactRequest({ ...validBody, email });
+      assert.equal(parsed.ok, false, email);
+      if (parsed.ok) continue;
+      assert.ok(
+        parsed.errors.some(
+          (error) => error.field === "email" && error.code === "invalid",
+        ),
+        email,
+      );
+    }
+  });
+
+  it("cleanLine rechaza U+0085/U+2028/U+2029; cleanMessage también", () => {
+    for (const ch of ["\u0085", "\u2028", "\u2029"]) {
+      const line = parseContactRequest({
+        ...validBody,
+        nombre: `An${ch}a`,
+      });
+      assert.equal(line.ok, false, `line ${JSON.stringify(ch)}`);
+      const message = parseContactRequest({
+        ...validBody,
+        mensaje: `Hola${ch}mundo`,
+      });
+      assert.equal(message.ok, false, `message ${JSON.stringify(ch)}`);
+    }
+  });
+
+  it("409 concurrente, mismatch Turnstile, timeout, secrets/binding y Cache-Control", async () => {
+    assert.equal(
+      await status(validBody, enabledEnv(), {
+        mail: {
+          async send() {
+            return {
+              kind: "rejected",
+              reason: "concurrent",
+              status: 409,
+            };
+          },
+        },
+      }),
+      503,
+    );
+
+    const concurrentAdapter = await createResendMailSender(
+      "re_test",
+      (async () =>
+        Response.json(
+          { name: "concurrent_idempotent_requests" },
+          { status: 409 },
+        )) as typeof fetch,
+    ).send({
+      to: "hola@neutro.solutions",
+      from: "no-reply@send.neutro.solutions",
+      replyTo: "ana@ejemplo.com",
+      subject: "s",
+      text: "t",
+      idempotencyKey: `contacto/${submissionId}`,
+    });
+    assert.equal(concurrentAdapter.kind, "rejected");
+    if (concurrentAdapter.kind === "rejected") {
+      assert.equal(concurrentAdapter.reason, "concurrent");
+      assert.equal(concurrentAdapter.status, 409);
+    }
+
+    assert.deepEqual(
+      await createTurnstileVerifier(
+        {
+          secret: "s",
+          expectedHostname: "neutro.solutions",
+          expectedAction: "contacto",
+        },
+        (async () =>
+          Response.json({
+            success: true,
+            hostname: "evil.example",
+            action: "contacto",
+          })) as typeof fetch,
+      ).verify({ token: "t", remoteIp: null, idempotencyKey: submissionId }),
+      { ok: false, reason: "invalid" },
+    );
+    assert.deepEqual(
+      await createTurnstileVerifier(
+        {
+          secret: "s",
+          expectedHostname: "neutro.solutions",
+          expectedAction: "contacto",
+        },
+        (async () =>
+          Response.json({
+            success: true,
+            hostname: "neutro.solutions",
+            action: "otro",
+          })) as typeof fetch,
+      ).verify({ token: "t", remoteIp: null, idempotencyKey: submissionId }),
+      { ok: false, reason: "invalid" },
+    );
+
+    const timeoutErr = new DOMException("The operation was aborted", "TimeoutError");
+    assert.deepEqual(
+      await createResendMailSender(
+        "re_test",
+        (async () => {
+          throw timeoutErr;
+        }) as typeof fetch,
+      ).send({
+        to: "hola@neutro.solutions",
+        from: "no-reply@send.neutro.solutions",
+        replyTo: "ana@ejemplo.com",
+        subject: "s",
+        text: "t",
+        idempotencyKey: `contacto/${submissionId}`,
+      }),
+      { kind: "rejected", reason: "timeout" },
+    );
+    assert.deepEqual(
+      await createTurnstileVerifier(
+        {
+          secret: "s",
+          expectedHostname: "neutro.solutions",
+          expectedAction: "contacto",
+        },
+        (async () => {
+          throw timeoutErr;
+        }) as typeof fetch,
+      ).verify({ token: "t", remoteIp: null, idempotencyKey: submissionId }),
+      { ok: false, reason: "unavailable" },
+    );
+    assert.equal(
+      await status(validBody, enabledEnv(), {
+        mail: {
+          async send() {
+            return { kind: "rejected", reason: "timeout" };
+          },
+        },
+      }),
+      503,
+    );
+
+    const noSecret = enabledEnv();
+    delete noSecret.RESEND_API_KEY;
+    assert.equal(await status(validBody, noSecret), 503);
+    const noFrom = enabledEnv();
+    delete noFrom.CONTACT_FROM;
+    assert.equal(await status(validBody, noFrom), 503);
+    assert.equal(
+      await status(validBody, enabledEnv(), {
+        rateLimiter: {
+          async take() {
+            return { ok: false };
+          },
+        },
+      }),
+      429,
+    );
+
+    const ok = await handleContactoRequest(
+      request(validBody),
+      enabledEnv(),
+      deps(),
+    );
+    assert.equal(ok.headers.get("Cache-Control"), "no-store");
+    const disabled = await handleContactoRequest(
+      request(validBody),
+      { ...enabledEnv(), CONTACT_ENABLED: "false" },
+      deps(),
+    );
+    assert.equal(disabled.status, 503);
+    assert.equal(disabled.headers.get("Cache-Control"), "no-store");
+  });
+
+  it("envía a Resend el payload completo determinístico y loguea resend_status real", async () => {
+    const bodies: unknown[] = [];
+    const headersSeen: Array<Record<string, string>> = [];
+    const sender = createResendMailSender(
+      "re_test",
+      (async (_url, init) => {
+        headersSeen.push({
+          authorization: String(
+            new Headers(init?.headers).get("Authorization") ?? "",
+          ),
+          idempotency: String(
+            new Headers(init?.headers).get("Idempotency-Key") ?? "",
+          ),
+        });
+        bodies.push(JSON.parse(String(init?.body)));
+        return Response.json({ id: "email_det" }, { status: 200 });
+      }) as typeof fetch,
+    );
+
+    const lead = parseContactRequest({
+      ...validBody,
+      mensaje: "Hola,\nsegunda",
+    });
+    assert.equal(lead.ok, true);
+    if (!lead.ok) return;
+    const message = {
+      to: "hola@neutro.solutions",
+      from: "no-reply@send.neutro.solutions",
+      replyTo: "ana@ejemplo.com",
+      subject: "Consulta desde /contacto",
+      text: [
+        "Nueva consulta desde el formulario de /contacto",
+        "",
+        "Nombre: Ana García",
+        "Empresa: Neutro",
+        "Email: ana@ejemplo.com",
+        "Ciudad: Rosario",
+        "País: Argentina",
+        "",
+        "Mensaje:",
+        "Hola,\nsegunda",
+      ].join("\n"),
+      idempotencyKey: `contacto/${submissionId}`,
+    };
+    assert.deepEqual(
+      await sender.send(message),
+      { kind: "accepted", id: "email_det", status: 200 },
+    );
+    assert.deepEqual(bodies, [
+      {
+        from: "no-reply@send.neutro.solutions",
+        to: ["hola@neutro.solutions"],
+        reply_to: "ana@ejemplo.com",
+        subject: "Consulta desde /contacto",
+        text: message.text,
+      },
+    ]);
+    assert.deepEqual(headersSeen, [
+      {
+        authorization: "Bearer re_test",
+        idempotency: `contacto/${submissionId}`,
+      },
+    ]);
+
+    const logs: unknown[] = [];
+    const originalLog = console.log;
+    console.log = (...args: unknown[]) => {
+      logs.push(args[0]);
+    };
+    try {
+      const response = await handleContactoRequest(
+        request(validBody),
+        enabledEnv(),
+        deps({
+          mail: {
+            async send() {
+              return { kind: "accepted", id: "email_real", status: 201 };
+            },
+          },
+        }),
+      );
+      assert.equal(response.status, 200);
+    } finally {
+      console.log = originalLog;
+    }
+    const parsedLogs = logs
+      .filter((entry): entry is string => typeof entry === "string")
+      .map((entry) => JSON.parse(entry) as { resend_status?: unknown });
+    assert.ok(
+      parsedLogs.some((entry) => entry.resend_status === 201),
+      JSON.stringify(parsedLogs),
+    );
+  });
+
+  it("los límites del form coinciden con parse.ts", () => {
+    assert.equal(contactoFormLimits.line, CONTACT_LINE_MAX);
+    assert.equal(contactoFormLimits.email, CONTACT_EMAIL_MAX);
+    assert.equal(contactoFormLimits.message, CONTACT_MESSAGE_MAX);
   });
 });

@@ -160,9 +160,32 @@ export const contactoHeroGlyphs: Record<string, string[]> = {
 export const contactoHeroText = "Hola Mundo";
 export const contactoFlagCell = { width: 14, height: 9, gap: 3 } as const;
 
-const publicEnv = (
-  import.meta as ImportMeta & { env?: Record<string, string | undefined> }
-).env;
+export const CONTACTO_TURNSTILE_TEST_SITE_KEY =
+  "1x00000000000000000000AA";
+
+export type ContactoTurnstileEnv = {
+  PUBLIC_TURNSTILE_SITE_KEY?: string;
+  PROD?: boolean;
+};
+
+export function resolveContactoTurnstileSiteKey(
+  env: ContactoTurnstileEnv,
+): string {
+  const key = env.PUBLIC_TURNSTILE_SITE_KEY;
+  if (typeof key === "string" && key.trim().length > 0) {
+    return key.trim();
+  }
+  if (env.PROD) {
+    throw new Error(
+      "Falta PUBLIC_TURNSTILE_SITE_KEY en el build de producción",
+    );
+  }
+  return CONTACTO_TURNSTILE_TEST_SITE_KEY;
+}
+
+const contactoTurnstileEnv = (
+  import.meta as ImportMeta & { env?: ContactoTurnstileEnv }
+).env ?? {};
 
 export const contactoTurnstileSiteKey =
-  publicEnv?.PUBLIC_TURNSTILE_SITE_KEY || "1x00000000000000000000AA";
+  resolveContactoTurnstileSiteKey(contactoTurnstileEnv);
