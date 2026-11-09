@@ -35,6 +35,15 @@ describe("contacto data", () => {
     );
     assert.equal("workLinkHref" in contactoFormCopy, false);
     assert.equal("workLinkLabel" in contactoFormCopy, false);
+    assert.equal(
+      contactoFormCopy.success,
+      "Tu consulta fue enviada para su entrega",
+    );
+    assert.equal(
+      contactoFormCopy.error,
+      "No pudimos confirmar el envío. Probá de nuevo o escribinos a hola@neutro.solutions",
+    );
+    assert.equal(contactoFormCopy.endpoint, "/api/contacto");
     assert.equal(contactoCountries[0], "Argentina");
     assert.equal(contactoCountries.includes("Otro"), true);
   });
