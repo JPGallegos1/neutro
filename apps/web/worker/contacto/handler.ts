@@ -39,10 +39,7 @@ export type ContactoDeps = {
   createId?: () => string;
 };
 
-function jsonResponse(
-  status: number,
-  body: Record<string, unknown>,
-): Response {
+function jsonResponse(status: number, body: Record<string, unknown>): Response {
   return new Response(JSON.stringify(body), {
     status,
     headers: {
@@ -63,9 +60,9 @@ function isContactEnabled(env: ContactoEnv): boolean {
 function hasRequiredSecrets(env: ContactoEnv): boolean {
   return Boolean(
     env.RESEND_API_KEY &&
-      env.TURNSTILE_SECRET_KEY &&
-      env.CONTACT_TO &&
-      env.CONTACT_FROM,
+    env.TURNSTILE_SECRET_KEY &&
+    env.CONTACT_TO &&
+    env.CONTACT_FROM,
   );
 }
 

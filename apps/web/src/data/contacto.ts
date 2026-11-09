@@ -62,35 +62,7 @@ export const contactoChannels: ContactoChannel[] = [
   },
 ];
 
-export const contactoCountries = [
-  "Argentina",
-  "Uruguay",
-  "Chile",
-  "México",
-  "Colombia",
-  "Perú",
-  "España",
-  "Venezuela",
-  "Ecuador",
-  "Bolivia",
-  "Paraguay",
-  "Costa Rica",
-  "Panamá",
-  "Cuba",
-  "República Dominicana",
-  "Guatemala",
-  "Honduras",
-  "El Salvador",
-  "Nicaragua",
-  "Guinea Ecuatorial",
-  "Otro",
-] as const;
-
-export const contactoFormLimits = {
-  line: 100,
-  email: 254,
-  message: 2000,
-} as const;
+export { contactoCountries, contactoFormLimits } from "./contacto-schema.ts";
 
 export const contactoFormCopy = {
   title: "Construyamos algo juntos",
@@ -159,33 +131,3 @@ export const contactoHeroGlyphs: Record<string, string[]> = {
 
 export const contactoHeroText = "Hola Mundo";
 export const contactoFlagCell = { width: 14, height: 9, gap: 3 } as const;
-
-export const CONTACTO_TURNSTILE_TEST_SITE_KEY =
-  "1x00000000000000000000AA";
-
-export type ContactoTurnstileEnv = {
-  PUBLIC_TURNSTILE_SITE_KEY?: string;
-  PROD?: boolean;
-};
-
-export function resolveContactoTurnstileSiteKey(
-  env: ContactoTurnstileEnv,
-): string {
-  const key = env.PUBLIC_TURNSTILE_SITE_KEY;
-  if (typeof key === "string" && key.trim().length > 0) {
-    return key.trim();
-  }
-  if (env.PROD) {
-    throw new Error(
-      "Falta PUBLIC_TURNSTILE_SITE_KEY en el build de producción",
-    );
-  }
-  return CONTACTO_TURNSTILE_TEST_SITE_KEY;
-}
-
-const contactoTurnstileEnv = (
-  import.meta as ImportMeta & { env?: ContactoTurnstileEnv }
-).env ?? {};
-
-export const contactoTurnstileSiteKey =
-  resolveContactoTurnstileSiteKey(contactoTurnstileEnv);

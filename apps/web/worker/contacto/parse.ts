@@ -1,4 +1,4 @@
-import { contactoCountries } from "../../src/data/contacto.ts";
+import { contactoCountries } from "../../src/data/contacto-schema.ts";
 
 export type ContactLead = {
   nombre: string;
@@ -20,7 +20,7 @@ export type MailMessage = {
   idempotencyKey: string;
 };
 
-export type MailAccepted = { kind: "accepted"; id: string; status?: number };
+export type MailAccepted = { kind: "accepted"; id: string; status: number };
 export type MailRejected = {
   kind: "rejected";
   reason:
@@ -45,8 +45,7 @@ export type HumanVerifyInput = {
 };
 
 export type HumanVerifyResult =
-  | { ok: true }
-  | { ok: false; reason: "invalid" | "unavailable" };
+  { ok: true } | { ok: false; reason: "invalid" | "unavailable" };
 
 export type HumanVerifier = {
   verify(input: HumanVerifyInput): Promise<HumanVerifyResult>;
@@ -74,8 +73,7 @@ export const CONTACT_HONEYPOT_FIELD = "website";
 const UUID_RE =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 const EMAIL_LOCAL_RE = /^[A-Za-z0-9.!#$%&'*+/=?^_`{|}~-]+$/;
-const EMAIL_DOMAIN_LABEL_RE =
-  /^[A-Za-z0-9](?:[A-Za-z0-9-]{0,61}[A-Za-z0-9])?$/;
+const EMAIL_DOMAIN_LABEL_RE = /^[A-Za-z0-9](?:[A-Za-z0-9-]{0,61}[A-Za-z0-9])?$/;
 const CONTROL_RE = /[\u0000-\u001f\u007f]/;
 const UNICODE_LINE_BREAK_RE = /[\u0085\u2028\u2029]/;
 const MESSAGE_FORBIDDEN_CONTROL_RE =
@@ -132,7 +130,14 @@ function isSingleAddrSpec(value: string): boolean {
   if (parts.length !== 2) return false;
   const [local, domain] = parts;
   if (!local || !domain) return false;
-  if (!EMAIL_LOCAL_RE.test(local)) return false;
+  if (
+    local.startsWith(".") ||
+    local.endsWith(".") ||
+    local.includes("..") ||
+    !EMAIL_LOCAL_RE.test(local)
+  ) {
+    return false;
+  }
   const labels = domain.split(".");
   if (labels.length < 2) return false;
   return labels.every((label) => EMAIL_DOMAIN_LABEL_RE.test(label));
@@ -234,8 +239,7 @@ export async function readJsonBody(
   request: Request,
   limit = CONTACT_BODY_LIMIT,
 ): Promise<
-  | { ok: true; value: unknown }
-  | { ok: false; status: 413 | 400; code: string }
+  { ok: true; value: unknown } | { ok: false; status: 413 | 400; code: string }
 > {
   const contentLength = request.headers.get("content-length");
   if (contentLength) {

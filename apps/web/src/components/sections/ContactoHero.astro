@@ -3,7 +3,9 @@ import { contactoHeroFlags } from "@/data/contacto";
 ---
 
 <section class="contacto-hero" aria-labelledby="contacto-h1">
-  <h1 id="contacto-h1" class="sr-only">Contacto | Neutro Solutions</h1>
+  <h1 id="contacto-h1" class="sr-only">
+    Contacto | Neutro Solutions
+  </h1>
   <canvas
     id="contacto-dots"
     class="contacto-hero__canvas"
@@ -63,7 +65,13 @@ import { contactoHeroFlags } from "@/data/contacto";
     function dot(cx: number, cy: number, color: string, glow: boolean) {
       const r = pitch * 0.36;
       ctx!.beginPath();
-      ctx!.arc(cx * pitch + pitch / 2, cy * pitch + pitch / 2, r, 0, Math.PI * 2);
+      ctx!.arc(
+        cx * pitch + pitch / 2,
+        cy * pitch + pitch / 2,
+        r,
+        0,
+        Math.PI * 2,
+      );
       ctx!.fillStyle = color;
       ctx!.shadowColor = glow ? color : "transparent";
       ctx!.shadowBlur = glow ? pitch * 0.9 : 0;
@@ -115,7 +123,13 @@ import { contactoHeroFlags } from "@/data/contacto";
             return;
           }
           offCtx.imageSmoothingEnabled = true;
-          offCtx.drawImage(image, 0, 0, contactoFlagCell.width, contactoFlagCell.height);
+          offCtx.drawImage(
+            image,
+            0,
+            0,
+            contactoFlagCell.width,
+            contactoFlagCell.height,
+          );
           const data = offCtx.getImageData(
             0,
             0,
@@ -123,7 +137,11 @@ import { contactoHeroFlags } from "@/data/contacto";
             contactoFlagCell.height,
           ).data;
           const out: FlagPixel[] = [];
-          for (let i = 0; i < contactoFlagCell.width * contactoFlagCell.height; i++) {
+          for (
+            let i = 0;
+            i < contactoFlagCell.width * contactoFlagCell.height;
+            i++
+          ) {
             out.push([data[i * 4]!, data[i * 4 + 1]!, data[i * 4 + 2]!]);
           }
           resolve(out);
