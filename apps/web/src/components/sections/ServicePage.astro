@@ -60,19 +60,21 @@ const showTurnosSumar =
         </h2>
       </div>
       <div class="service-cases__grid">
-        {cases.map((project) => (
+        {cases.map((project, index) => (
           <a class="service-tile" href={project.href}>
             <span
               class="service-tile__img"
               style={`--service-tint: ${project.tint}`}
             >
               <img
+                class="service-tile__photo"
                 src={project.imageSrc}
                 alt=""
                 width="1440"
                 height="810"
-                loading="lazy"
+                loading={index < 2 ? "eager" : "lazy"}
                 decoding="async"
+                fetchpriority={index < 2 ? "high" : undefined}
               />
             </span>
             <span class="service-tile__meta">
@@ -309,7 +311,9 @@ const showTurnosSumar =
     background: var(--service-tint);
   }
 
-  .service-tile__img img {
+  .service-tile__photo {
+    position: absolute;
+    inset: 0;
     display: block;
     width: 100%;
     height: 100%;
@@ -319,7 +323,7 @@ const showTurnosSumar =
   }
 
   @media (hover: hover) and (prefers-reduced-motion: no-preference) {
-    .service-tile:hover .service-tile__img img {
+    .service-tile:hover .service-tile__photo {
       filter: brightness(1.06);
     }
   }
