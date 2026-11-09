@@ -47,6 +47,8 @@ jobs:
           path: ~/.cache/ms-playwright
           key: ${{ runner.os }}-playwright-chromium-${{ hashFiles('pnpm-lock.yaml') }}
       - name: Build
+        env:
+          PUBLIC_TURNSTILE_SITE_KEY: 1x00000000000000000000AA
         run: |
           unset PUBLIC_POSTHOG_KEY
           unset PUBLIC_ANALYTICS_ENABLED

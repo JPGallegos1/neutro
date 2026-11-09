@@ -89,11 +89,23 @@ export function createResendMailSender(
       try {
         const body = (await response.json()) as { id?: unknown };
         if (typeof body.id !== "string" || body.id.length < 1) {
-          return { kind: "rejected", reason: "provider_error" };
+          return {
+            kind: "rejected",
+            reason: "provider_error",
+            status: response.status,
+          };
         }
-        return { kind: "accepted", id: body.id };
+        return {
+          kind: "accepted",
+          id: body.id,
+          status: response.status,
+        };
       } catch {
-        return { kind: "rejected", reason: "provider_error" };
+        return {
+          kind: "rejected",
+          reason: "provider_error",
+          status: response.status,
+        };
       }
     },
   };

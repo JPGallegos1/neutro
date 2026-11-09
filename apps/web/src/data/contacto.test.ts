@@ -2,12 +2,20 @@ import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 
 import {
+  CONTACTO_TURNSTILE_TEST_SITE_KEY,
   contactoChannels,
   contactoCountries,
   contactoFormCopy,
+  contactoFormLimits,
   contactoHeroFlags,
   contactoHeroTiming,
+  resolveContactoTurnstileSiteKey,
 } from "./contacto.ts";
+import {
+  CONTACT_EMAIL_MAX,
+  CONTACT_LINE_MAX,
+  CONTACT_MESSAGE_MAX,
+} from "../../worker/contacto/parse.ts";
 import {
   buildTextDots,
   gridColumns,
@@ -65,6 +73,30 @@ describe("contacto data", () => {
     assert.equal(contactoHeroFlags[0]?.file, "argentina.svg");
     assert.equal(contactoHeroTiming.colMs, 30);
     assert.equal(contactoHeroTiming.holdMs, 1600);
+  });
+
+  it("alinea los límites del form con parse.ts", () => {
+    assert.equal(contactoFormLimits.line, CONTACT_LINE_MAX);
+    assert.equal(contactoFormLimits.email, CONTACT_EMAIL_MAX);
+    assert.equal(contactoFormLimits.message, CONTACT_MESSAGE_MAX);
+  });
+
+  it("exige PUBLIC_TURNSTILE_SITE_KEY en producción y usa test key fuera", () => {
+    assert.equal(
+      resolveContactoTurnstileSiteKey({ PROD: false }),
+      CONTACTO_TURNSTILE_TEST_SITE_KEY,
+    );
+    assert.equal(
+      resolveContactoTurnstileSiteKey({
+        PUBLIC_TURNSTILE_SITE_KEY: "  real-site-key  ",
+        PROD: true,
+      }),
+      "real-site-key",
+    );
+    assert.throws(
+      () => resolveContactoTurnstileSiteKey({ PROD: true }),
+      /PUBLIC_TURNSTILE_SITE_KEY/,
+    );
   });
 });
 
