@@ -220,4 +220,66 @@ describe("contacto API", () => {
       `contacto/${submissionId}`,
     ]);
   });
+
+  it("acepta mensaje multilínea LF/CRLF y rechaza otros controles", async () => {
+    const delivered: string[] = [];
+    const capturing = {
+      mail: {
+        async send(message: MailMessage) {
+          delivered.push(message.text);
+          return { kind: "accepted" as const, id: "email_ml" };
+        },
+      },
+    };
+
+    const lf = await handleContactoRequest(
+      request({ ...validBody, mensaje: "Hola,\nQuisiera consultar" }),
+      enabledEnv(),
+      deps(capturing),
+    );
+    assert.equal(lf.status, 200);
+    assert.match(delivered[0] ?? "", /Hola,\nQuisiera consultar/);
+
+    const crlf = await handleContactoRequest(
+      request({ ...validBody, mensaje: "Línea uno\r\nLínea dos" }),
+      enabledEnv(),
+      deps(capturing),
+    );
+    assert.equal(crlf.status, 200);
+    assert.match(delivered[1] ?? "", /Línea uno\nLínea dos/);
+    assert.doesNotMatch(delivered[1] ?? "", /\r/);
+
+    let sends = 0;
+    const guarded = {
+      mail: {
+        async send() {
+          sends += 1;
+          return { kind: "accepted" as const, id: "nope" };
+        },
+      },
+    };
+    const bad = await handleContactoRequest(
+      request({ ...validBody, mensaje: "Hola\u0000mundo" }),
+      enabledEnv(),
+      deps(guarded),
+    );
+    assert.equal(bad.status, 400);
+    const body = (await bad.json()) as {
+      errors: Array<{ field: string; code: string }>;
+    };
+    assert.ok(
+      body.errors.some(
+        (error) => error.field === "mensaje" && error.code === "invalid",
+      ),
+    );
+    assert.equal(sends, 0);
+
+    const tab = await handleContactoRequest(
+      request({ ...validBody, mensaje: "Hola\tmundo" }),
+      enabledEnv(),
+      deps(guarded),
+    );
+    assert.equal(tab.status, 400);
+    assert.equal(sends, 0);
+  });
 });

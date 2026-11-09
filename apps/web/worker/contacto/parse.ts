@@ -75,6 +75,7 @@ const UUID_RE =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const CONTROL_RE = /[\u0000-\u001f\u007f]/;
+const MESSAGE_FORBIDDEN_CONTROL_RE = /[\u0000-\u0009\u000b\u000c\u000e-\u001f\u007f]/;
 const COUNTRY_SET = new Set<string>(contactoCountries);
 
 const ALLOWED_KEYS = new Set([
@@ -113,10 +114,10 @@ function cleanLine(value: unknown, max: number): string | null {
 function cleanMessage(value: unknown): string | null {
   if (value === undefined || value === null) return "";
   if (typeof value !== "string") return null;
-  const trimmed = value.trim();
-  if (trimmed.length > CONTACT_MESSAGE_MAX) return null;
-  if (CONTROL_RE.test(trimmed)) return null;
-  return trimmed;
+  const normalized = value.replace(/\r\n?/g, "\n").trim();
+  if (normalized.length > CONTACT_MESSAGE_MAX) return null;
+  if (MESSAGE_FORBIDDEN_CONTROL_RE.test(normalized)) return null;
+  return normalized;
 }
 
 function cleanEmail(value: unknown): string | null {
