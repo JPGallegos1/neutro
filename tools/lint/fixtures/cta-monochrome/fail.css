@@ -1,0 +1,21 @@
+.cta-primary {
+  background: #c2410c;
+  color: #ffffff;
+}
+
+.cta-primary:hover {
+  background: #9a3412;
+}
+
+.cta-primary:focus-visible {
+  outline: 2px solid var(--neutro-accent-orange);
+}
+
+button.submit-x {
+  background: var(--neutro-accent-blue);
+  color: var(--neutro-on-blue);
+}
+
+a.contacto-channel__inner:focus-visible {
+  outline: 2px solid #e8590c;
+}

@@ -57,6 +57,7 @@ No copies el contenido de un ADR al PR: linkealo.
 
 - Tailwind CSS 4; tokens en [`packages/ui/src/styles/globals.css`](packages/ui/src/styles/globals.css); tipografía Geist.
 - shadcn/ui solo si el proyecto lo justifica (`pnpm ui:add`).
+- **CTAs monocromáticos:** botones y links de acción (submit, `.btn`/`.cta`/`__send`/`__load`, canales de contacto, etc.) solo en blanco/negro/grises de la paleta. Sin naranja, azul u otro color cromático en `background`, `color`, `border`, `outline` ni `box-shadow` (incl. hover/focus/active). Lo hace cumplir `pnpm lint` vía [`tools/lint/cta-monochrome.mjs`](tools/lint/cta-monochrome.mjs) (mensaje: «Los CTAs deben ser monocromáticos»). Tests: `pnpm test:lint-rules`.
 
 ## Motion
 
