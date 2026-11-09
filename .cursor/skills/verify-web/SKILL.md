@@ -485,9 +485,9 @@ Leé la URL que imprime Wrangler. El puerto no está fijado en `wrangler.jsonc`.
 
 Si el diff cambia algo que se ve, además del `test:e2e`:
 
-- Una captura por ruta afectada, en claro y oscuro, en móvil y en escritorio. Cuatro PNG por ruta: `{slug}-light-escritorio.png`, `{slug}-light-movil.png`, `{slug}-dark-escritorio.png`, `{slug}-dark-movil.png`.
+- Una captura por ruta afectada, en el tema fijo del sitio, en móvil y en escritorio. Dos PNG por ruta: `{slug}-light-escritorio.png`, `{slug}-light-movil.png`.
 - Escritorio: 1280×720. Móvil: 390×844.
-- El tema sale de `localStorage` con la clave `neutro-theme` (`light` o `dark`), puesta antes de que cargue la página. El script de `base.astro` la lee y pone la clase `dark` en `documentElement` cuando el valor es `dark`. Sumá `colorScheme` del mismo valor para el primer paint.
+- El sitio es tema fijo (contenido claro; header/heroes/footer oscuros). No hay toggle ni `neutro-theme` en localStorage. Emulá `colorScheme: "light"` para el primer paint.
 - Ruta afectada: la página que el diff toca. Si el diff toca un layout compartido, las rutas públicas del sitemap construido (`apps/web/dist/sitemap-index.xml` y los sitemap que ese índice enlace). Compará esa lista con `apps/web/src/pages/` y pegala en la evidencia. Una diferencia no es hallazgo de producto mientras el contrato SEO no esté en el repo: va a NO VERIFICADO con motivo «contrato SEO ausente».
 - El spec de capturas es efímero. Va en `apps/web/e2e/capturas.efimero.spec.ts`, sin comentarios, y se borra aunque el run falle. No se commitea. `NEUTRO_EVIDENCIA` es `"$evidencia_abs"`. `NEUTRO_RUTAS` es la lista separada por comas. Corré ese archivo desde `$workdir`, con `--trace on`, y después borralo. `git status` no puede mostrar el spec.
 
@@ -501,34 +501,29 @@ if (!evidencia) {
   throw new Error("NEUTRO_EVIDENCIA es obligatoria");
 }
 
-const themes = ["light", "dark"] as const;
+const theme = "light" as const;
 const viewports = [
   { name: "escritorio", width: 1280, height: 720 },
   { name: "movil", width: 390, height: 844 },
 ] as const;
 
 for (const route of routes) {
-  for (const theme of themes) {
-    for (const viewport of viewports) {
-      const slug =
-        route === "/" ? "home" : route.replaceAll("/", "_").replace(/^_/, "");
-      test(`${slug} ${theme} ${viewport.name}`, async ({ page }) => {
-        await page.setViewportSize({
-          width: viewport.width,
-          height: viewport.height,
-        });
-        await page.emulateMedia({ colorScheme: theme });
-        await page.addInitScript((value) => {
-          localStorage.setItem("neutro-theme", value);
-        }, theme);
-        const response = await page.goto(route);
-        expect(response?.ok(), route).toBe(true);
-        await page.screenshot({
-          path: `${evidencia}/${slug}-${theme}-${viewport.name}.png`,
-          fullPage: true,
-        });
+  for (const viewport of viewports) {
+    const slug =
+      route === "/" ? "home" : route.replaceAll("/", "_").replace(/^_/, "");
+    test(`${slug} ${theme} ${viewport.name}`, async ({ page }) => {
+      await page.setViewportSize({
+        width: viewport.width,
+        height: viewport.height,
       });
-    }
+      await page.emulateMedia({ colorScheme: theme });
+      const response = await page.goto(route);
+      expect(response?.ok(), route).toBe(true);
+      await page.screenshot({
+        path: `${evidencia}/${slug}-${theme}-${viewport.name}.png`,
+        fullPage: true,
+      });
+    });
   }
 }
 ```

@@ -195,13 +195,12 @@ import { serviceCategories, serviceCopy } from "@/data/services";
   .services__list {
     display: flex;
     flex-direction: column;
-    gap: 12px;
+    gap: 0;
   }
 
-  @media (min-width: 1024px) {
-    .services__list {
-      gap: 16px;
-    }
+  .accordion-item {
+    border-bottom: 1px solid var(--neutro-border);
+    transition: border-color 160ms var(--ease-out);
   }
 
   .accordion-item__heading {
@@ -234,18 +233,18 @@ import { serviceCategories, serviceCopy } from "@/data/services";
     background-color: transparent;
   }
 
-  .accordion-item__title {
-    border-bottom: 2px solid transparent;
-    transition: border-color 150ms ease;
-  }
-
-  .accordion-item__trigger:hover .accordion-item__title,
-  .accordion-item__trigger:focus-visible .accordion-item__title {
+  .accordion-item:has(.accordion-item__trigger:focus-visible) {
     border-bottom-color: var(--neutro-text);
   }
 
+  @media (hover: hover) {
+    .accordion-item:hover {
+      border-bottom-color: var(--neutro-text);
+    }
+  }
+
   @media (prefers-reduced-motion: reduce) {
-    .accordion-item__title {
+    .accordion-item {
       transition: none;
     }
   }
