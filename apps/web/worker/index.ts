@@ -12,6 +12,12 @@ import {
 
 import { withAssetErrorCacheControl } from "./asset-cache.ts";
 import {
+  CONTACT_PATH,
+  createContactoDeps,
+  handleContactoRequest,
+  type ContactoEnv,
+} from "./contacto/handler.ts";
+import {
   captureProspectLinkAccess,
   captureQrScanned,
   isPosthogIngestPath,
@@ -21,13 +27,13 @@ import {
 } from "./posthog.ts";
 import { withSecurityHeaders } from "./security-headers.ts";
 
-export interface Env {
+export interface Env extends ContactoEnv {
   POSTHOG_KEY?: string;
   ANALYTICS_ENABLED?: string;
   ASSETS: Fetcher;
 }
 
-const RESERVED_ROOTS = ["/f", "/t", "/p", "/ingest"] as const;
+const RESERVED_ROOTS = ["/f", "/t", "/p", "/ingest", "/api"] as const;
 
 export function isWorkersDevHost(hostname: string): boolean {
   return hostname === "workers.dev" || hostname.endsWith(".workers.dev");
@@ -121,6 +127,38 @@ export default {
             ctx.waitUntil(promise);
           },
         }),
+        url.hostname,
+      );
+    }
+
+    if (url.pathname === CONTACT_PATH) {
+      const deps = createContactoDeps(env);
+      if (!deps) {
+        return respond(
+          await handleContactoRequest(request, env, {
+            mail: {
+              async send() {
+                return { kind: "rejected", reason: "provider_error" };
+              },
+            },
+            verifier: {
+              async verify() {
+                return { ok: false, reason: "unavailable" };
+              },
+            },
+            rateLimiter: {
+              async take() {
+                return { ok: false };
+              },
+            },
+            to: env.CONTACT_TO ?? "",
+            from: env.CONTACT_FROM ?? "",
+          }),
+          url.hostname,
+        );
+      }
+      return respond(
+        await handleContactoRequest(request, env, deps),
         url.hostname,
       );
     }
