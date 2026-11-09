@@ -2,15 +2,17 @@ import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 
 import {
-  CONTACTO_TURNSTILE_TEST_SITE_KEY,
   contactoChannels,
   contactoCountries,
   contactoFormCopy,
   contactoFormLimits,
   contactoHeroFlags,
   contactoHeroTiming,
-  resolveContactoTurnstileSiteKey,
 } from "./contacto.ts";
+import {
+  CONTACTO_TURNSTILE_TEST_SITE_KEY,
+  resolveContactoTurnstileSiteKey,
+} from "./contacto-turnstile.ts";
 import {
   CONTACT_EMAIL_MAX,
   CONTACT_LINE_MAX,
@@ -139,7 +141,11 @@ describe("contacto hero helpers", () => {
     assert.equal(nextDrawableFlagIndex(1, files, data), 1);
     assert.equal(nextDrawableFlagIndex(2, files, data), 1);
     assert.equal(
-      nextDrawableFlagIndex(0, files, { "a.svg": [], "b.svg": [], "c.svg": [] }),
+      nextDrawableFlagIndex(0, files, {
+        "a.svg": [],
+        "b.svg": [],
+        "c.svg": [],
+      }),
       0,
     );
   });

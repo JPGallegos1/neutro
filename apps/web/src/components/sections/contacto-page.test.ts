@@ -6,8 +6,12 @@ import { fileURLToPath } from "node:url";
 const channelsPath = fileURLToPath(
   new URL("./ContactoChannels.astro", import.meta.url),
 );
-const formPath = fileURLToPath(new URL("./ContactoForm.astro", import.meta.url));
-const heroPath = fileURLToPath(new URL("./ContactoHero.astro", import.meta.url));
+const formPath = fileURLToPath(
+  new URL("./ContactoForm.astro", import.meta.url),
+);
+const heroPath = fileURLToPath(
+  new URL("./ContactoHero.astro", import.meta.url),
+);
 const pagePath = fileURLToPath(
   new URL("../../pages/contacto.astro", import.meta.url),
 );
@@ -42,10 +46,7 @@ const pageSource = readFileSync(pagePath, "utf8");
 describe("ContactoChannels", () => {
   it("oculta celdas vacías en mobile y las muestra desde desktop", () => {
     const css = extractStyle(channelsSource);
-    assert.match(
-      css,
-      /\.contacto-channel--blank\s*\{[^}]*display:\s*none/,
-    );
+    assert.match(css, /\.contacto-channel--blank\s*\{[^}]*display:\s*none/);
     assert.match(
       css,
       /@media\s*\(min-width:\s*1024px\)\s*\{[\s\S]*\.contacto-channel--blank\s*\{[^}]*display:\s*block/,
@@ -82,7 +83,10 @@ describe("ContactoForm", () => {
     assert.match(template, /data-contacto-success/);
     assert.match(template, /data-contacto-error/);
     assert.match(template, /cf-turnstile/);
-    assert.match(script, /submit\.disabled\s*=\s*busy\s*\|\|\s*!consent\.checked/);
+    assert.match(
+      script,
+      /submit\.disabled\s*=\s*busy\s*\|\|\s*!consent\.checked/,
+    );
     assert.match(script, /event\.preventDefault\(\)/);
     assert.match(script, /fetch\(contactoFormCopy\.endpoint/);
     assert.match(script, /turnstileApi\(\)\?\.reset/);

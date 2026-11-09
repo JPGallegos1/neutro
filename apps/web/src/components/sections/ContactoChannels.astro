@@ -4,67 +4,64 @@ import { contactoChannels } from "@/data/contacto";
 
 <section class="contacto-channels" aria-labelledby="canales-heading">
   <ul class="contacto-channels__grid">
-    {
-      contactoChannels.map((channel) => {
-        if (channel.decorative) {
-          return (
-            <li
-              class:list={[
-                "contacto-channel",
-                "contacto-channel--blank",
-                channel.dark && "contacto-channel--dark",
-              ]}
-              aria-hidden="true"
-            />
-          );
-        }
-
-        const titleId =
-          channel.id === "heading" ? "canales-heading" : undefined;
-        const innerClass = channel.href
-          ? "contacto-channel__inner"
-          : "contacto-channel__inner contacto-channel__inner--off";
-
-        const body = (
-          <>
-            {channel.id === "heading" ? (
-              <h2 id={titleId} class="contacto-channel__title">
-                {channel.title}
-              </h2>
-            ) : (
-              <h2 class="contacto-channel__title">{channel.title}</h2>
-            )}
-            {channel.value ? (
-              <p class="contacto-channel__value">{channel.value}</p>
-            ) : null}
-          </>
-        );
-
+    {contactoChannels.map((channel) => {
+      if (channel.decorative) {
         return (
           <li
             class:list={[
               "contacto-channel",
+              "contacto-channel--blank",
               channel.dark && "contacto-channel--dark",
-              channel.id === "heading" && "contacto-channel--head",
-              channel.id === "facebook" && "contacto-channel--fb",
             ]}
-          >
-            {channel.href ? (
-              <a
-                class={innerClass}
-                href={channel.href}
-                target={channel.blank ? "_blank" : undefined}
-                rel={channel.blank ? "noopener noreferrer" : undefined}
-              >
-                {body}
-              </a>
-            ) : (
-              <div class={innerClass}>{body}</div>
-            )}
-          </li>
+            aria-hidden="true"
+          />
         );
-      })
-    }
+      }
+
+      const titleId = channel.id === "heading" ? "canales-heading" : undefined;
+      const innerClass = channel.href
+        ? "contacto-channel__inner"
+        : "contacto-channel__inner contacto-channel__inner--off";
+
+      const body = (
+        <>
+          {channel.id === "heading" ? (
+            <h2 id={titleId} class="contacto-channel__title">
+              {channel.title}
+            </h2>
+          ) : (
+            <h2 class="contacto-channel__title">{channel.title}</h2>
+          )}
+          {channel.value ? (
+            <p class="contacto-channel__value">{channel.value}</p>
+          ) : null}
+        </>
+      );
+
+      return (
+        <li
+          class:list={[
+            "contacto-channel",
+            channel.dark && "contacto-channel--dark",
+            channel.id === "heading" && "contacto-channel--head",
+            channel.id === "facebook" && "contacto-channel--fb",
+          ]}
+        >
+          {channel.href ? (
+            <a
+              class={innerClass}
+              href={channel.href}
+              target={channel.blank ? "_blank" : undefined}
+              rel={channel.blank ? "noopener noreferrer" : undefined}
+            >
+              {body}
+            </a>
+          ) : (
+            <div class={innerClass}>{body}</div>
+          )}
+        </li>
+      );
+    })}
   </ul>
 </section>
 
@@ -120,7 +117,9 @@ import { contactoChannels } from "@/data/contacto";
       color: #ffffff;
     }
 
-    .contacto-channel--dark .contacto-channel__inner--off .contacto-channel__value {
+    .contacto-channel--dark
+      .contacto-channel__inner--off
+      .contacto-channel__value {
       color: #b4b4af;
     }
   }

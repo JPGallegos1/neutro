@@ -59,7 +59,8 @@ async function endOfContentReport(page: import("@playwright/test").Page) {
       target: link.getAttribute("target"),
       rel: link.getAttribute("rel"),
       text: (link.textContent ?? "").replace(/\s+/g, " ").trim(),
-      visitLinkCount: document.querySelectorAll(".work-case__visit-link").length,
+      visitLinkCount: document.querySelectorAll(".work-case__visit-link")
+        .length,
     };
   });
 }

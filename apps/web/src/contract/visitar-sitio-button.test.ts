@@ -87,10 +87,7 @@ describe("Visitar sitio monocromo", () => {
       "debe haber una sola ocurrencia de Visitar sitio en el markup",
     );
     assert.doesNotMatch(workCaseSource, /work-case__visit--aside/);
-    assert.doesNotMatch(
-      workCaseSource,
-      /\.work-case__visit(?![-\w])\s*\{/,
-    );
+    assert.doesNotMatch(workCaseSource, /\.work-case__visit(?![-\w])\s*\{/);
     assert.doesNotMatch(
       workCaseSource,
       /work-case__visit[\s\S]*?(neutro-accent-blue|neutro-on-blue|bg-primary)/,

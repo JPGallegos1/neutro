@@ -51,7 +51,10 @@ export function shouldAnimate(
   return !reduceMotion && !staticMode;
 }
 
-export function nextFlagIndex(current: number, total: number = contactoHeroFlags.length): number {
+export function nextFlagIndex(
+  current: number,
+  total: number = contactoHeroFlags.length,
+): number {
   if (total <= 0) return 0;
   return (current + 1) % total;
 }

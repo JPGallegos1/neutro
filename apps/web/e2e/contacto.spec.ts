@@ -65,7 +65,9 @@ test.describe("/contacto", () => {
     expect(second).toBe(first);
   });
 
-  test("si una bandera falla al cargar, el ciclo LED sigue", async ({ page }) => {
+  test("si una bandera falla al cargar, el ciclo LED sigue", async ({
+    page,
+  }) => {
     const pageErrors: string[] = [];
     page.on("pageerror", (error) => {
       pageErrors.push(error.message);
@@ -81,7 +83,9 @@ test.describe("/contacto", () => {
     const frames: string[] = [];
     for (let n = 0; n < 5; n++) {
       frames.push(
-        await canvas.evaluate((node) => (node as HTMLCanvasElement).toDataURL()),
+        await canvas.evaluate((node) =>
+          (node as HTMLCanvasElement).toDataURL(),
+        ),
       );
       await page.waitForTimeout(350);
     }

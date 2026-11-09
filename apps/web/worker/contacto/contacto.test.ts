@@ -20,7 +20,7 @@ import {
 import type { MailMessage } from "./parse.ts";
 import { createResendMailSender } from "./resend.ts";
 import { createTurnstileVerifier } from "./turnstile.ts";
-import { contactoFormLimits } from "../../src/data/contacto.ts";
+import { contactoFormLimits } from "../../src/data/contacto-schema.ts";
 
 const submissionId = "11111111-1111-4111-8111-111111111111";
 const validBody = {
@@ -50,7 +50,7 @@ function deps(overrides: Partial<ContactoDeps> = {}): ContactoDeps {
   return {
     mail: {
       async send() {
-        return { kind: "accepted", id: "email_1" };
+        return { kind: "accepted", id: "email_1", status: 200 };
       },
     },
     verifier: {
@@ -125,21 +125,18 @@ describe("contacto API", () => {
       idempotencyKey: `contacto/${submissionId}`,
     };
     assert.deepEqual(
-      await createResendMailSender(
-        "re_test",
-        (async () =>
-          Response.json({ id: "email_123" }, { status: 200 })) as typeof fetch,
-      ).send(message),
+      await createResendMailSender("re_test", (async () =>
+        Response.json(
+          { id: "email_123" },
+          { status: 200 },
+        )) as typeof fetch).send(message),
       { kind: "accepted", id: "email_123", status: 200 },
     );
-    const conflict = await createResendMailSender(
-      "re_test",
-      (async () =>
-        Response.json(
-          { name: "invalid_idempotent_request" },
-          { status: 409 },
-        )) as typeof fetch,
-    ).send(message);
+    const conflict = await createResendMailSender("re_test", (async () =>
+      Response.json(
+        { name: "invalid_idempotent_request" },
+        { status: 409 },
+      )) as typeof fetch).send(message);
     assert.equal(conflict.kind, "rejected");
     if (conflict.kind === "rejected") {
       assert.equal(conflict.reason, "idempotency_conflict");
@@ -172,18 +169,31 @@ describe("contacto API", () => {
       mail: {
         async send(message: MailMessage) {
           sends += 1;
-          return { kind: "accepted" as const, id: message.idempotencyKey };
+          return {
+            kind: "accepted" as const,
+            id: message.idempotencyKey,
+            status: 200,
+          };
         },
       },
     };
     assert.equal(await status(validBody, enabledEnv(), counting), 200);
     assert.equal(
-      await status({ ...validBody, website: "http://spam" }, enabledEnv(), counting),
+      await status(
+        { ...validBody, website: "http://spam" },
+        enabledEnv(),
+        counting,
+      ),
       200,
     );
     assert.equal(sends, 1);
     assert.equal(
-      await status(validBody, enabledEnv(), {}, { Origin: "https://evil.example" }),
+      await status(
+        validBody,
+        enabledEnv(),
+        {},
+        { Origin: "https://evil.example" },
+      ),
       403,
     );
     assert.equal(
@@ -216,7 +226,7 @@ describe("contacto API", () => {
       mail: {
         async send(message: MailMessage) {
           keys.push(message.idempotencyKey);
-          return { kind: "accepted" as const, id: "dup" };
+          return { kind: "accepted" as const, id: "dup", status: 200 };
         },
       },
     };
@@ -234,7 +244,7 @@ describe("contacto API", () => {
       mail: {
         async send(message: MailMessage) {
           delivered.push(message.text);
-          return { kind: "accepted" as const, id: "email_ml" };
+          return { kind: "accepted" as const, id: "email_ml", status: 200 };
         },
       },
     };
@@ -261,7 +271,7 @@ describe("contacto API", () => {
       mail: {
         async send() {
           sends += 1;
-          return { kind: "accepted" as const, id: "nope" };
+          return { kind: "accepted" as const, id: "nope", status: 200 };
         },
       },
     };
@@ -290,7 +300,7 @@ describe("contacto API", () => {
     assert.equal(sends, 0);
   });
 
-  it("email: una sola addr-spec; rechaza comas, <>, comillas y varias direcciones", () => {
+  it("email: una sola addr-spec; rechaza comas, <>, comillas, varias direcciones y puntos inválidos en local", () => {
     assert.equal(parseContactRequest(validBody).ok, true);
     for (const email of [
       "a@b.com,c@d.com",
@@ -299,6 +309,9 @@ describe("contacto API", () => {
       "ana@ejemplo.com>",
       "<ana@ejemplo.com>",
       "ana@ejemplo.com ana2@ejemplo.com",
+      ".a@x.com",
+      "a.@x.com",
+      "a..b@x.com",
     ]) {
       const parsed = parseContactRequest({ ...validBody, email });
       assert.equal(parsed.ok, false, email);
@@ -397,14 +410,14 @@ describe("contacto API", () => {
       { ok: false, reason: "invalid" },
     );
 
-    const timeoutErr = new DOMException("The operation was aborted", "TimeoutError");
+    const timeoutErr = new DOMException(
+      "The operation was aborted",
+      "TimeoutError",
+    );
     assert.deepEqual(
-      await createResendMailSender(
-        "re_test",
-        (async () => {
-          throw timeoutErr;
-        }) as typeof fetch,
-      ).send({
+      await createResendMailSender("re_test", (async () => {
+        throw timeoutErr;
+      }) as typeof fetch).send({
         to: "hola@neutro.solutions",
         from: "no-reply@send.neutro.solutions",
         replyTo: "ana@ejemplo.com",
@@ -473,21 +486,18 @@ describe("contacto API", () => {
   it("envía a Resend el payload completo determinístico y loguea resend_status real", async () => {
     const bodies: unknown[] = [];
     const headersSeen: Array<Record<string, string>> = [];
-    const sender = createResendMailSender(
-      "re_test",
-      (async (_url, init) => {
-        headersSeen.push({
-          authorization: String(
-            new Headers(init?.headers).get("Authorization") ?? "",
-          ),
-          idempotency: String(
-            new Headers(init?.headers).get("Idempotency-Key") ?? "",
-          ),
-        });
-        bodies.push(JSON.parse(String(init?.body)));
-        return Response.json({ id: "email_det" }, { status: 200 });
-      }) as typeof fetch,
-    );
+    const sender = createResendMailSender("re_test", (async (_url, init) => {
+      headersSeen.push({
+        authorization: String(
+          new Headers(init?.headers).get("Authorization") ?? "",
+        ),
+        idempotency: String(
+          new Headers(init?.headers).get("Idempotency-Key") ?? "",
+        ),
+      });
+      bodies.push(JSON.parse(String(init?.body)));
+      return Response.json({ id: "email_det" }, { status: 200 });
+    }) as typeof fetch);
 
     const lead = parseContactRequest({
       ...validBody,
@@ -514,10 +524,11 @@ describe("contacto API", () => {
       ].join("\n"),
       idempotencyKey: `contacto/${submissionId}`,
     };
-    assert.deepEqual(
-      await sender.send(message),
-      { kind: "accepted", id: "email_det", status: 200 },
-    );
+    assert.deepEqual(await sender.send(message), {
+      kind: "accepted",
+      id: "email_det",
+      status: 200,
+    });
     assert.deepEqual(bodies, [
       {
         from: "no-reply@send.neutro.solutions",
