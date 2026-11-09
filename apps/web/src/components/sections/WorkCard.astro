@@ -24,7 +24,6 @@ const TitleTag = titleAs;
         decoding="async"
         fetchpriority={priority ? "high" : undefined}
       />
-      <span class="work-card__tag">{project.tag}</span>
     </div>
     <div class="work-card__details">
       <TitleTag class="work-card__title landing-service-title">
@@ -89,28 +88,6 @@ const TitleTag = titleAs;
   a.work-card__inner:hover .work-card__image,
   a.work-card__inner:focus-visible .work-card__image {
     transform: scale(1.02);
-  }
-
-  .work-card__tag {
-    position: absolute;
-    z-index: 2;
-    top: 12px;
-    left: 12px;
-    padding: 4px 8px;
-    border-radius: 4px;
-    background: var(--neutro-accent-orange-strong);
-    color: var(--neutro-on-orange);
-    font-family: var(--font-mono);
-    font-size: 12px;
-    letter-spacing: 0.12px;
-    line-height: 1.2;
-  }
-
-  @media (min-width: 1024px) {
-    .work-card__tag {
-      top: 16px;
-      left: 16px;
-    }
   }
 
   .work-card__details {

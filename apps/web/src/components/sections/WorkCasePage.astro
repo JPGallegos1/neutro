@@ -27,23 +27,12 @@ const articleLabelledBy = workCase.h1OfficialLine
         ))}
       </h1>
       {workCase.h1OfficialLine ? (
-        <p id="work-case-client" class="work-case__name">
-          {workCase.h1OfficialLine}
-        </p>
+        <div class="work-case__meta">
+          <p id="work-case-client" class="work-case__name">
+            {workCase.h1OfficialLine}
+          </p>
+        </div>
       ) : null}
-      <p class="work-case__tag">{workCase.tag}</p>
-      <a
-        class="rounded-md bg-primary px-4 py-2 text-sm work-case__visit"
-        href={workCase.externalUrl}
-        target="_blank"
-        rel="noopener noreferrer"
-      >
-        <span>Visitar sitio</span>
-        <span class="sr-only"> (se abre en una pestaña nueva)</span>
-        <span class="work-case__visit-icon" aria-hidden="true">
-          <ArrowUpRight size={14} />
-        </span>
-      </a>
     </header>
 
     <div class="work-case__main">
@@ -125,6 +114,21 @@ const articleLabelledBy = workCase.h1OfficialLine
           ))}
         </ul>
       </section>
+
+      <p class="work-case__visit-end">
+        <a
+          class="work-case__visit-link"
+          href={workCase.externalUrl}
+          target="_blank"
+          rel="noopener noreferrer"
+        >
+          <span>Visitar sitio</span>
+          <span class="sr-only"> (se abre en una pestaña nueva)</span>
+          <span class="work-case__visit-icon" aria-hidden="true">
+            <ArrowUpRight size={14} />
+          </span>
+        </a>
+      </p>
     </div>
   </div>
 
@@ -186,6 +190,25 @@ const articleLabelledBy = workCase.h1OfficialLine
     }
   }
 
+  .work-case__meta {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: var(--work-aside-gap);
+    min-width: 0;
+    width: 100%;
+  }
+
+  .work-case__meta:has(.work-case__name) {
+    margin-top: calc(-1 * var(--work-aside-gap));
+  }
+
+  @media (min-width: 1024px) {
+    .work-case__meta {
+      width: auto;
+    }
+  }
+
   .work-case__title {
     margin: 0;
     display: flex;
@@ -215,7 +238,7 @@ const articleLabelledBy = workCase.h1OfficialLine
   }
 
   .work-case__name {
-    margin: calc(-1 * var(--work-aside-gap)) 0 0;
+    margin: 0;
     max-width: 100%;
     font-size: 16px;
     font-weight: 500;
@@ -231,57 +254,63 @@ const articleLabelledBy = workCase.h1OfficialLine
 
   @media (min-width: 1024px) {
     .work-case__name {
-      margin: calc(-1 * var(--work-aside-gap)) 0 8px;
       font-size: 20px;
-    }
-  }
-
-  .work-case__tag {
-    margin: 0;
-    display: inline-block;
-    padding: 4px 8px;
-    border-radius: 4px;
-    background: var(--neutro-accent-orange-strong);
-    color: var(--neutro-on-orange);
-    font-family: var(--font-mono);
-    font-size: 12px;
-    letter-spacing: 0.12px;
-    line-height: 1.2;
-  }
-
-  .work-case__visit {
-    display: inline-flex;
-    align-items: center;
-    gap: 8px;
-    color: var(--neutro-on-blue);
-    text-decoration: none;
-    transition:
-      transform 160ms var(--ease-out),
-      opacity 160ms var(--ease-out);
-  }
-
-  .work-case__visit:active {
-    transform: scale(0.97);
-  }
-
-  @media (prefers-reduced-motion: reduce) {
-    .work-case__visit {
-      transition: none;
-    }
-
-    .work-case__visit:active {
-      transform: none;
-    }
-  }
-
-  @media (hover: hover) and (prefers-reduced-motion: no-preference) {
-    .work-case__visit:hover {
-      opacity: 0.92;
     }
   }
 
   .work-case__visit-icon {
     display: inline-flex;
+  }
+
+  .work-case__visit-end {
+    margin: 0;
+  }
+
+  .work-case__visit-link {
+    --landing-focus: var(--neutro-text);
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    margin: 0;
+    padding: 0;
+    border: none;
+    background: transparent;
+    color: var(--neutro-text);
+    font-size: 16px;
+    font-weight: 500;
+    line-height: 1.3;
+    text-decoration: underline;
+    text-decoration-thickness: 1px;
+    text-underline-offset: 3px;
+    white-space: nowrap;
+    transition:
+      transform 160ms var(--ease-out),
+      opacity 160ms var(--ease-out);
+  }
+
+  .work-case__visit-link:active {
+    transform: scale(0.97);
+  }
+
+  .work-case__visit-link:focus-visible {
+    outline: 2px solid var(--neutro-text);
+    outline-offset: 2px;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .work-case__visit-link {
+      transition: none;
+    }
+
+    .work-case__visit-link:active {
+      transform: none;
+    }
+  }
+
+  @media (hover: hover) and (prefers-reduced-motion: no-preference) {
+    .work-case__visit-link:hover {
+      opacity: 0.92;
+    }
   }
 
   .work-case__main {

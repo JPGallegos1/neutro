@@ -736,15 +736,24 @@ describe("contrato SEO-04 y SEO-05 de fichas", () => {
 
       const expectedOfficialLine = JAKE_H1_OFFICIAL_LINE[slug];
       const next = h1.nextElementSibling;
+      const officialFromNext =
+        next &&
+        next.tagName.toLowerCase() === "p" &&
+        (next.getAttribute("class") ?? "").includes("work-case__name")
+          ? next
+          : next &&
+              (next.getAttribute("class") ?? "").includes("work-case__meta")
+            ? next.querySelector("p.work-case__name")
+            : null;
       if (expectedOfficialLine === null) {
         assert.equal(
           labelledBy,
           "work-case-title",
           `${route} aria-labelledby=${JSON.stringify(labelledBy)}`,
         );
-        assert.ok(
-          next === null ||
-            !(next.getAttribute("class") ?? "").includes("work-case__name"),
+        assert.equal(
+          officialFromNext,
+          null,
           `${route} no debe tener p.work-case__name tras el H1`,
         );
         assert.equal(
@@ -764,36 +773,36 @@ describe("contrato SEO-04 y SEO-05 de fichas", () => {
           `${route} aria-labelledby=${JSON.stringify(labelledBy)}`,
         );
         assert.ok(next, `${route} sin hermano siguiente del H1`);
-        assert.equal(
-          next.tagName.toLowerCase(),
-          "p",
-          `${route} hermano del H1`,
-        );
-        const nextClass = next.getAttribute("class") ?? "";
         assert.ok(
-          nextClass.includes("work-case__name"),
-          `${route} hermano del H1 class=${JSON.stringify(nextClass)}`,
+          officialFromNext,
+          `${route} sin p.work-case__name junto al H1`,
+        );
+        const official = officialFromNext;
+        const officialClass = official.getAttribute("class") ?? "";
+        assert.ok(
+          officialClass.includes("work-case__name"),
+          `${route} línea oficial class=${JSON.stringify(officialClass)}`,
         );
         assert.ok(
-          !nextClass.split(/\s+/).includes("sr-only"),
+          !officialClass.split(/\s+/).includes("sr-only"),
           `${route} p.work-case__name no puede ser sr-only`,
         );
         assert.ok(
-          next.getAttribute("hidden") == null,
+          official.getAttribute("hidden") == null,
           `${route} p.work-case__name no puede tener hidden`,
         );
         assert.notEqual(
-          next.getAttribute("aria-hidden"),
+          official.getAttribute("aria-hidden"),
           "true",
           `${route} p.work-case__name no puede ser aria-hidden`,
         );
         assert.equal(
-          next.getAttribute("id"),
+          official.getAttribute("id"),
           "work-case-client",
           `${route} id de la línea oficial`,
         );
         assert.equal(
-          next.text.replace(/\s+/g, " ").trim(),
+          official.text.replace(/\s+/g, " ").trim(),
           expectedOfficialLine,
           `${route} línea oficial`,
         );
