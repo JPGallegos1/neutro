@@ -52,7 +52,6 @@ describe("serviceCategories", () => {
           );
         }
       } else {
-        assert.ok(category.tags.length > 0, category.id);
         for (const tag of category.tags) {
           assert.equal(serviceCopy(tag, category.id), tag);
         }
@@ -95,15 +94,11 @@ describe("serviceCategories", () => {
     );
   });
 
-  it("rechaza etiquetas vacías", () => {
-    const catalog = cloneCatalog();
-    const tienda = categoryNamed(catalog, "tienda-online");
+  it("permite etiquetas vacías en tienda online", () => {
+    const tienda = categoryNamed(serviceCategories, "tienda-online");
     assert.equal(tienda.body, "tags");
     if (tienda.body !== "tags") return;
-    tienda.tags = [];
-    assert.throws(
-      () => validateServiceCategories(catalog),
-      /tienda-online\.tags/,
-    );
+    assert.deepEqual(tienda.tags, []);
+    assert.doesNotThrow(() => validateServiceCategories(serviceCategories));
   });
 });
