@@ -16,6 +16,7 @@ Propuesto (2026-11-09). Juan aprobó Resend + Turnstile server-side + kill switc
 4. Email: `from` `no-reply@send.neutro.solutions`, `to` fijo, `reply_to` del visitante, plaintext, sin autorrespuesta.
 5. UI: éxito «Tu consulta fue enviada para su entrega»; error «No pudimos confirmar el envío. Probá de nuevo o escribinos a hola@neutro.solutions».
 6. `/privacidad`: mención mínima de Resend. CSP: `challenges.cloudflare.com` en `script-src`/`frame-src` al cablear el widget.
+7. `mensaje` admite multilínea: se normaliza CRLF/CR → LF y se permite `\n`. Se rechazan el resto de controles C0 (incluido tab) y DEL. Los campos de una línea (`cleanLine`) siguen rechazando `\r`/`\n` y todo control.
 
 ## Consequences
 
