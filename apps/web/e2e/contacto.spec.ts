@@ -48,6 +48,23 @@ test.describe("/contacto", () => {
     }
   });
 
+  test("con reduced-motion el canvas queda estático", async ({ page }) => {
+    await page.emulateMedia({ reducedMotion: "reduce" });
+    await page.goto("/contacto?static&i=0");
+    const canvas = page.locator("#contacto-dots");
+    await expect(canvas).toBeVisible();
+    const first = await canvas.evaluate((node) => {
+      const el = node as HTMLCanvasElement;
+      return el.toDataURL();
+    });
+    await page.waitForTimeout(200);
+    const second = await canvas.evaluate((node) => {
+      const el = node as HTMLCanvasElement;
+      return el.toDataURL();
+    });
+    expect(second).toBe(first);
+  });
+
   test("incluye Contacto en nav desktop y drawer mobile", async ({ page }) => {
     await page.setViewportSize({ width: 1280, height: 800 });
     await page.goto("/contacto");
