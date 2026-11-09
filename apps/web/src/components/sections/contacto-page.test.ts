@@ -123,6 +123,26 @@ describe("ContactoForm", () => {
     assert.doesNotMatch(template, /<textarea\b[^>]*\brequired\b/);
     assert.match(template, /\(opcional\)/);
   });
+
+  it("usa checkbox de consentimiento monocromo", () => {
+    const css = extractStyle(formSource);
+    assert.match(
+      css,
+      /\.contacto-consent\s+input\s*\{[^}]*accent-color:\s*#0a0a0a/,
+    );
+    assert.match(
+      css,
+      /\.contacto-consent\s+input:focus-visible\s*\{[^}]*outline:\s*2px\s+solid\s+#0a0a0a/,
+    );
+    assert.match(
+      css,
+      /\.contacto-consent\s+input:hover\s*\{[^}]*accent-color:\s*#0a0a0a/,
+    );
+    assert.doesNotMatch(
+      css,
+      /\.contacto-consent[\s\S]*?(?:#c2410c|#9a3412|#e8590c)/,
+    );
+  });
 });
 
 describe("ContactoHero", () => {
