@@ -621,34 +621,27 @@ test.describe("H1 de fichas /trabajo — títulos cortos v34", () => {
   }
 });
 
-test.describe("línea oficial work-case__name — color muted claro/oscuro", () => {
-  for (const theme of ["light", "dark"] as const) {
-    test(`afectiva a 390px color = --neutro-text-muted (${theme})`, async ({
-      page,
-    }) => {
-      await page.emulateMedia({ colorScheme: theme });
-      await page.addInitScript((value: string) => {
-        localStorage.setItem("neutro-theme", value);
-      }, theme);
-      const report = await measureH1(page, "afectiva", 390);
-      expect(report.officialLine).not.toBeNull();
-      expect(report.officialLine?.color).toBe(report.officialLine?.mutedColor);
-      expect(report.officialLine?.fontSize).toBeCloseTo(
-        NAME_LINE_FONT_MOBILE_PX,
-        0,
-      );
-      expect(report.officialLine?.fontWeight).toBe(NAME_LINE_WEIGHT);
-      expect(report.officialLine?.textTransform).toBe("none");
-      expect(report.officialLine?.marginTopPx).toBeCloseTo(
-        NAME_LINE_MARGIN_TOP_PX,
-        0,
-      );
-      const dark = await page
-        .locator("html")
-        .evaluate((el) => el.classList.contains("dark"));
-      expect(dark).toBe(theme === "dark");
-    });
-  }
+test.describe("línea oficial work-case__name — color muted", () => {
+  test("afectiva a 390px color = --neutro-text-muted", async ({ page }) => {
+    await page.emulateMedia({ colorScheme: "light" });
+    const report = await measureH1(page, "afectiva", 390);
+    expect(report.officialLine).not.toBeNull();
+    expect(report.officialLine?.color).toBe(report.officialLine?.mutedColor);
+    expect(report.officialLine?.fontSize).toBeCloseTo(
+      NAME_LINE_FONT_MOBILE_PX,
+      0,
+    );
+    expect(report.officialLine?.fontWeight).toBe(NAME_LINE_WEIGHT);
+    expect(report.officialLine?.textTransform).toBe("none");
+    expect(report.officialLine?.marginTopPx).toBeCloseTo(
+      NAME_LINE_MARGIN_TOP_PX,
+      0,
+    );
+    const dark = await page
+      .locator("html")
+      .evaluate((el) => el.classList.contains("dark"));
+    expect(dark).toBe(false);
+  });
 });
 
 test.describe("SCC work-case__name — relación nowrap vs aside", () => {

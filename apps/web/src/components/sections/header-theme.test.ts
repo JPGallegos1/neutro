@@ -57,6 +57,18 @@ describe("site header black theme", () => {
     );
   });
 
+  it("puts the desktop nav on the right and omits header Instagram and theme toggle", () => {
+    assert.match(
+      headerCss,
+      /\.site-header__nav\s*\{[^}]*margin-inline-start:\s*auto/,
+    );
+    assert.doesNotMatch(headerTemplate, /site-header__socials/);
+    assert.doesNotMatch(headerTemplate, /ThemeToggle/);
+    assert.doesNotMatch(headerTemplate, /data-theme-toggle/);
+    assert.doesNotMatch(drawerTemplate, /ThemeToggle/);
+    assert.doesNotMatch(drawerTemplate, /data-theme-set/);
+  });
+
   it("keeps the mobile drawer black with a light logo", () => {
     assert.match(drawerTemplate, /<dialog\b[^>]*\bclass="mobile-drawer dark"/);
     assert.match(drawerCss, /\.mobile-drawer\s*\{[^}]*--neutro-bg:\s*#0a0a0a/);
