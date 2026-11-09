@@ -74,6 +74,17 @@ describe("Visitar sitio monocromo", () => {
       workCaseSource,
       /\.work-case__visit\s*\{[^}]*color:\s*var\(--neutro-bg\)/s,
     );
+    assert.match(workCaseSource, /work-case__visit--aside/);
+    assert.match(workCaseSource, /work-case__visit-end/);
+    assert.match(workCaseSource, /work-case__visit-link/);
+    assert.match(
+      workCaseSource,
+      /\.work-case__visit-link\s*\{[^}]*color:\s*var\(--neutro-text\)/s,
+    );
+    assert.match(
+      workCaseSource,
+      /\.work-case__visit-link\s*\{[^}]*text-decoration:\s*underline/s,
+    );
     assert.doesNotMatch(
       workCaseSource,
       /work-case__visit[\s\S]*?(neutro-accent-blue|neutro-on-blue|bg-primary)/,
