@@ -26,25 +26,13 @@ const articleLabelledBy = workCase.h1OfficialLine
           </>
         ))}
       </h1>
-      <div class="work-case__meta">
-        {workCase.h1OfficialLine ? (
+      {workCase.h1OfficialLine ? (
+        <div class="work-case__meta">
           <p id="work-case-client" class="work-case__name">
             {workCase.h1OfficialLine}
           </p>
-        ) : null}
-        <a
-          class="work-case__visit work-case__visit--aside"
-          href={workCase.externalUrl}
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <span>Visitar sitio</span>
-          <span class="sr-only"> (se abre en una pestaña nueva)</span>
-          <span class="work-case__visit-icon" aria-hidden="true">
-            <ArrowUpRight size={14} />
-          </span>
-        </a>
-      </div>
+        </div>
+      ) : null}
     </header>
 
     <div class="work-case__main">
@@ -270,57 +258,6 @@ const articleLabelledBy = workCase.h1OfficialLine
     }
   }
 
-  .work-case__visit {
-    --landing-focus: var(--neutro-text);
-    display: inline-flex;
-    align-items: center;
-    gap: 8px;
-    margin: 0;
-    padding: 12px 20px;
-    border: 1px solid var(--neutro-text);
-    border-radius: 4px;
-    background: var(--neutro-text);
-    color: var(--neutro-bg);
-    font-size: 15px;
-    font-weight: 500;
-    line-height: 1.2;
-    text-decoration: none;
-    white-space: nowrap;
-    transition:
-      transform 160ms var(--ease-out),
-      opacity 160ms var(--ease-out);
-  }
-
-  .work-case__visit:active {
-    transform: scale(0.97);
-  }
-
-  @media (prefers-reduced-motion: reduce) {
-    .work-case__visit {
-      transition: none;
-    }
-
-    .work-case__visit:active {
-      transform: none;
-    }
-  }
-
-  @media (hover: hover) and (prefers-reduced-motion: no-preference) {
-    .work-case__visit:hover {
-      opacity: 0.92;
-    }
-  }
-
-  @media (max-width: 1023px) {
-    .work-case__meta:not(:has(.work-case__name)) {
-      display: none;
-    }
-
-    .work-case__visit--aside {
-      display: none;
-    }
-  }
-
   .work-case__visit-icon {
     display: inline-flex;
   }
@@ -346,7 +283,13 @@ const articleLabelledBy = workCase.h1OfficialLine
     text-decoration-thickness: 1px;
     text-underline-offset: 3px;
     white-space: nowrap;
-    transition: opacity 160ms var(--ease-out);
+    transition:
+      transform 160ms var(--ease-out),
+      opacity 160ms var(--ease-out);
+  }
+
+  .work-case__visit-link:active {
+    transform: scale(0.97);
   }
 
   .work-case__visit-link:focus-visible {
@@ -358,17 +301,15 @@ const articleLabelledBy = workCase.h1OfficialLine
     .work-case__visit-link {
       transition: none;
     }
+
+    .work-case__visit-link:active {
+      transform: none;
+    }
   }
 
   @media (hover: hover) and (prefers-reduced-motion: no-preference) {
     .work-case__visit-link:hover {
       opacity: 0.92;
-    }
-  }
-
-  @media (min-width: 1024px) {
-    .work-case__visit-end {
-      display: none;
     }
   }
 
