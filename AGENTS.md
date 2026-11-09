@@ -56,8 +56,6 @@ No copies el contenido de un ADR al PR: linkealo.
 ## UI y estilos
 
 - Tailwind CSS 4; tokens en [`packages/ui/src/styles/globals.css`](packages/ui/src/styles/globals.css); tipografía Geist.
-- No agregues divisores de 1px (`border-t` / `border-b` de 1px, `hr`, `divide-*`, `h-px` / `w-px`). Separá con espaciado o tono de superficie.
-- Única excepción hoy: la línea sobre el botón «Cargar más» de `/trabajo`.
 - shadcn/ui solo si el proyecto lo justifica (`pnpm ui:add`).
 
 ## Motion

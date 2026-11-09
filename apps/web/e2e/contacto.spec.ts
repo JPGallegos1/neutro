@@ -11,11 +11,14 @@ test.describe("/contacto", () => {
     ).toBeVisible();
     await expect(page.getByRole("link", { name: /WhatsApp/i })).toHaveAttribute(
       "href",
-      "https://wa.me/5493413988851",
+      "https://wa.me/5493413398851",
     );
     await expect(
       page.getByRole("heading", { name: "Construyamos algo juntos" }),
     ).toBeVisible();
+    await expect(
+      page.getByRole("link", { name: /forma de trabajar/i }),
+    ).toHaveCount(0);
   });
 
   test("gating de consentimiento en el botón Enviar", async ({ page }) => {
@@ -43,23 +46,6 @@ test.describe("/contacto", () => {
     for (const cell of await visible.all()) {
       await expect(cell).toBeVisible();
     }
-  });
-
-  test("con reduced-motion el canvas queda estático", async ({ page }) => {
-    await page.emulateMedia({ reducedMotion: "reduce" });
-    await page.goto("/contacto?static&i=0");
-    const canvas = page.locator("#contacto-dots");
-    await expect(canvas).toBeVisible();
-    const first = await canvas.evaluate((node) => {
-      const el = node as HTMLCanvasElement;
-      return el.toDataURL();
-    });
-    await page.waitForTimeout(200);
-    const second = await canvas.evaluate((node) => {
-      const el = node as HTMLCanvasElement;
-      return el.toDataURL();
-    });
-    expect(second).toBe(first);
   });
 
   test("incluye Contacto en nav desktop y drawer mobile", async ({ page }) => {

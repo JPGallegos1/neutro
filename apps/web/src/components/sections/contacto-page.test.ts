@@ -88,8 +88,9 @@ describe("ContactoForm", () => {
     const template = astroTemplate(formSource);
     assert.match(
       template,
-      /class="contacto-form__line">\{line\}<\/span>\{\s*" "\s*\}/,
+      /contactoFormCopy\.lines\.length\s*-\s*1\s*\?\s*" "/,
     );
+    assert.doesNotMatch(template, /nuestra-forma-de-trabajar|workLink/);
   });
 
   it("marca requeridos del Pen y deja Mensaje opcional", () => {
@@ -109,13 +110,14 @@ describe("ContactoForm", () => {
   });
 });
 
-describe("ContactoHero", () => {
-  it("usa hero C y respeta prefers-reduced-motion vía helper", () => {
+describe("ContactoHero stub", () => {
+  it("expone hero C estático sin canvas LED", () => {
     const css = extractStyle(heroSource);
-    const script = extractScript(heroSource);
+    const template = astroTemplate(heroSource);
     assert.match(css, /repeating-linear-gradient/);
-    assert.match(script, /shouldAnimate/);
-    assert.match(script, /prefers-reduced-motion:\s*reduce/);
+    assert.match(template, /Contacto \| Neutro Solutions/);
+    assert.doesNotMatch(template, /<canvas\b|#contacto-dots|contacto-hero__canvas/);
+    assert.doesNotMatch(heroSource, /<script>/);
   });
 });
 
