@@ -2,9 +2,9 @@
 
 ## Status
 
-Proposed (2026-10-27).
+Proposed (2026-10-27) — **pausado; puede discontinuarse** (decisión de Juan, 2026-11-09, confirmada ~16:10 America/Buenos_Aires en el chat de Jack). No se acepta ni se revierte: el archivo sigue Proposed. Templates permanece en stand by (sin esqueleto `apps/muestras`, sin DNS ni deploy).
 
-Juan approved the draft on 2026-10-27 and asked for this file alone, as a pull request that stays unmerged. Merge waits for Juan’s explicit OK. Maya confirms that OK. Proposed here is the same state [ADR 0006](0006-workers-builds-delivery.md) calls Propuesto.
+Juan approved the draft on 2026-10-27; the ADR later landed on `main` via PR #85 still as Proposed. Proposed here is the same state [ADR 0006](0006-workers-builds-delivery.md) calls Propuesto.
 
 This document does not create `apps/muestras`, a Worker, or DNS. No app code and no DNS until Juan’s explicit approval.
 
