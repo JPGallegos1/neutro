@@ -611,7 +611,7 @@ const contactoTurnstileSiteKey = resolveContactoTurnstileSiteKey(
     font: inherit;
     font-weight: 500;
     font-size: 16px;
-    background: #c2410c;
+    background: #0a0a0a;
     color: #ffffff;
     border: 0;
     border-radius: 0;
@@ -620,7 +620,8 @@ const contactoTurnstileSiteKey = resolveContactoTurnstileSiteKey(
     cursor: pointer;
     transition:
       transform 160ms var(--ease-out),
-      background-color 150ms var(--ease-out);
+      background-color 150ms var(--ease-out),
+      opacity 150ms var(--ease-out);
   }
 
   .contacto-form__send:disabled {
@@ -631,7 +632,7 @@ const contactoTurnstileSiteKey = resolveContactoTurnstileSiteKey(
 
   @media (hover: hover) {
     .contacto-form__send:hover:not(:disabled) {
-      background: #9a3412;
+      background: #262624;
     }
   }
 
@@ -640,7 +641,7 @@ const contactoTurnstileSiteKey = resolveContactoTurnstileSiteKey(
   }
 
   .contacto-form__send:focus-visible {
-    outline: 2px solid #c2410c;
+    outline: 2px solid #0a0a0a;
     outline-offset: 3px;
   }
 
