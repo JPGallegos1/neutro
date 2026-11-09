@@ -69,9 +69,6 @@ export function validateServiceCategories(
         serviceCopy(service?.benefit, `${where}.services[${index}].benefit`);
       });
     } else if (body === "tags") {
-      if (category.tags.length === 0) {
-        throw new Error(`Falta contenido de servicio en ${where}.tags`);
-      }
       category.tags.forEach((tag, index) => {
         serviceCopy(tag, `${where}.tags[${index}]`);
       });
@@ -168,15 +165,7 @@ export const serviceCategories: ServiceCategory[] = [
     body: "tags",
     summary:
       "Vender por WhatsApp funciona hasta que los pedidos se pierden entre chats y el stock no cierra. Te armamos una tienda que vende sola todos los días, con envíos a todo el país y el mismo stock en WhatsApp, Mercado Libre y Google. Si ya tenés web, la sumamos ahí sin rehacerla. Vos te ocupás del negocio y la tienda se ocupa de vender.",
-    tags: [
-      "TIENDA ONLINE",
-      "ENVÍOS A TODO EL PAÍS",
-      "VENTA EN MÁS CANALES",
-      "RECUPERO DE CARRITOS",
-      "STOCK Y GESTIÓN CONECTADOS",
-      "MIGRACIÓN",
-      "TIENDA EN TU WEB ACTUAL",
-    ],
+    tags: [],
   },
   {
     id: "automatizacion-ia",

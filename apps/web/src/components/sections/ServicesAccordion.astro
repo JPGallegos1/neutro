@@ -75,7 +75,7 @@ import { serviceCategories, serviceCopy } from "@/data/services";
                       </li>
                     ))}
                   </ul>
-                ) : (
+                ) : category.tags.length > 0 ? (
                   <ul class="accordion-item__tags">
                     {category.tags.map((tag, index) => (
                       <li class="accordion-item__tag">
@@ -83,7 +83,7 @@ import { serviceCategories, serviceCopy } from "@/data/services";
                       </li>
                     ))}
                   </ul>
-                )}
+                ) : null}
               </div>
             </div>
           </div>
