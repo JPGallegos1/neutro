@@ -1,10 +1,8 @@
 ---
 import Logo from "@/components/Logo.astro";
-import ThemeToggle from "@/components/ThemeToggle.astro";
 import MobileDrawer from "@/components/sections/MobileDrawer.astro";
 import { Menu } from "@lucide/astro";
 import { navItems } from "@/data/nav";
-import { socialLinks } from "@/data/socials";
 
 function publicPathname(pathname: string): string {
   let path = pathname;
@@ -52,42 +50,6 @@ function navIsCurrent(href: string): boolean {
       </ul>
     </nav>
 
-    <div class="site-header__actions">
-      <nav class="site-header__socials" aria-label="Redes del encabezado">
-        <ul class="site-header__socials-list">
-          {socialLinks.map((social) => (
-            <li>
-              <a
-                class="social-link site-header__social"
-                href={social.href}
-                aria-label={`${social.label} (se abre en una pestaña nueva)`}
-                target="_blank"
-                rel="noopener noreferrer"
-              >
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  width="20"
-                  height="20"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  stroke-width="2"
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                  aria-hidden="true"
-                >
-                  <rect width="20" height="20" x="2" y="2" rx="5" ry="5"></rect>
-                  <path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"></path>
-                  <line x1="17.5" x2="17.51" y1="6.5" y2="6.5"></line>
-                </svg>
-              </a>
-            </li>
-          ))}
-        </ul>
-      </nav>
-      <ThemeToggle class="site-header__theme" />
-    </div>
-
     <button
       type="button"
       class="site-header__menu"
@@ -129,15 +91,10 @@ function navIsCurrent(href: string): boolean {
     .site-header__inner {
       min-height: 96px;
       padding-block: 0;
-      position: relative;
     }
   }
 
   .site-header__nav {
-    display: none;
-  }
-
-  .site-header__actions {
     display: none;
   }
 
@@ -166,9 +123,7 @@ function navIsCurrent(href: string): boolean {
 
     .site-header__nav {
       display: block;
-      position: absolute;
-      left: 50%;
-      transform: translateX(-50%);
+      margin-inline-start: auto;
     }
 
     .site-header__nav-list {
@@ -189,30 +144,6 @@ function navIsCurrent(href: string): boolean {
     .site-header__nav-link[aria-current="page"] {
       border-bottom: 1.5px solid var(--neutro-accent-orange);
       text-decoration: none;
-    }
-
-    .site-header__actions {
-      display: flex;
-      align-items: center;
-      gap: 16px;
-    }
-
-    .site-header__socials-list {
-      display: flex;
-      align-items: center;
-      gap: 16px;
-      list-style: none;
-      margin: 0;
-      padding: 0;
-    }
-
-    .site-header__social {
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      color: var(--neutro-text);
-      min-width: 20px;
-      min-height: 20px;
     }
   }
 </style>
