@@ -101,3 +101,49 @@ export const contactoFormCopy = {
   hint: "Para enviar, aceptá la política de privacidad y los términos.",
   submit: "Enviar",
 } as const;
+
+export const contactoHeroFlags = [
+  { file: "argentina.svg", label: "Argentina" },
+  { file: "uruguay.svg", label: "Uruguay" },
+  { file: "chile.svg", label: "Chile" },
+  { file: "mexico.svg", label: "México" },
+  { file: "colombia.svg", label: "Colombia" },
+  { file: "peru.svg", label: "Perú" },
+  { file: "espana.svg", label: "España" },
+  { file: "venezuela.svg", label: "Venezuela" },
+  { file: "ecuador.svg", label: "Ecuador" },
+  { file: "bolivia.svg", label: "Bolivia" },
+  { file: "paraguay.svg", label: "Paraguay" },
+  { file: "costa-rica.svg", label: "Costa Rica" },
+  { file: "panama.svg", label: "Panamá" },
+  { file: "cuba.svg", label: "Cuba" },
+  { file: "republica-dominicana.svg", label: "República Dominicana" },
+  { file: "guatemala.svg", label: "Guatemala" },
+  { file: "honduras.svg", label: "Honduras" },
+  { file: "el-salvador.svg", label: "El Salvador" },
+  { file: "nicaragua.svg", label: "Nicaragua" },
+  { file: "guinea-ecuatorial.svg", label: "Guinea Ecuatorial" },
+] as const;
+
+export const contactoHeroTiming = {
+  colMs: 30,
+  holdMs: 1600,
+  eraseMs: 18,
+  gapMs: 250,
+  blinkMs: 500,
+} as const;
+
+export const contactoHeroGlyphs: Record<string, string[]> = {
+  H: ["10001", "10001", "10001", "11111", "10001", "10001", "10001"],
+  o: ["00000", "00000", "01110", "10001", "10001", "10001", "01110"],
+  l: ["01100", "00100", "00100", "00100", "00100", "00100", "01110"],
+  a: ["00000", "00000", "01110", "00001", "01111", "10001", "01111"],
+  M: ["10001", "11011", "10101", "10101", "10001", "10001", "10001"],
+  u: ["00000", "00000", "10001", "10001", "10001", "10011", "01101"],
+  n: ["00000", "00000", "10110", "11001", "10001", "10001", "10001"],
+  d: ["00001", "00001", "01101", "10011", "10001", "10001", "01111"],
+  " ": ["000", "000", "000", "000", "000", "000", "000"],
+};
+
+export const contactoHeroText = "Hola Mundo";
+export const contactoFlagCell = { width: 14, height: 9, gap: 3 } as const;
