@@ -2,7 +2,7 @@
 
 ## Status
 
-Propuesto (2026-11-09). Juan aprobó Resend + Turnstile server-side + kill switch `CONTACT_ENABLED` off por defecto + textos de UI + mención de Resend en `/privacidad`.
+Accepted (2026-11-09). Juan confirmó directo el 09/11/2026 ~16:10 (America/Buenos_Aires) en el chat de Jack: pasar este ADR a Accepted en el repo y en el box. El alcance técnico (Resend + Turnstile server-side + kill switch `CONTACT_ENABLED` off por defecto + textos de UI + mención de Resend en `/privacidad`) ya estaba aprobado; este cambio solo formaliza el estado.
 
 ## Context
 
