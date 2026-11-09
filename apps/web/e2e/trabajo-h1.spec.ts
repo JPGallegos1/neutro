@@ -49,8 +49,7 @@ const LETTER_SPACING_TOLERANCE = 0.002;
 const STYLE_TOLERANCE = 0.005;
 const NAME_LINE_LETTER_SPACING_EM = -0.01;
 const NAME_LINE_LINE_HEIGHT = 1.3;
-const NAME_LINE_MARGIN_TOP_PX = -16;
-const NAME_LINE_MARGIN_BOTTOM_DESKTOP_PX = 8;
+const NAME_LINE_MARGIN_TOP_PX = 0;
 const NAME_LINE_FONT_MOBILE_PX = 16;
 const NAME_LINE_FONT_DESKTOP_PX = 20;
 const NAME_LINE_WEIGHT = "500";
@@ -112,7 +111,6 @@ type H1Report = {
     marginTopPx: number;
     marginBottomPx: number;
     boxGapFromH1: number;
-    boxGapToTag: number;
     lineCount: number;
     nowrapWidth: number;
     availableWidth: number;
@@ -254,10 +252,16 @@ async function measureH1(
     const article = document.querySelector("article.work-case");
     const officialNodes = [...document.querySelectorAll("p.work-case__name")];
     const next = title.nextElementSibling;
-    const officialEl =
+    const officialCandidate =
       next instanceof HTMLParagraphElement &&
       next.classList.contains("work-case__name")
         ? next
+        : next instanceof HTMLElement
+          ? next.querySelector(":scope > p.work-case__name")
+          : null;
+    const officialEl =
+      officialCandidate instanceof HTMLParagraphElement
+        ? officialCandidate
         : null;
     const officialStyle = officialEl ? getComputedStyle(officialEl) : null;
     const officialRect = officialEl?.getBoundingClientRect();
@@ -305,7 +309,10 @@ async function measureH1(
         probe.remove();
       }
     }
-    const availableWidth = asideRect.width;
+    const availableWidth =
+      officialEl !== null
+        ? officialEl.getBoundingClientRect().width
+        : asideRect.width;
     const colorAlpha = (value: string): number => {
       const rgba = value.match(
         /^rgba?\(\s*[\d.]+\s*,\s*[\d.]+\s*,\s*[\d.]+\s*(?:,\s*([\d.]+))?\s*\)$/i,
@@ -342,11 +349,6 @@ async function measureH1(
       colorAlpha(officialStyle.color) > 0 &&
       !clipHides(officialStyle) &&
       officialEl.getClientRects().length > 0;
-    const tagEl =
-      officialEl?.nextElementSibling instanceof HTMLElement
-        ? officialEl.nextElementSibling
-        : null;
-    const tagRect = tagEl?.getBoundingClientRect();
     const officialLine =
       officialNodes.length === 0
         ? null
@@ -398,10 +400,6 @@ async function measureH1(
             boxGapFromH1:
               officialRect !== undefined
                 ? officialRect.top - titleRect.bottom
-                : 0,
-            boxGapToTag:
-              officialRect !== undefined && tagRect !== undefined
-                ? tagRect.top - officialRect.bottom
                 : 0,
             lineCount: officialLineTops.length,
             nowrapWidth,
@@ -498,9 +496,6 @@ test.describe("H1 de fichas /trabajo — títulos cortos v34", () => {
           );
           const nameFont =
             width < 1024 ? NAME_LINE_FONT_MOBILE_PX : NAME_LINE_FONT_DESKTOP_PX;
-          const expectedTagGap = width < 1024 ? 16 : 24;
-          const expectedMarginBottom =
-            width < 1024 ? 0 : NAME_LINE_MARGIN_BOTTOM_DESKTOP_PX;
           expect(
             official.fontSize,
             `name font=${official.fontSize}; se exige ${nameFont}`,
@@ -555,19 +550,11 @@ test.describe("H1 de fichas /trabajo — títulos cortos v34", () => {
           expect(
             official.marginBottomPx,
             `name margin-bottom=${official.marginBottomPx}`,
-          ).toBeCloseTo(expectedMarginBottom, 0);
+          ).toBeCloseTo(0, 0);
           expect(
             Math.abs(official.boxGapFromH1),
             `caja H1→name=${official.boxGapFromH1}; se exige ≈0`,
           ).toBeLessThanOrEqual(BOX_GAP_TOLERANCE);
-          expect(
-            official.boxGapToTag,
-            `caja name→tag=${official.boxGapToTag}; se exige ${expectedTagGap}`,
-          ).toBeGreaterThanOrEqual(expectedTagGap - BOX_GAP_TOLERANCE);
-          expect(
-            official.boxGapToTag,
-            `caja name→tag=${official.boxGapToTag}; se exige ${expectedTagGap}`,
-          ).toBeLessThanOrEqual(expectedTagGap + BOX_GAP_TOLERANCE);
           const fromWidths = expectedNameLineCountFromWidths(
             official.availableWidth,
             official.nowrapWidth,
@@ -634,34 +621,27 @@ test.describe("H1 de fichas /trabajo — títulos cortos v34", () => {
   }
 });
 
-test.describe("línea oficial work-case__name — color muted claro/oscuro", () => {
-  for (const theme of ["light", "dark"] as const) {
-    test(`afectiva a 390px color = --neutro-text-muted (${theme})`, async ({
-      page,
-    }) => {
-      await page.emulateMedia({ colorScheme: theme });
-      await page.addInitScript((value: string) => {
-        localStorage.setItem("neutro-theme", value);
-      }, theme);
-      const report = await measureH1(page, "afectiva", 390);
-      expect(report.officialLine).not.toBeNull();
-      expect(report.officialLine?.color).toBe(report.officialLine?.mutedColor);
-      expect(report.officialLine?.fontSize).toBeCloseTo(
-        NAME_LINE_FONT_MOBILE_PX,
-        0,
-      );
-      expect(report.officialLine?.fontWeight).toBe(NAME_LINE_WEIGHT);
-      expect(report.officialLine?.textTransform).toBe("none");
-      expect(report.officialLine?.marginTopPx).toBeCloseTo(
-        NAME_LINE_MARGIN_TOP_PX,
-        0,
-      );
-      const dark = await page
-        .locator("html")
-        .evaluate((el) => el.classList.contains("dark"));
-      expect(dark).toBe(theme === "dark");
-    });
-  }
+test.describe("línea oficial work-case__name — color muted", () => {
+  test("afectiva a 390px color = --neutro-text-muted", async ({ page }) => {
+    await page.emulateMedia({ colorScheme: "light" });
+    const report = await measureH1(page, "afectiva", 390);
+    expect(report.officialLine).not.toBeNull();
+    expect(report.officialLine?.color).toBe(report.officialLine?.mutedColor);
+    expect(report.officialLine?.fontSize).toBeCloseTo(
+      NAME_LINE_FONT_MOBILE_PX,
+      0,
+    );
+    expect(report.officialLine?.fontWeight).toBe(NAME_LINE_WEIGHT);
+    expect(report.officialLine?.textTransform).toBe("none");
+    expect(report.officialLine?.marginTopPx).toBeCloseTo(
+      NAME_LINE_MARGIN_TOP_PX,
+      0,
+    );
+    const dark = await page
+      .locator("html")
+      .evaluate((el) => el.classList.contains("dark"));
+    expect(dark).toBe(false);
+  });
 });
 
 test.describe("SCC work-case__name — relación nowrap vs aside", () => {

@@ -56,7 +56,7 @@ const ogImageAlt =
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="description" content={description} />
     <meta name="generator" content={Astro.generator} />
-    <meta name="color-scheme" content="light dark" />
+    <meta name="color-scheme" content="light" />
     <meta property="og:type" content="website" />
     <meta property="og:locale" content={site.locale} />
     <meta property="og:site_name" content={site.name} />
@@ -82,23 +82,6 @@ const ogImageAlt =
     <meta name="theme-color" content="#0A0A0A" />
     <title>{title}</title>
 
-    <script is:inline>
-      (function () {
-        try {
-          const stored = localStorage.getItem("neutro-theme");
-          const dark =
-            stored === "dark" ||
-            (stored !== "light" &&
-              window.matchMedia("(prefers-color-scheme: dark)").matches);
-          document.documentElement.classList.toggle("dark", dark);
-        } catch {
-          document.documentElement.classList.toggle(
-            "dark",
-            window.matchMedia("(prefers-color-scheme: dark)").matches,
-          );
-        }
-      })();
-    </script>
     {jsonLd && (
       <script
         type="application/ld+json"
@@ -115,10 +98,7 @@ const ogImageAlt =
     <slot />
     <script>
       import { initAnalytics } from "@/lib/analytics";
-      import { initThemeControls } from "@/scripts/theme";
 
-      initThemeControls();
-      document.addEventListener("astro:page-load", initThemeControls);
       void initAnalytics();
     </script>
   </body>
