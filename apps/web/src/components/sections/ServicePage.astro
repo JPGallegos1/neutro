@@ -63,9 +63,9 @@ const showTurnosSumar =
                 alt=""
                 width="1440"
                 height="810"
-                loading={index < 2 ? "eager" : "lazy"}
+                loading="eager"
                 decoding="async"
-                fetchpriority={index < 2 ? "high" : undefined}
+                fetchpriority={index < 2 ? "high" : "low"}
               />
             </span>
             <span class="service-tile__meta">
@@ -181,17 +181,16 @@ const showTurnosSumar =
   }
 
   .service-hero__row {
-    display: flex;
-    flex-direction: column;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
     gap: 28px;
-    align-items: flex-start;
+    align-items: start;
   }
 
   @media (min-width: 1024px) {
     .service-hero__row {
-      flex-direction: row;
-      justify-content: space-between;
-      align-items: flex-end;
+      grid-template-columns: minmax(0, 8fr) minmax(28ch, 4fr);
+      align-items: end;
       gap: 64px;
     }
   }
@@ -208,7 +207,7 @@ const showTurnosSumar =
 
   .service-hero__lead {
     margin: 0;
-    max-width: 34rem;
+    max-width: 34ch;
     font-size: 18px;
     line-height: 1.45;
     color: #d6d6d2;
@@ -217,7 +216,9 @@ const showTurnosSumar =
   @media (min-width: 1024px) {
     .service-hero__lead {
       font-size: 20px;
-      flex: 0 1 34rem;
+      width: 100%;
+      max-width: 34ch;
+      justify-self: end;
     }
   }
 
