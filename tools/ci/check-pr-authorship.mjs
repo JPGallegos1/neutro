@@ -47,9 +47,12 @@ function measure(text) {
     const deleted = countField(match[2]);
     if (added === null || deleted === null) return null;
     const rawPath = match[3];
-    const path = rawPath.includes(" => ")
-      ? rawPath.slice(rawPath.lastIndexOf(" => ") + 4)
-      : rawPath;
+    const brace = /^(.*)\{(.*) => (.*)\}(.*)$/.exec(rawPath);
+    const path = brace
+      ? `${brace[1]}${brace[3]}${brace[4]}`
+      : rawPath.includes(" => ")
+        ? rawPath.slice(rawPath.lastIndexOf(" => ") + 4)
+        : rawPath;
     const base = path.slice(path.lastIndexOf("/") + 1);
     if (!LOCKS.has(base)) lines += added + deleted;
   }
@@ -262,7 +265,13 @@ async function evaluate(env) {
   try {
     text = execFileSync(
       "git",
-      ["diff", "--numstat", `${env.BASE_SHA}...${env.HEAD_SHA}`],
+      [
+        "-c",
+        "core.quotepath=false",
+        "diff",
+        "--numstat",
+        `${env.BASE_SHA}...${env.HEAD_SHA}`,
+      ],
       {
         encoding: "utf8",
         timeout: 30_000,
