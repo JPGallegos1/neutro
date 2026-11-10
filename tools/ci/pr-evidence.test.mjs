@@ -76,7 +76,7 @@ describe("checkChangeEvidence", () => {
     );
   });
 
-  it("un adjunto suelto o en link es video; adentro de imagen no", () => {
+  it("un adjunto suelto o en link es video; .png o imagen no", () => {
     assert.deepEqual(
       checkChangeEvidence(withCapturas(pr122Body, ATTACHMENT), PR_122_PATHS),
       { ok: true, problems: [] },
@@ -92,6 +92,27 @@ describe("checkChangeEvidence", () => {
       withCapturas(pr122Body, `![envío](${ATTACHMENT})`),
       PR_122_PATHS,
       [flowMedia(FORM)],
+    );
+    expectProblems(
+      withCapturas(
+        pr122Body,
+        "https://github.com/user-attachments/assets/foo.png",
+      ),
+      PR_122_PATHS,
+      [flowMedia(FORM)],
+    );
+    expectProblems(
+      withCapturas("cuerpo", "\\![x](https://example.com/a.png)"),
+      [HEADER],
+      [uiMedia(HEADER)],
+    );
+    expectProblems(
+      withCapturas(
+        "cuerpo",
+        '<img alt="Open in Web" src="https://cursor.com/assets/images/open-in-web-dark.png">\ntexto',
+      ),
+      [HEADER],
+      [uiMedia(HEADER)],
     );
   });
 

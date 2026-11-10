@@ -136,12 +136,24 @@ function isVideoUrl(url) {
   return MEDIA.video.some((ext) => path.endsWith(ext));
 }
 
+function isImageUrl(url) {
+  const path = urlPath(url).toLowerCase();
+  return MEDIA.image.some((ext) => path.endsWith(ext));
+}
+
 function isGithubAttachment(url) {
   return GITHUB_ATTACHMENT.test(url);
 }
 
+function isCursorBadge(url) {
+  return /cursor\.com\/assets\/images\/open-in-/i.test(url);
+}
+
 function countsAsVideo(url) {
-  return isVideoUrl(url) || isGithubAttachment(url);
+  if (isVideoUrl(url)) {
+    return true;
+  }
+  return isGithubAttachment(url) && !isImageUrl(url);
 }
 
 function scanMedia(text) {
@@ -162,20 +174,20 @@ function scanMedia(text) {
   }
 
   const markdownImage =
-    /!\[(?:\\.|[^\]])*\]\(\s*<?([^)\s>]+)>?(?:\s+(?:"[^"]*"|'[^']*'|\([^)]*\)))?\s*\)/g;
+    /(?<!\\)!\[(?:\\.|[^\]])*\]\(\s*<?([^)\s>]+)>?(?:\s+(?:"[^"]*"|'[^']*'|\([^)]*\)))?\s*\)/g;
   const htmlImage =
     /<img\b[^>]*?\ssrc\s*=\s*(?:"([^"]*)"|'([^']*)'|([^\s"'=<>`]+))[^>]*>/gi;
   for (const match of text.matchAll(markdownImage)) {
     occupy(match.index, match.index + match[0].length);
     if (isVideoUrl(match[1])) {
       video += 1;
-    } else {
+    } else if (!isCursorBadge(match[1])) {
       image += 1;
     }
   }
   for (const match of text.matchAll(htmlImage)) {
     const url = embedUrl(match);
-    if (url === "" || covered(match.index)) {
+    if (url === "" || covered(match.index) || isCursorBadge(url)) {
       continue;
     }
     occupy(match.index, match.index + match[0].length);
