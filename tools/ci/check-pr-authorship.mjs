@@ -29,8 +29,6 @@ const MOTIVO_EMPTY = "Motivo está vacío.";
 const VENCE_MISSING = "Falta Vence.";
 const VENCE_BAD = "Vence tiene que ser una fecha real YYYY-MM-DD.";
 const CLAIM_FAIL = "Faltan Motivo y Vence vigentes en el cuerpo.";
-const NO_EVENT = "No hay un labeled ni un unlabeled de ese label.";
-const UNLABELED = "El último evento de excepcion-tamano-pr es unlabeled.";
 function countField(field) {
   if (field === "-") return 0;
   if (!/^\d+$/.test(field)) return null;
@@ -48,7 +46,10 @@ function measure(text) {
     const added = countField(match[1]);
     const deleted = countField(match[2]);
     if (added === null || deleted === null) return null;
-    const path = match[3];
+    const rawPath = match[3];
+    const path = rawPath.includes(" => ")
+      ? rawPath.slice(rawPath.lastIndexOf(" => ") + 4)
+      : rawPath;
     const base = path.slice(path.lastIndexOf("/") + 1);
     if (!LOCKS.has(base)) lines += added + deleted;
   }
@@ -101,40 +102,37 @@ async function fetchTimeline(env, number) {
   };
   const token = bearer(env);
   if (token) headers.Authorization = `Bearer ${token}`;
-  let url = `${origin}/repos/${repo}/issues/${number}/timeline?per_page=100`;
-  const events = [];
+  const url = `${origin}/repos/${repo}/issues/${number}/timeline?per_page=100`;
   try {
-    for (let page = 0; page < 10; page += 1) {
-      const response = await fetch(url, {
-        headers,
-        redirect: "error",
-        signal: AbortSignal.timeout(15_000),
-      });
-      if (!response.ok) return { fail: "http" };
-      const payload = await response.json();
-      if (!Array.isArray(payload)) return { fail: "http" };
-      for (const record of payload) {
-        const action = record?.event;
-        const named = record?.label?.name === LABEL;
-        const on = action === "labeled" || action === "unlabeled";
-        if (!on || !named) continue;
-        const at = record.created_at;
-        if (typeof at !== "string" || at === "") return { fail: "http" };
-        const login = record.actor?.login;
-        const who = typeof login === "string" ? login : "";
-        events.push({ action, at, login: who });
-      }
-      const link = response.headers.get("link") ?? "";
-      const next = /<([^>]+)>\s*;\s*rel="next"/.exec(link);
-      if (!next) return { events };
-      const resolved = new URL(next[1], url);
-      if (resolved.origin !== origin) return { fail: "http" };
-      url = resolved.href;
+    const response = await fetch(url, {
+      headers,
+      redirect: "error",
+      signal: AbortSignal.timeout(15_000),
+    });
+    if (!response.ok) return { fail: "http" };
+    const payload = await response.json();
+    if (!Array.isArray(payload)) return { fail: "http" };
+    if (/rel="next"/.test(response.headers.get("link") ?? "")) {
+      return { fail: "http" };
     }
+    const events = [];
+    for (const record of payload) {
+      const action = record?.event;
+      if (action !== "labeled" && action !== "unlabeled") continue;
+      if (record?.label?.name !== LABEL) continue;
+      const at = record.created_at;
+      if (typeof at !== "string" || at === "") return { fail: "http" };
+      const login = record.actor?.login;
+      events.push({
+        action,
+        at,
+        login: typeof login === "string" ? login : "",
+      });
+    }
+    return { events };
   } catch {
     return { fail: "http" };
   }
-  return { fail: "http" };
 }
 function grant(events) {
   const last = events
@@ -209,38 +207,35 @@ function claim(raw) {
   else if (!realDate(vence)) problems.push(VENCE_BAD);
   return problems.length > 0 ? { problems } : { vence };
 }
-function summary(authorship, extra) {
-  const lines = [`Autoría: ${authorship.lines}`, `Tope: ${LIMIT}`];
-  if (extra) lines.push(extra);
-  return `${lines.join("\n")}\n`;
-}
-function stack(lines) {
-  return [
-    `Este PR tiene ${lines} líneas de autoría (adiciones + eliminaciones, sin lockfiles). El tope es 1000.`,
-    "Partilo en una cadena: la base de cada PR es el head del anterior, y se mergean en ese orden.",
-  ];
-}
-function finish(code, stdout, stderr) {
-  return { code, stdout, stderr };
-}
 function decide(authorship, today, pull, timeline) {
-  if (authorship.lines <= LIMIT) return finish(0, summary(authorship), "");
-  const stdout = summary(authorship);
-  const fail = (reasons) =>
-    finish(
-      1,
-      stdout,
-      `${[...reasons, ...stack(authorship.lines)].join("\n")}\n`,
-    );
-  if (pull.tag === "unreadable") return finish(2, stdout, `${EVENT_FAIL}\n`);
+  if (authorship.lines <= LIMIT)
+    return {
+      code: 0,
+      stdout: `Autoría: ${authorship.lines}\nTope: ${LIMIT}\n`,
+      stderr: "",
+    };
+  const stdout = `Autoría: ${authorship.lines}\nTope: ${LIMIT}\n`;
+  const fail = (reasons) => ({
+    code: 1,
+    stdout,
+    stderr: `${[
+      ...reasons,
+      `Este PR tiene ${authorship.lines} líneas de autoría (adiciones + eliminaciones, sin lockfiles). El tope es 1000.`,
+      "Partilo en una cadena: la base de cada PR es el head del anterior, y se mergean en ese orden.",
+    ].join("\n")}\n`,
+  });
+  if (pull.tag === "unreadable")
+    return { code: 2, stdout, stderr: `${EVENT_FAIL}\n` };
   if (pull.tag !== "pull" || !pull.labels.includes(LABEL)) return fail([]);
   if (timeline.fail) {
     const sentence = timeline.fail === "repo" ? REPO_FAIL : TIMELINE_FAIL;
-    return finish(2, stdout, `${sentence}\n`);
+    return { code: 2, stdout, stderr: `${sentence}\n` };
   }
   const granted = grant(timeline.events);
-  if (granted.tag === "off") return fail([UNLABELED]);
-  if (granted.tag === "none") return fail([NO_EVENT]);
+  if (granted.tag === "off")
+    return fail(["El último evento de excepcion-tamano-pr es unlabeled."]);
+  if (granted.tag === "none")
+    return fail(["No hay un labeled ni un unlabeled de ese label."]);
   if (granted.tag === "actor") {
     return fail([
       `El último labeled es de ${granted.login}, no de JPGallegos1.`,
@@ -251,16 +246,17 @@ function decide(authorship, today, pull, timeline) {
   if (today > parsed.vence) {
     return fail([`La excepción venció el ${parsed.vence} (hoy UTC ${today}).`]);
   }
-  return finish(
-    0,
-    summary(authorship, `Excepción vigente hasta ${parsed.vence}`),
-    "",
-  );
+  return {
+    code: 0,
+    stdout: `Autoría: ${authorship.lines}\nTope: ${LIMIT}\nExcepción vigente hasta ${parsed.vence}\n`,
+    stderr: "",
+  };
 }
 async function evaluate(env) {
-  if (!env.BASE_SHA || !env.HEAD_SHA) return finish(2, "", `${NEED_SHA}\n`);
+  if (!env.BASE_SHA || !env.HEAD_SHA)
+    return { code: 2, stdout: "", stderr: `${NEED_SHA}\n` };
   if (!SHA.test(env.BASE_SHA) || !SHA.test(env.HEAD_SHA)) {
-    return finish(2, "", `${BAD_SHA}\n`);
+    return { code: 2, stdout: "", stderr: `${BAD_SHA}\n` };
   }
   let text;
   try {
@@ -275,10 +271,10 @@ async function evaluate(env) {
       },
     );
   } catch {
-    return finish(2, "", `${GIT_FAIL}\n`);
+    return { code: 2, stdout: "", stderr: `${GIT_FAIL}\n` };
   }
   const authorship = measure(text);
-  if (!authorship) return finish(2, "", `${NUMSTAT_FAIL}\n`);
+  if (!authorship) return { code: 2, stdout: "", stderr: `${NUMSTAT_FAIL}\n` };
   const today = new Date().toISOString().slice(0, 10);
   if (authorship.lines <= LIMIT) {
     return decide(authorship, today, { tag: "absent" }, {});
