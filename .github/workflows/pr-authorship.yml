@@ -1,18 +1,27 @@
-name: PR file count
+name: PR authorship
 
 on:
   pull_request:
+    types:
+      - opened
+      - synchronize
+      - reopened
+      - labeled
+      - unlabeled
+      - edited
 
 concurrency:
-  group: pr-file-count-${{ github.workflow }}-${{ github.ref }}
+  group: pr-authorship-${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
 permissions:
   contents: read
+  issues: read
+  pull-requests: read
 
 jobs:
-  pr-file-count:
-    name: Max 10 files
+  pr-authorship:
+    name: Autoría ≤1000
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
@@ -25,8 +34,8 @@ jobs:
         uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
         with:
           node-version-file: .node-version
-      - name: Enforce max 10 files per PR
+      - name: Exigir autoría ≤1000
         env:
           BASE_SHA: ${{ github.event.pull_request.base.sha }}
           HEAD_SHA: ${{ github.event.pull_request.head.sha }}
-        run: node tools/ci/check-pr-file-count.mjs
+        run: node tools/ci/check-pr-authorship.mjs
