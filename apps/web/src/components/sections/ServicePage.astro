@@ -1,12 +1,10 @@
 ---
 import { ArrowRight, ArrowUpRight } from "@lucide/astro";
-import ServiceCta from "@/components/sections/ServiceCta.astro";
 import {
   SHOW_WEB_SITIO_PRESUPUESTO_LINE,
   SHOW_WEB_TURNOS_SUMAR_A_WEB_ACTUAL_LINE,
   WEB_SITIO_PRESUPUESTO_LINE,
   WEB_TURNOS_SUMAR_A_WEB_ACTUAL_LINE,
-  serviceContactHref,
   servicePageCases,
   type ServicePageCopy,
 } from "@/data/service-pages";
@@ -17,7 +15,6 @@ interface Props {
 
 const { page } = Astro.props;
 const cases = servicePageCases(page);
-const contactHref = serviceContactHref(page.path);
 const showSitioPresupuesto =
   page.path === "/web" && SHOW_WEB_SITIO_PRESUPUESTO_LINE;
 const showTurnosSumar =
@@ -37,17 +34,11 @@ const showTurnosSumar =
           <li aria-current="page">{page.crumb}</li>
         </ol>
       </nav>
-      <h1 id="service-h1" class="service-hero__h1">
-        {page.heading}
-      </h1>
-      <div class="service-hero__foot">
+      <div class="service-hero__row">
+        <h1 id="service-h1" class="service-hero__h1">
+          {page.heading}
+        </h1>
         <p class="service-hero__lead">{page.lead}</p>
-        <ServiceCta
-          href={contactHref}
-          label={page.ctaLabel}
-          origen={page.path}
-          onDark
-        />
       </div>
     </div>
   </section>
@@ -130,28 +121,13 @@ const showTurnosSumar =
       </ul>
     </div>
   </nav>
-
-  <section class="service-close" aria-labelledby="service-close-h">
-    <div class="landing-shell landing-gutter service-close__inner">
-      <h2 id="service-close-h" class="sr-only">
-        Contacto
-      </h2>
-      <p class="service-close__t">{page.closing}</p>
-      <ServiceCta
-        href={contactHref}
-        label={page.ctaLabel}
-        origen={page.path}
-        onDark
-      />
-    </div>
-  </section>
 </main>
 
 <style>
   .service-page {
     --service-sp-xl: 88px;
     --service-sp-l: 56px;
-    background: var(--neutro-bg);
+    background: #ffffff;
     color: var(--neutro-text);
   }
 
@@ -160,18 +136,6 @@ const showTurnosSumar =
       --service-sp-xl: 144px;
       --service-sp-l: 80px;
     }
-  }
-
-  .sr-only {
-    position: absolute;
-    width: 1px;
-    height: 1px;
-    padding: 0;
-    margin: -1px;
-    overflow: hidden;
-    clip: rect(0, 0, 0, 0);
-    white-space: nowrap;
-    border: 0;
   }
 
   .service-hero {
@@ -216,6 +180,22 @@ const showTurnosSumar =
     opacity: 0.6;
   }
 
+  .service-hero__row {
+    display: flex;
+    flex-direction: column;
+    gap: 28px;
+    align-items: flex-start;
+  }
+
+  @media (min-width: 1024px) {
+    .service-hero__row {
+      flex-direction: row;
+      justify-content: space-between;
+      align-items: flex-end;
+      gap: 64px;
+    }
+  }
+
   .service-hero__h1 {
     margin: 0;
     max-width: 17ch;
@@ -224,22 +204,6 @@ const showTurnosSumar =
     line-height: 0.92;
     letter-spacing: -0.04em;
     font-size: clamp(34px, 8.6vw, 112px);
-  }
-
-  .service-hero__foot {
-    display: flex;
-    flex-direction: column;
-    gap: 28px;
-    align-items: flex-start;
-  }
-
-  @media (min-width: 1024px) {
-    .service-hero__foot {
-      flex-direction: row;
-      justify-content: space-between;
-      align-items: flex-end;
-      gap: 64px;
-    }
   }
 
   .service-hero__lead {
@@ -253,10 +217,12 @@ const showTurnosSumar =
   @media (min-width: 1024px) {
     .service-hero__lead {
       font-size: 20px;
+      flex: 0 1 34rem;
     }
   }
 
   .service-cases {
+    background: #ffffff;
     padding-block: var(--service-sp-l) 0;
   }
 
@@ -287,20 +253,21 @@ const showTurnosSumar =
 
   .service-cases__grid {
     display: grid;
-    grid-template-columns: repeat(6, minmax(0, 1fr));
+    grid-template-columns: 1fr;
+  }
+
+  @media (min-width: 1024px) {
+    .service-cases__grid {
+      grid-template-columns: 1fr 1fr;
+    }
   }
 
   .service-tile {
-    grid-column: span 2;
     display: flex;
     flex-direction: column;
     text-decoration: none;
     color: inherit;
-    background: var(--neutro-bg);
-  }
-
-  .service-tile:nth-child(-n + 2) {
-    grid-column: span 3;
+    background: #ffffff;
   }
 
   .service-tile__img {
@@ -332,12 +299,21 @@ const showTurnosSumar =
     display: flex;
     flex-direction: column;
     gap: 8px;
-    padding: 20px 32px 48px 24px;
+    padding: 16px var(--landing-gutter) 32px;
   }
 
-  .service-tile:first-child .service-tile__meta,
-  .service-tile:nth-child(3) .service-tile__meta {
-    padding-left: var(--landing-gutter);
+  @media (min-width: 1024px) {
+    .service-tile__meta {
+      padding: 20px 32px 48px 24px;
+    }
+
+    .service-tile:nth-child(odd) .service-tile__meta {
+      padding-left: var(--landing-gutter);
+    }
+
+    .service-tile:nth-child(even) .service-tile__meta {
+      padding-right: var(--landing-gutter);
+    }
   }
 
   .service-tile__name {
@@ -345,14 +321,16 @@ const showTurnosSumar =
     display: flex;
     align-items: center;
     gap: 8px;
-    font-size: 24px;
+    font-size: 22px;
     font-weight: 400;
     letter-spacing: -0.02em;
     line-height: 1.15;
   }
 
-  .service-tile:nth-child(-n + 2) .service-tile__name {
-    font-size: 28px;
+  @media (min-width: 1024px) {
+    .service-tile__name {
+      font-size: 28px;
+    }
   }
 
   .service-tile__go {
@@ -375,35 +353,6 @@ const showTurnosSumar =
     font-size: 15px;
     line-height: 1.45;
     max-width: 44ch;
-  }
-
-  @media (max-width: 1023px) {
-    .service-cases__grid {
-      display: flex;
-      overflow-x: auto;
-      scroll-snap-type: x mandatory;
-      gap: 12px;
-      padding-inline: var(--landing-gutter);
-      scroll-padding-inline: var(--landing-gutter);
-      scrollbar-width: none;
-      padding-bottom: 8px;
-    }
-
-    .service-tile {
-      flex: 0 0 82%;
-      scroll-snap-align: start;
-    }
-
-    .service-tile .service-tile__meta,
-    .service-tile:first-child .service-tile__meta,
-    .service-tile:nth-child(3) .service-tile__meta {
-      padding: 16px 0 24px;
-    }
-
-    .service-tile .service-tile__name,
-    .service-tile:nth-child(-n + 2) .service-tile__name {
-      font-size: 22px;
-    }
   }
 
   .service-svcs {
@@ -459,6 +408,7 @@ const showTurnosSumar =
   }
 
   .service-rel {
+    background: #ffffff;
     padding-block: var(--service-sp-l);
   }
 
@@ -519,43 +469,6 @@ const showTurnosSumar =
 
     .service-rel__link:hover :global(svg) {
       transform: translate(3px, -3px);
-    }
-  }
-
-  .service-close {
-    background: #151514;
-    color: #f6f6f4;
-  }
-
-  .service-close__inner {
-    display: flex;
-    flex-direction: column;
-    gap: 32px;
-    align-items: flex-start;
-    padding-block: 72px;
-  }
-
-  @media (min-width: 1024px) {
-    .service-close__inner {
-      flex-direction: row;
-      justify-content: space-between;
-      align-items: flex-end;
-      padding-block: 112px;
-    }
-  }
-
-  .service-close__t {
-    margin: 0;
-    font-size: 30px;
-    font-weight: 500;
-    letter-spacing: -0.03em;
-    line-height: 1.1;
-    max-width: 20ch;
-  }
-
-  @media (min-width: 1024px) {
-    .service-close__t {
-      font-size: 52px;
     }
   }
 </style>
