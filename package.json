@@ -15,6 +15,7 @@
     "lint": "oxlint -A all -D neutro/no-comments .",
     "test:lint-rules": "node --test tools/oxlint/no-comments.test.js",
     "test:ci-tools": "node --test tools/ci/*.test.mjs tools/git-hooks/*.test.mjs",
+    "check:pr-authorship": "node tools/ci/check-pr-authorship.mjs",
     "prepare": "node tools/git-hooks/install.mjs",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
