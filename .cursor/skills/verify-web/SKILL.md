@@ -3,7 +3,7 @@ name: verify-web
 description: >-
   Usala para verificar un pull request del sitio de Neutro antes de dejarle el
   informe a Lucy. Cubre identidad del PR, instalación limpia, lint, tests,
-  build sin analytics, comentarios, tope de 10 archivos, cuerpo First
+  build sin analytics, comentarios, autoría hasta 1000 líneas, cuerpo First
   Principles, CI remoto y Playwright. En un cambio crítico suma el segundo
   verificador con Codex CLI. No mergea, no comenta y no despliega.
 ---
@@ -108,7 +108,7 @@ No exportes `POSTHOG_KEY`. No pongas `CLOUDFLARE_INCLUDE_PROCESS_ENV=true`.
 
 Estas restricciones se respetan al verificar y al proponer un arreglo. El detalle está en los ADR; acá va lo que cambia la corrida.
 
-- Máximo 10 archivos por PR. Los lockfiles no cuentan. Basenames excluidos: `pnpm-lock.yaml`, `package-lock.json`, `yarn.lock`, `bun.lock`, `bun.lockb`. Si hace falta un arreglo, se parte en PRs apilados ([ADR 0004](../../../docs/adr/0004-max-pr-files.md)).
+- Autoría del PR hasta 1000 líneas (adiciones + eliminaciones). El piso de ~50 no falla. Los lockfiles no cuentan. Basenames excluidos: `pnpm-lock.yaml`, `package-lock.json`, `yarn.lock`, `bun.lock`, `bun.lockb`. El comando es `pnpm check:pr-authorship` con `BASE_SHA` y `HEAD_SHA`. Si pasa de 1000, se parte en PRs apilados. La base de cada PR es el head del anterior, y se mergean en ese orden ([ADR 0004](../../../docs/adr/0004-max-pr-files.md)).
 - Sin comentarios en el código que se cree o se edite ([ADR 0003](../../../docs/adr/0003-no-source-comments.md)). El alcance de ese ADR es JavaScript/TypeScript y el frontmatter y los `<script>` de Astro. El HTML de plantilla y el CSS quedan afuera de oxlint. El ADR no dice que los haga cumplir, y pide no dejar prosa ahí. No habla de YAML ni de un campo `razon`. El sentido que iba en un comentario va en nombres, tipos, tests o en un doc. Esta skill es Markdown: la prosa sí va.
 - pnpm, versiones exactas (`saveExact: true`) y `strictPeerDependencies: true`. `minimumReleaseAgeExclude` en `pnpm-workspace.yaml` puede rechazar una dependencia nueva muy reciente. El valor de la antigüedad mínima no está verificado en esta skill: si el install falla por eso, pegá la salida y no fuerces el lockfile.
 - El sitio es estático: `output: "static"` en `apps/web/astro.config.mjs`, `build.format: "file"`, `trailingSlash: "never"`. El Worker `neutro-web` (`apps/web/worker/index.ts`, `run_worker_first`) ve cada request antes que los assets. Sirve `/f/N`, `/t`, `/ingest` y el redirect de barra final. No hay rutas SSR ni un adaptador nuevo.
@@ -188,7 +188,7 @@ Nombres de salida:
 | `07-build.txt`                       | Build con `turbo --force` y conteo de `posthog` |
 | `08-posthog-red.txt`                 | Requests de analytics en la pasada              |
 | `09-comentarios.txt`                 | Recorrido del diff                              |
-| `10-archivos.txt`                    | Tope de 10                                      |
+| `10-autoria.txt`                     | Autoría ≤1000                                   |
 | `11-cuerpo.txt`                      | Cuerpo del PR                                   |
 | `12-ci.txt`                          | CI remoto                                       |
 | `13-falla-<puerta>.txt`              | Fallo provocado, una por puerta nueva           |
@@ -349,15 +349,15 @@ Los tres puntos van pegados. Guardá el exit de git, aparte del texto del diff.
 - Una salida vacía sólo vale como «sin comentarios» si el exit de git fue 0 y la lista de archivos del diff de la puerta 1 no está vacía. Si git salió distinto de 0, la puerta falla aunque el texto esté vacío. Un 129 es git rechazando el comando.
 - Exit de la tabla: `0` sólo en ese caso y con la lista de coincidencias vacía. Si hay alguna coincidencia, `1`.
 
-### 10. Tope de 10 archivos
+### 10. Autoría ≤1000
 
 El mismo script que CI:
 
 ```bash
-BASE_SHA="$BASE" HEAD_SHA="$HEAD" node tools/ci/check-pr-file-count.mjs
+BASE_SHA="$BASE" HEAD_SHA="$HEAD" pnpm check:pr-authorship
 ```
 
-Exit esperado: `0`. Más de 10 archivos contados es hallazgo alto. El tope blando de 7 a 10 no falla la puerta.
+Exit esperado: `0`. Más de 1000 líneas de autoría (adiciones + eliminaciones, lockfiles afuera) es hallazgo alto. El piso de ~50 no falla la puerta. La salida va a `"$evidencia_abs/10-autoria.txt"`.
 
 ### 11. Cuerpo del PR en First Principles
 
@@ -392,11 +392,11 @@ De cada check: nombre, estado, conclusión, y el enlace (`detailsUrl` o `targetU
 - Exit de `gh` cuando hay checks fallidos: guardalo. No relances el workflow.
 - El enlace al run está en `detailsUrl` (check) o `targetUrl` (status context). Si `gh` no autentica, la puerta queda NO VERIFICADO con la salida del error, sin reintentar con un token pegado en el informe.
 
-Checks de `main`: `Lint`, `Check`, `Build`, `Max 10 files`, y el job `Chromium` del workflow `e2e` (en GitHub el nombre puede verse como `Chromium` o `e2e / Chromium`). En `.github/workflows/ci.yml`, `Lint` corre `pnpm lint` y `pnpm test:lint-rules`, `Check` corre `pnpm check` y `pnpm test`, y `Build` corre `pnpm build` (`turbo run build --filter=@neutro/web` en la raíz; el script de `@neutro/web` es `astro build`). Ese job `Build` no hace `unset` ni `env -u`. `e2e` corre en `pull_request` y en `push` a `main` si el diff toca `apps/web/**`, `packages/**`, `pnpm-lock.yaml` o `.github/workflows/e2e.yml`. Antes de su `pnpm build` hace `unset PUBLIC_POSTHOG_KEY` y `unset PUBLIC_ANALYTICS_ENABLED`, y después instala sólo Chromium. Si el workflow no se disparó por los paths, anotá «no aplica por paths» con el enlace al PR. Esa fila no es un verde.
+Checks de `main`: `Lint`, `Check`, `Build`, `Autoría ≤1000`, y el job `Chromium` del workflow `e2e` (en GitHub el nombre puede verse como `Chromium` o `e2e / Chromium`). En `.github/workflows/ci.yml`, `Lint` corre `pnpm lint` y `pnpm test:lint-rules`, `Check` corre `pnpm check` y `pnpm test`, y `Build` corre `pnpm build` (`turbo run build --filter=@neutro/web` en la raíz; el script de `@neutro/web` es `astro build`). Ese job `Build` no hace `unset` ni `env -u`. `e2e` corre en `pull_request` y en `push` a `main` si el diff toca `apps/web/**`, `packages/**`, `pnpm-lock.yaml` o `.github/workflows/e2e.yml`. Antes de su `pnpm build` hace `unset PUBLIC_POSTHOG_KEY` y `unset PUBLIC_ANALYTICS_ENABLED`, y después instala sólo Chromium. Si el workflow no se disparó por los paths, anotá «no aplica por paths» con el enlace al PR. Esa fila no es un verde.
 
 ### 13. La puerta nueva falla cuando tiene que fallar
 
-Sólo para una puerta que este PR agrega o cambia (un workflow, una regla de lint, un script de `tools/ci`, un spec que pasa a ser contrato). Si el PR no toca ninguna puerta, la fila es `no aplica` y el motivo es ese. No fabriques un fallo para lint o para el tope de 10 en un PR que no los cambia.
+Sólo para una puerta que este PR agrega o cambia (un workflow, una regla de lint, un script de `tools/ci`, un spec que pasa a ser contrato). Si el PR no toca ninguna puerta, la fila es `no aplica` y el motivo es ese. No fabriques un fallo para lint o para la autoría en un PR que no los cambia.
 
 Procedimiento. El directorio es `$copia`. No asignes ese path a `$workdir`.
 
@@ -415,7 +415,7 @@ Provocación mínima, cuando la puerta es una de estas:
 | `pnpm check`              | `const n: number = "x"` en un `.ts` del programa                          |
 | `pnpm test`               | Una aserción que no puede cumplirse, en un archivo que el script ya lista |
 | Build con `turbo --force` | Un import a un módulo que no existe                                       |
-| Tope de 10                | Once archivos contados y el script de CI                                  |
+| Autoría ≤1000             | Una copia con 1001 líneas contadas y `pnpm check:pr-authorship`           |
 | `test:e2e`                | El título esperado del humo, cambiado                                     |
 | Install congelado         | Una dependencia en `package.json` sin tocar el lockfile                   |
 
@@ -620,7 +620,7 @@ Un solo `informe.md` por PR, con la plantilla.
 
 Severidad, para no dispersar:
 
-- Alta: puerta en rojo, secreto, archivo JS con la key, comentario nuevo en código de aplicación, más de 10 archivos, request de analytics, discrepancia entre los dos verificadores.
+- Alta: puerta en rojo, secreto, archivo JS con la key, comentario nuevo en código de aplicación, más de 1000 líneas de autoría, request de analytics, discrepancia entre los dos verificadores.
 - Media: CI pendiente, comentario en YAML o CSS, cuerpo del PR incompleto.
 - Baja: desvío que no rompe una puerta y queda acotado a un archivo.
 
@@ -758,4 +758,4 @@ Una corrida anterior del mismo día, en primer plano, vio los mismos bodies en l
 
 ## Arreglos
 
-Si el informe propone un arreglo, el arreglo va en otro PR, apilado, dentro del tope de 10 archivos y sin comentarios. Esta corrida no lo commitea, no lo publica y no lo mergea.
+Si el informe propone un arreglo, el arreglo va en otro PR, apilado, dentro de las 1000 líneas de autoría y sin comentarios. Esta corrida no lo commitea, no lo publica y no lo mergea.
