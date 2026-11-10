@@ -19,6 +19,10 @@ export const PROSPECT_CODES = {
   t003: {},
   t004: {},
   t005: {},
+  wapp: { source: "whatsapp" },
+  inst: { source: "instagram" },
+  face: { source: "facebook" },
+  form: { source: "web" },
 } as const satisfies Record<string, ProspectCodeEntry>;
 
 export type ProspectCode = keyof typeof PROSPECT_CODES;
