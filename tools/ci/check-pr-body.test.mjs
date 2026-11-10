@@ -1,6 +1,12 @@
 import assert from "node:assert/strict";
-import { spawnSync } from "node:child_process";
-import { mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { execFileSync, spawnSync } from "node:child_process";
+import {
+  mkdtempSync,
+  mkdirSync,
+  readFileSync,
+  rmSync,
+  writeFileSync,
+} from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { describe, it } from "node:test";
@@ -46,14 +52,44 @@ function missing(title) {
   return `Falta la sección «${title}».`;
 }
 
-function runScript(env, args = []) {
+function runScript(env, args = [], cwd) {
   const cleaned = { ...process.env };
   delete cleaned.PR_BODY;
   delete cleaned.GITHUB_EVENT_PATH;
+  delete cleaned.BASE_SHA;
+  delete cleaned.HEAD_SHA;
+  delete cleaned.GIT_DIR;
+  delete cleaned.GIT_WORK_TREE;
   return spawnSync(process.execPath, [script, ...args], {
+    cwd,
     env: { ...cleaned, ...env },
     encoding: "utf8",
   });
+}
+
+function git(cwd, args) {
+  return execFileSync("git", args, { cwd, encoding: "utf8" }).trim();
+}
+
+function commitAll(cwd, message) {
+  git(cwd, ["add", "-A"]);
+  git(cwd, [
+    "-c",
+    "user.email=ci@example.com",
+    "-c",
+    "user.name=ci",
+    "commit",
+    "-m",
+    message,
+  ]);
+}
+
+function initRepo() {
+  const cwd = mkdtempSync(join(tmpdir(), "neutro-pr-body-diff-"));
+  git(cwd, ["init", "-b", "main"]);
+  writeFileSync(join(cwd, "README.md"), "base\n");
+  commitAll(cwd, "base");
+  return cwd;
 }
 
 function runEvent(body, extraEnv = {}) {
@@ -78,6 +114,27 @@ describe("checkPrBody", () => {
     const result = checkPrBody(validBody());
     assert.equal(result.ok, true);
     assert.deepEqual(result.problems, []);
+    assert.equal(
+      checkPrBody(validBody(), [
+        "apps/web/src/components/sections/Header.astro",
+      ]).ok,
+      true,
+    );
+  });
+
+  it("una sección Capturas extra no se exige ni se marca vacía", () => {
+    const between = [
+      section("Problema", "uno"),
+      "## Capturas",
+      "",
+      section("Restricciones y verdades", "dos"),
+      section("Razonamiento", "tres"),
+      section("Solución", "cuatro"),
+      section("Trade-offs", "cinco"),
+      section("Verificación", "seis"),
+    ].join("\n\n");
+    assert.equal(checkPrBody(between).ok, true);
+    assert.equal(checkPrBody(`${validBody()}\n\n## Capturas\n`).ok, true);
   });
 
   it("un cuerpo vacío nombra las seis secciones que faltan", () => {
@@ -391,6 +448,15 @@ describe("pr-body.yml", () => {
     }
     assert.equal(yaml.includes("github.event.pull_request.body"), false);
     assert.equal(yaml.includes("PR_BODY"), false);
+    assert.match(yaml, /fetch-depth:\s*0/);
+    assert.match(
+      yaml,
+      /BASE_SHA:\s*\$\{\{\s*github\.event\.pull_request\.base\.sha\s*\}\}/,
+    );
+    assert.match(
+      yaml,
+      /HEAD_SHA:\s*\$\{\{\s*github\.event\.pull_request\.head\.sha\s*\}\}/,
+    );
     const runLines = yaml.split("\n").filter((line) => /^\s*run:/.test(line));
     assert.ok(runLines.length > 0);
     for (const line of runLines) {
@@ -488,5 +554,151 @@ describe("check-pr-body.mjs como proceso", () => {
     assert.equal(result.stderr, "");
     assert.equal(result.stderr.includes(marker), false);
     assert.equal(result.stdout.includes(marker), false);
+  });
+
+  it("sin los dos SHA no mira el diff y no exige Capturas", () => {
+    const result = runScript({
+      PR_BODY: validBody(),
+      BASE_SHA: "",
+      HEAD_SHA: "",
+    });
+    assert.equal(result.status, 0, result.stderr);
+    assert.equal(result.stderr, "");
+  });
+
+  it("exige los dos SHA juntos y en hexadecimal", () => {
+    const onlyBase = runScript({
+      PR_BODY: validBody(),
+      BASE_SHA: "abc1234",
+    });
+    assert.equal(onlyBase.status, 1);
+    assert.equal(onlyBase.stderr, "BASE_SHA y HEAD_SHA van juntos.\n");
+    assert.equal(onlyBase.stdout, "");
+
+    const invalid = runScript({
+      PR_BODY: validBody(),
+      BASE_SHA: "main",
+      HEAD_SHA: "abc1234",
+    });
+    assert.equal(invalid.status, 1);
+    assert.equal(
+      invalid.stderr,
+      "BASE_SHA y HEAD_SHA tienen que ser SHAs en hexadecimal.\n",
+    );
+    assert.equal(invalid.stdout, "");
+    assert.equal(invalid.stderr.includes("Texto de"), false);
+  });
+
+  it("con el diff de Header exige una imagen y la acepta en Capturas", () => {
+    const cwd = initRepo();
+    try {
+      const base = git(cwd, ["rev-parse", "HEAD"]);
+      const dir = join(cwd, "apps/web/src/components/sections");
+      mkdirSync(dir, { recursive: true });
+      writeFileSync(join(dir, "Header.astro"), "<header></header>\n");
+      commitAll(cwd, "header");
+      const head = git(cwd, ["rev-parse", "HEAD"]);
+      const env = { BASE_SHA: base, HEAD_SHA: head };
+      const withoutCapturas = runScript(
+        { ...env, PR_BODY: validBody() },
+        [],
+        cwd,
+      );
+      assert.equal(withoutCapturas.status, 1);
+      assert.equal(
+        withoutCapturas.stderr,
+        "El diff cambia UI (apps/web/src/components/sections/Header.astro) y falta la sección «Capturas» con una imagen.\n",
+      );
+      assert.equal(withoutCapturas.stdout, "");
+
+      const withImage = runScript(
+        {
+          ...env,
+          PR_BODY: `${validBody()}\n\n## Capturas\n\n![x](https://example.com/a.png)\n`,
+        },
+        [],
+        cwd,
+      );
+      assert.equal(withImage.status, 0, withImage.stderr);
+      assert.equal(withImage.stdout, "");
+      assert.equal(withImage.stderr, "");
+
+      const empty = runScript({ ...env, PR_BODY: "" }, [], cwd);
+      assert.equal(empty.status, 1);
+      assert.equal(
+        empty.stderr,
+        `${[
+          ...HEADINGS.map((title) => missing(title)),
+          "El diff cambia UI (apps/web/src/components/sections/Header.astro) y falta la sección «Capturas» con una imagen.",
+        ].join("\n")}\n`,
+      );
+    } finally {
+      rmSync(cwd, { recursive: true, force: true });
+    }
+  });
+
+  it("un diff de docs no pide Capturas y un SHA inexistente falla sin imprimir el cuerpo", () => {
+    const cwd = initRepo();
+    try {
+      const base = git(cwd, ["rev-parse", "HEAD"]);
+      writeFileSync(join(cwd, "README.md"), "docs\n");
+      commitAll(cwd, "docs");
+      const head = git(cwd, ["rev-parse", "HEAD"]);
+      const docs = runScript(
+        { BASE_SHA: base, HEAD_SHA: head, PR_BODY: validBody() },
+        [],
+        cwd,
+      );
+      assert.equal(docs.status, 0, docs.stderr);
+      assert.equal(docs.stderr, "");
+
+      const missingObject = runScript(
+        {
+          BASE_SHA: "aaaaaaaa",
+          HEAD_SHA: "bbbbbbbb",
+          PR_BODY: validBody(),
+        },
+        [],
+        cwd,
+      );
+      assert.equal(missingObject.status, 1);
+      assert.equal(
+        missingObject.stderr,
+        "No se pudo leer el diff entre BASE_SHA y HEAD_SHA.\n",
+      );
+      assert.equal(missingObject.stdout, "");
+      assert.equal(missingObject.stderr.includes("Texto de"), false);
+    } finally {
+      rmSync(cwd, { recursive: true, force: true });
+    }
+  });
+
+  it("un diff de ContactoForm pide video", () => {
+    const cwd = initRepo();
+    try {
+      const base = git(cwd, ["rev-parse", "HEAD"]);
+      const dir = join(cwd, "apps/web/src/components/sections");
+      mkdirSync(dir, { recursive: true });
+      writeFileSync(join(dir, "ContactoForm.astro"), "<form></form>\n");
+      commitAll(cwd, "form");
+      const head = git(cwd, ["rev-parse", "HEAD"]);
+      const result = runScript(
+        {
+          BASE_SHA: base,
+          HEAD_SHA: head,
+          PR_BODY: `${validBody()}\n\n## Capturas\n\n![x](https://example.com/a.png)\n`,
+        },
+        [],
+        cwd,
+      );
+      assert.equal(result.status, 1);
+      assert.equal(
+        result.stderr,
+        "La sección «Capturas» tiene que incluir un video (.mp4, .webm, .mov o un adjunto de GitHub). Una imagen sola no alcanza. El diff cambia un flujo (apps/web/src/components/sections/ContactoForm.astro).\n",
+      );
+      assert.equal(result.stdout, "");
+    } finally {
+      rmSync(cwd, { recursive: true, force: true });
+    }
   });
 });
