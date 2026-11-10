@@ -62,6 +62,7 @@ const contactoTurnstileSiteKey = resolveContactoTurnstileSiteKey(
           autocomplete="off"
         />
       </div>
+      <input type="hidden" name="origen" value="" data-contacto-origen />
       <div class="contacto-field">
         <!-- prettier-ignore -->
         <label for="f-nombre"
@@ -256,6 +257,16 @@ const contactoTurnstileSiteKey = resolveContactoTurnstileSiteKey(
     let submissionId = crypto.randomUUID();
     let busy = false;
 
+    const origenInput = form.querySelector<HTMLInputElement>(
+      "[data-contacto-origen]",
+    );
+    if (origenInput) {
+      const fromQuery = new URLSearchParams(window.location.search)
+        .get("origen")
+        ?.trim();
+      origenInput.value = fromQuery || document.referrer || "";
+    }
+
     function requiredFieldValid(
       el: HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement,
     ) {
@@ -371,6 +382,7 @@ const contactoTurnstileSiteKey = resolveContactoTurnstileSiteKey(
       }
 
       const data = new FormData(form);
+      const origen = String(data.get("origen") ?? "").trim();
       const payload = {
         nombre: String(data.get("nombre") ?? ""),
         apellido: String(data.get("apellido") ?? ""),
@@ -383,6 +395,7 @@ const contactoTurnstileSiteKey = resolveContactoTurnstileSiteKey(
         turnstileToken: token,
         submissionId,
         website: String(data.get("website") ?? ""),
+        ...(origen ? { origen } : {}),
       };
 
       busy = true;
