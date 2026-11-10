@@ -12,6 +12,8 @@ const MEDIA = {
 const APP_VISUAL =
   /^apps\/[^/]+\/src\/(?:components|layouts|pages|styles)\/.+\.(?:astro|css|tsx|jsx)$/;
 
+const ADMIN_VISUAL = /^apps\/admin\/src\/.+\.(?:css|tsx|jsx)$/;
+
 const UI_VISUAL = /^packages\/ui\/src\/.+\.(?:css|tsx|jsx)$/;
 
 const PUBLIC_FILE = /^apps\/[^/]+\/public\/.+/;
@@ -35,12 +37,17 @@ const PATH_CLASSES = [
   {
     kind: "visual",
     match(path) {
-      return (
+      if (
         APP_VISUAL.test(path) ||
-        UI_VISUAL.test(path) ||
-        (PUBLIC_FILE.test(path) &&
-          MEDIA.image.some((ext) => path.endsWith(ext)))
-      );
+        ADMIN_VISUAL.test(path) ||
+        UI_VISUAL.test(path)
+      ) {
+        return !path.endsWith(".test.ts") && !path.endsWith(".test.tsx");
+      }
+      if (!PUBLIC_FILE.test(path)) {
+        return false;
+      }
+      return MEDIA.image.concat(MEDIA.video).some((ext) => path.endsWith(ext));
     },
   },
 ];
@@ -169,14 +176,20 @@ function scanMedia(text) {
     occupied.push([start, end]);
   }
 
-  function embedUrl(match) {
+  function attrUrl(tag, name) {
+    const match = new RegExp(
+      `\\b${name}\\s*=\\s*(?:"([^"]*)"|'([^']*)'|([^\\s"'=<>\`]+))`,
+      "i",
+    ).exec(tag);
+    if (!match) {
+      return "";
+    }
     return match[1] ?? match[2] ?? match[3] ?? "";
   }
 
   const markdownImage =
     /(?<!\\)!\[(?:\\.|[^\]])*\]\(\s*<?([^)\s>]+)>?(?:\s+(?:"[^"]*"|'[^']*'|\([^)]*\)))?\s*\)/g;
-  const htmlImage =
-    /<img\b[^>]*?\ssrc\s*=\s*(?:"([^"]*)"|'([^']*)'|([^\s"'=<>`]+))[^>]*>/gi;
+  const htmlTag = /<(img|video|source|a)\b(?:[^>"']|"[^"]*"|'[^']*')*>/gi;
   for (const match of text.matchAll(markdownImage)) {
     occupy(match.index, match.index + match[0].length);
     if (isVideoUrl(match[1])) {
@@ -185,16 +198,30 @@ function scanMedia(text) {
       image += 1;
     }
   }
-  for (const match of text.matchAll(htmlImage)) {
-    const url = embedUrl(match);
-    if (url === "" || covered(match.index) || isCursorBadge(url)) {
+  for (const match of text.matchAll(htmlTag)) {
+    if (covered(match.index)) {
+      continue;
+    }
+    const tag = match[0];
+    const kind = match[1].toLowerCase();
+    const url = kind === "a" ? attrUrl(tag, "href") : attrUrl(tag, "src");
+    if (url === "") {
       continue;
     }
     occupy(match.index, match.index + match[0].length);
-    if (isVideoUrl(url)) {
+    if (kind === "img") {
+      if (isCursorBadge(url)) {
+        continue;
+      }
+      if (isVideoUrl(url)) {
+        video += 1;
+      } else {
+        image += 1;
+      }
+      continue;
+    }
+    if (countsAsVideo(url)) {
       video += 1;
-    } else {
-      image += 1;
     }
   }
 
@@ -221,15 +248,9 @@ function scanMedia(text) {
   for (const match of text.matchAll(autolink)) {
     addVideo(match.index, match.index + match[0].length, match[1]);
   }
-  const htmlVideo =
-    /<(?:video|source)\b[^>]*?\ssrc\s*=\s*(?:"([^"]*)"|'([^']*)'|([^\s"'=<>`]+))[^>]*>/gi;
-  for (const match of text.matchAll(htmlVideo)) {
-    const url = embedUrl(match);
-    addVideo(match.index, match.index + match[0].length, url);
-  }
   const bareUrl = /\bhttps?:\/\/[^\s<>\]]+/gi;
   for (const match of text.matchAll(bareUrl)) {
-    const url = match[0].replace(/[.,;:!?)]+$/u, "");
+    const url = match[0].replace(/[.,;:!?)"']+$/u, "");
     addVideo(match.index, match.index + match[0].length, url);
   }
 

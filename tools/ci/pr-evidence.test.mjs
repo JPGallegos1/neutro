@@ -277,9 +277,12 @@ describe("checkChangeEvidence", () => {
       "apps/web/src/layouts/Base.astro": uiSection,
       "apps/web/src/pages/index.astro": uiSection,
       "apps/web/src/styles/site.css": uiSection,
+      "apps/admin/src/styles.css": uiSection,
+      "apps/admin/src/admin-shell.tsx": uiSection,
       "packages/ui/src/components/button.tsx": uiSection,
       "packages/ui/src/styles/globals.css": uiSection,
       "apps/web/public/brand/logo.png": uiSection,
+      "apps/web/public/video/neutro.mp4": uiSection,
       "apps/web/worker/contacto/nested/send.ts": flowSection,
       "apps/web/worker/contacto/send.spec.ts": flowSection,
     };
@@ -289,8 +292,8 @@ describe("checkChangeEvidence", () => {
     for (const path of [
       "apps/web/worker/contacto/handler.test.ts",
       "apps/web/src/lib/util.ts",
+      "apps/web/src/data/nav.ts",
       "packages/ui/src/lib/utils.ts",
-      "apps/web/public/clip.mp4",
       "README.md",
     ]) {
       assert.deepEqual(
@@ -299,5 +302,19 @@ describe("checkChangeEvidence", () => {
         path,
       );
     }
+    assert.deepEqual(
+      checkChangeEvidence(
+        '## Capturas\n\n<img alt="nav > móvil" src="https://example.com/a.png">\n',
+        [HEADER],
+      ),
+      { ok: true, problems: [] },
+    );
+    assert.deepEqual(
+      checkChangeEvidence(
+        '## Capturas\n\n<a href="https://example.com/envio.mp4">video</a>\n',
+        [FORM],
+      ),
+      { ok: true, problems: [] },
+    );
   });
 });
