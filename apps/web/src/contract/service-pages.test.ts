@@ -122,8 +122,9 @@ describe("dist service pages", () => {
     ["web.html", servicePages.web],
     ["automatizacion-ia.html", servicePages.automatizacionIa],
   ] as const) {
-    it(`${pageCopy.path}: H1 único, H2 de sección, canonical y sin FAQ`, () => {
+    it(`${pageCopy.path}: H1 único, H2 de sección, canonical y sin FAQ ni cierre`, () => {
       const root = readDistPage(filename);
+      const html = distHtml(filename);
       const h1 = root.querySelectorAll("h1");
       assert.equal(h1.length, 1, `${pageCopy.path} debe tener un solo H1`);
       assert.equal(visibleText(h1[0]?.text ?? ""), pageCopy.heading);
@@ -131,7 +132,7 @@ describe("dist service pages", () => {
       const h2 = root
         .querySelectorAll("h2")
         .map((el) => visibleText(el.text))
-        .filter((text) => text.length > 0 && text !== "Contacto");
+        .filter((text) => text.length > 0);
       for (const block of pageCopy.blocks) {
         assert.ok(
           h2.includes(block.title),
@@ -144,11 +145,24 @@ describe("dist service pages", () => {
       );
       assert.equal(h2.includes("Cómo trabajamos"), false);
       assert.equal(h2.includes("Preguntas frecuentes"), false);
+      assert.equal(h2.includes("Contacto"), false);
       if (pageCopy.casesTitle) {
         assert.ok(h2.includes(pageCopy.casesTitle));
       } else {
         assert.equal(h2.includes("Casos relacionados"), false);
       }
+
+      assert.equal(root.querySelectorAll("a.service-cta").length, 0);
+      assert.equal(root.querySelector(".service-close"), null);
+      assert.equal(html.includes("Escribinos"), false);
+      assert.equal(
+        html.includes("Si querés una web clara para tu negocio"),
+        false,
+      );
+      assert.equal(
+        html.includes("Si querés automatizar una tarea que hoy te come tiempo"),
+        false,
+      );
 
       const canonicals = canonicalHrefs(root);
       assert.deepEqual(canonicals, [`${SITE}${pageCopy.path}`]);
@@ -175,7 +189,7 @@ describe("dist service pages", () => {
     });
   }
 
-  it("/web enlaza casos relativos y /automatizacion-ia; CTAs monocromos", () => {
+  it("/web enlaza 4 casos relativos y /automatizacion-ia; fondo blanco", () => {
     const root = readDistPage("web.html");
     const css = pageCss("web.html");
     const caseHrefs = root
@@ -186,8 +200,8 @@ describe("dist service pages", () => {
       "/trabajo/capa-automotores",
       "/trabajo/suplementacion-ciencia",
       "/trabajo/conexion-laboral",
-      "/trabajo/luxurycars",
     ]);
+    assert.equal(caseHrefs.includes("/trabajo/luxurycars"), false);
     for (const href of caseHrefs) {
       assert.match(href, /^\/trabajo\//);
       assert.equal(href.startsWith("http"), false);
@@ -198,28 +212,21 @@ describe("dist service pages", () => {
       .map((el) => el.getAttribute("href") ?? "");
     assert.deepEqual(related, ["/automatizacion-ia"]);
 
-    const ctas = root.querySelectorAll("a.service-cta");
-    assert.ok(ctas.length >= 2);
-    for (const cta of ctas) {
-      assert.equal(cta.getAttribute("href"), "/contacto?origen=/web");
-      assert.equal(cta.getAttribute("data-origen"), "/web");
-      assert.equal(cta.getAttribute("data-cta"), "contacto");
-    }
-
-    assert.match(css, /\.service-cta[^{]*\{[^}]*background:\s*#0a0a0a/i);
-    assert.match(css, /\.service-cta[^{]*\{[^}]*color:\s*#fff(?:fff)?\b/i);
     assert.match(
       css,
-      /\.service-cta[^{]*:hover[^{]*\{[^}]*background:\s*#262624/i,
+      /\.service-page[^{]*\{[^}]*background:\s*#fff(?:fff)?\b/i,
     );
     assert.match(
       css,
-      /\.service-cta[^{]*:focus-visible[^{]*\{[^}]*outline:\s*2px\s+solid\s+#0a0a0a/i,
+      /\.service-cases[^{]*\{[^}]*background:\s*#fff(?:fff)?\b/i,
     );
+    assert.match(css, /\.service-rel[^{]*\{[^}]*background:\s*#fff(?:fff)?\b/i);
+    assert.equal(/background:\s*#f6f6f4/i.test(css), false);
     assert.match(
       css,
-      /\.service-cta--on-dark[^{]*\{[^}]*background:\s*#fff(?:fff)?\b/i,
+      /\.service-cases__grid[^{]*\{[^}]*grid-template-columns:\s*1fr\b/i,
     );
+    assert.match(css, /grid-template-columns:\s*1fr\s+1fr/i);
   });
 
   it("/automatizacion-ia enlaza a /web y no lista casos", () => {
@@ -230,13 +237,7 @@ describe("dist service pages", () => {
       .querySelectorAll("a.service-rel__link")
       .map((el) => el.getAttribute("href") ?? "");
     assert.deepEqual(related, ["/web"]);
-    const ctas = root.querySelectorAll("a.service-cta");
-    for (const cta of ctas) {
-      assert.equal(
-        cta.getAttribute("href"),
-        "/contacto?origen=/automatizacion-ia",
-      );
-    }
+    assert.equal(root.querySelectorAll("a.service-cta").length, 0);
   });
 
   it("/contacto canónica a /contacto y el sitemap no lista ?origen=", () => {

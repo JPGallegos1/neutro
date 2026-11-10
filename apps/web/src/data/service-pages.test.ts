@@ -7,7 +7,6 @@ import {
   SHOW_WEB_TURNOS_SUMAR_A_WEB_ACTUAL_LINE,
   WEB_SITIO_PRESUPUESTO_LINE,
   WEB_TURNOS_SUMAR_A_WEB_ACTUAL_LINE,
-  serviceContactHref,
   servicePageCases,
   servicePageJsonLd,
   servicePages,
@@ -50,9 +49,9 @@ describe("service-pages", () => {
     );
   });
 
-  it("resuelve los 5 casos de /web con paths relativos /trabajo/<slug>", () => {
+  it("resuelve los 4 casos de /web con paths relativos /trabajo/<slug>", () => {
     const cases = servicePageCases(servicePages.web);
-    assert.equal(cases.length, 5);
+    assert.equal(cases.length, 4);
     assert.deepEqual(
       cases.map((item) => item.slug),
       [
@@ -60,8 +59,11 @@ describe("service-pages", () => {
         "capa-automotores",
         "suplementacion-ciencia",
         "conexion-laboral",
-        "luxurycars",
       ],
+    );
+    assert.equal(
+      cases.some((item) => item.slug === "luxurycars"),
+      false,
     );
     for (const project of cases) {
       assert.match(project.href, /^\/trabajo\/[a-z0-9-]+$/);
@@ -78,7 +80,6 @@ describe("service-pages", () => {
     assert.deepEqual(servicePages.automatizacionIa.related, [
       { href: "/web", label: "Web" },
     ]);
-    assert.equal(serviceContactHref("/web"), "/contacto?origen=/web");
   });
 
   it("arma JSON-LD con Service y BreadcrumbList, sin FAQPage", () => {

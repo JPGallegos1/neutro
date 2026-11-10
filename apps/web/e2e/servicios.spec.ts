@@ -5,7 +5,6 @@ const pages = [
     path: "/web",
     title: "Diseño web en Rosario para negocios | Neutro Solutions",
     h1: "Diseño web en Rosario para que te elijan antes de preguntar",
-    origen: "/web",
     related: "/automatizacion-ia",
     hasCases: true,
   },
@@ -13,7 +12,6 @@ const pages = [
     path: "/automatizacion-ia",
     title: "Automatización con IA y bots de WhatsApp | Neutro Solutions",
     h1: "Automatización con IA para que lo que hacés a mano funcione solo",
-    origen: "/automatizacion-ia",
     related: "/web",
     hasCases: false,
   },
@@ -39,19 +37,11 @@ for (const route of pages) {
       await expect(
         page.getByRole("heading", { name: "También te puede servir" }),
       ).toBeVisible();
-    });
-
-    test("CTAs monocromos apuntan a contacto con origen", async ({ page }) => {
-      await page.goto(route.path);
-      const ctas = page.locator("a.service-cta");
-      await expect(ctas).toHaveCount(2);
-      const expectedHref = `/contacto?origen=${route.origen}`;
-      for (const cta of await ctas.all()) {
-        await expect(cta).toHaveAttribute("href", expectedHref);
-        await expect(cta).toHaveAttribute("data-origen", route.origen);
-        await expect(cta).toHaveCSS("background-color", "rgb(255, 255, 255)");
-        await expect(cta).toHaveCSS("color", "rgb(10, 10, 10)");
-      }
+      await expect(page.locator("a.service-cta")).toHaveCount(0);
+      await expect(page.locator(".service-close")).toHaveCount(0);
+      await expect(page.getByText("Escribinos", { exact: true })).toHaveCount(
+        0,
+      );
     });
 
     test("enlaces internos relativos válidos", async ({ page }) => {
@@ -62,14 +52,14 @@ for (const route of pages) {
       );
       if (route.hasCases) {
         const tiles = page.locator("a.service-tile");
-        await expect(tiles).toHaveCount(5);
+        await expect(tiles).toHaveCount(4);
         for (const tile of await tiles.all()) {
           const href = await tile.getAttribute("href");
           expect(href).toMatch(/^\/trabajo\/[a-z0-9-]+$/);
         }
         await expect(
           page.locator('a.service-tile[href="/trabajo/luxurycars"]'),
-        ).toHaveCount(1);
+        ).toHaveCount(0);
       } else {
         await expect(page.locator("a.service-tile")).toHaveCount(0);
       }
