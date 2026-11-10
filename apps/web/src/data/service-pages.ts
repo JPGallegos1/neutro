@@ -34,8 +34,6 @@ export type ServicePageCopy = {
   caseSlugs: readonly string[];
   blocks: readonly ServiceBlock[];
   related: readonly ServiceRelatedLink[];
-  closing: string;
-  ctaLabel: string;
 };
 
 export const servicePages = {
@@ -54,7 +52,6 @@ export const servicePages = {
       "capa-automotores",
       "suplementacion-ciencia",
       "conexion-laboral",
-      "luxurycars",
     ],
     blocks: [
       {
@@ -87,9 +84,6 @@ export const servicePages = {
       },
     ],
     related: [{ href: "/automatizacion-ia", label: "Automatización con IA" }],
-    closing:
-      "Si querés una web clara para tu negocio, escribinos y lo vemos juntos.",
-    ctaLabel: "Escribinos",
   },
   automatizacionIa: {
     path: "/automatizacion-ia",
@@ -133,17 +127,10 @@ export const servicePages = {
       },
     ],
     related: [{ href: "/web", label: "Web" }],
-    closing:
-      "Si querés automatizar una tarea que hoy te come tiempo, escribinos.",
-    ctaLabel: "Escribinos",
   },
 } as const satisfies Record<string, ServicePageCopy>;
 
 export type ServicePageKey = keyof typeof servicePages;
-
-export function serviceContactHref(path: string): string {
-  return `/contacto?origen=${path}`;
-}
 
 export function servicePageCases(
   page: ServicePageCopy,
