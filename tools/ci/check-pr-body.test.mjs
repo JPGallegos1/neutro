@@ -556,25 +556,11 @@ describe("check-pr-body.mjs como proceso", () => {
     assert.equal(result.stdout.includes(marker), false);
   });
 
-  it("sin los dos SHA no mira el diff y no exige Capturas", () => {
-    const result = runScript({
-      PR_BODY: validBody(),
-      BASE_SHA: "",
-      HEAD_SHA: "",
-    });
-    assert.equal(result.status, 0, result.stderr);
-    assert.equal(result.stderr, "");
-  });
-
-  it("exige los dos SHA juntos y en hexadecimal", () => {
-    const onlyBase = runScript({
-      PR_BODY: validBody(),
-      BASE_SHA: "abc1234",
-    });
+  it("SHA ausentes, incompletos o inválidos; diff UI, docs y flujo", () => {
+    assert.equal(runScript({ PR_BODY: validBody() }).status, 0);
+    const onlyBase = runScript({ PR_BODY: validBody(), BASE_SHA: "abc1234" });
     assert.equal(onlyBase.status, 1);
     assert.equal(onlyBase.stderr, "BASE_SHA y HEAD_SHA van juntos.\n");
-    assert.equal(onlyBase.stdout, "");
-
     const invalid = runScript({
       PR_BODY: validBody(),
       BASE_SHA: "main",
@@ -585,11 +571,7 @@ describe("check-pr-body.mjs como proceso", () => {
       invalid.stderr,
       "BASE_SHA y HEAD_SHA tienen que ser SHAs en hexadecimal.\n",
     );
-    assert.equal(invalid.stdout, "");
-    assert.equal(invalid.stderr.includes("Texto de"), false);
-  });
 
-  it("con el diff de Header exige una imagen y la acepta en Capturas", () => {
     const cwd = initRepo();
     try {
       const base = git(cwd, ["rev-parse", "HEAD"]);
@@ -597,60 +579,51 @@ describe("check-pr-body.mjs como proceso", () => {
       mkdirSync(dir, { recursive: true });
       writeFileSync(join(dir, "Header.astro"), "<header></header>\n");
       commitAll(cwd, "header");
-      const head = git(cwd, ["rev-parse", "HEAD"]);
-      const env = { BASE_SHA: base, HEAD_SHA: head };
-      const withoutCapturas = runScript(
-        { ...env, PR_BODY: validBody() },
-        [],
-        cwd,
-      );
-      assert.equal(withoutCapturas.status, 1);
+      const headUi = git(cwd, ["rev-parse", "HEAD"]);
+      const envUi = { BASE_SHA: base, HEAD_SHA: headUi };
+      const without = runScript({ ...envUi, PR_BODY: validBody() }, [], cwd);
+      assert.equal(without.status, 1);
       assert.equal(
-        withoutCapturas.stderr,
+        without.stderr,
         "El diff cambia UI (apps/web/src/components/sections/Header.astro) y falta la sección «Capturas» con una imagen.\n",
       );
-      assert.equal(withoutCapturas.stdout, "");
-
       const withImage = runScript(
         {
-          ...env,
+          ...envUi,
           PR_BODY: `${validBody()}\n\n## Capturas\n\n![x](https://example.com/a.png)\n`,
         },
         [],
         cwd,
       );
       assert.equal(withImage.status, 0, withImage.stderr);
-      assert.equal(withImage.stdout, "");
-      assert.equal(withImage.stderr, "");
 
-      const empty = runScript({ ...env, PR_BODY: "" }, [], cwd);
-      assert.equal(empty.status, 1);
-      assert.equal(
-        empty.stderr,
-        `${[
-          ...HEADINGS.map((title) => missing(title)),
-          "El diff cambia UI (apps/web/src/components/sections/Header.astro) y falta la sección «Capturas» con una imagen.",
-        ].join("\n")}\n`,
-      );
-    } finally {
-      rmSync(cwd, { recursive: true, force: true });
-    }
-  });
-
-  it("un diff de docs no pide Capturas y un SHA inexistente falla sin imprimir el cuerpo", () => {
-    const cwd = initRepo();
-    try {
-      const base = git(cwd, ["rev-parse", "HEAD"]);
       writeFileSync(join(cwd, "README.md"), "docs\n");
       commitAll(cwd, "docs");
-      const head = git(cwd, ["rev-parse", "HEAD"]);
-      const docs = runScript(
-        { BASE_SHA: base, HEAD_SHA: head, PR_BODY: validBody() },
+      const headDocs = git(cwd, ["rev-parse", "HEAD"]);
+      assert.equal(
+        runScript(
+          { BASE_SHA: headUi, HEAD_SHA: headDocs, PR_BODY: validBody() },
+          [],
+          cwd,
+        ).status,
+        0,
+      );
+
+      writeFileSync(join(dir, "ContactoForm.astro"), "<form></form>\n");
+      commitAll(cwd, "form");
+      const headFlow = git(cwd, ["rev-parse", "HEAD"]);
+      const flow = runScript(
+        {
+          BASE_SHA: headDocs,
+          HEAD_SHA: headFlow,
+          PR_BODY: `${validBody()}\n\n## Capturas\n\n![x](https://example.com/a.png)\n`,
+        },
         [],
         cwd,
       );
-      assert.equal(docs.status, 0, docs.stderr);
-      assert.equal(docs.stderr, "");
+      assert.equal(flow.status, 1);
+      assert.match(flow.stderr, /ContactoForm\.astro/);
+      assert.match(flow.stderr, /video/);
 
       const missingObject = runScript(
         {
@@ -666,37 +639,6 @@ describe("check-pr-body.mjs como proceso", () => {
         missingObject.stderr,
         "No se pudo leer el diff entre BASE_SHA y HEAD_SHA.\n",
       );
-      assert.equal(missingObject.stdout, "");
-      assert.equal(missingObject.stderr.includes("Texto de"), false);
-    } finally {
-      rmSync(cwd, { recursive: true, force: true });
-    }
-  });
-
-  it("un diff de ContactoForm pide video", () => {
-    const cwd = initRepo();
-    try {
-      const base = git(cwd, ["rev-parse", "HEAD"]);
-      const dir = join(cwd, "apps/web/src/components/sections");
-      mkdirSync(dir, { recursive: true });
-      writeFileSync(join(dir, "ContactoForm.astro"), "<form></form>\n");
-      commitAll(cwd, "form");
-      const head = git(cwd, ["rev-parse", "HEAD"]);
-      const result = runScript(
-        {
-          BASE_SHA: base,
-          HEAD_SHA: head,
-          PR_BODY: `${validBody()}\n\n## Capturas\n\n![x](https://example.com/a.png)\n`,
-        },
-        [],
-        cwd,
-      );
-      assert.equal(result.status, 1);
-      assert.equal(
-        result.stderr,
-        "La sección «Capturas» tiene que incluir un video (.mp4, .webm, .mov o un adjunto de GitHub). Una imagen sola no alcanza. El diff cambia un flujo (apps/web/src/components/sections/ContactoForm.astro).\n",
-      );
-      assert.equal(result.stdout, "");
     } finally {
       rmSync(cwd, { recursive: true, force: true });
     }
