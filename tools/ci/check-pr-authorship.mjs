@@ -12,8 +12,8 @@ const LIMIT = 1000;
 const LABEL = "excepcion-tamano-pr";
 const ACTOR = "JPGallegos1";
 const SHA = /^[0-9a-fA-F]{7,64}$/;
-const FENCE = /^ {0,3}(`{3,}|~{3,})/;
-const HEADING = /^##[ \t]+(.*?)[ \t]*$/;
+const FENCE = /^ {0,3}([`~]{3,})(.*)$/;
+const HEADING = /^##(?!#)[ \t]+(.*?)[ \t]*$/;
 const MOTIVO_RE = /^ {0,3}[-*] +Motivo:[ ]*(.*)$/;
 const VENCE_RE = /^ {0,3}[-*] +Vence:[ ]*(.*)$/;
 const NEED_SHA = "Hacen falta BASE_SHA y HEAD_SHA.";
@@ -105,37 +105,42 @@ async function fetchTimeline(env, number) {
   };
   const token = bearer(env);
   if (token) headers.Authorization = `Bearer ${token}`;
-  const url = `${origin}/repos/${repo}/issues/${number}/timeline?per_page=100`;
+  let url = `${origin}/repos/${repo}/issues/${number}/timeline?per_page=100`;
+  const events = [];
   try {
-    const response = await fetch(url, {
-      headers,
-      redirect: "error",
-      signal: AbortSignal.timeout(15_000),
-    });
-    if (!response.ok) return { fail: "http" };
-    const payload = await response.json();
-    if (!Array.isArray(payload)) return { fail: "http" };
-    if (/rel="next"/.test(response.headers.get("link") ?? "")) {
-      return { fail: "http" };
-    }
-    const events = [];
-    for (const record of payload) {
-      const action = record?.event;
-      if (action !== "labeled" && action !== "unlabeled") continue;
-      if (record?.label?.name !== LABEL) continue;
-      const at = record.created_at;
-      if (typeof at !== "string" || at === "") return { fail: "http" };
-      const login = record.actor?.login;
-      events.push({
-        action,
-        at,
-        login: typeof login === "string" ? login : "",
+    for (let page = 0; page < 10; page += 1) {
+      const response = await fetch(url, {
+        headers,
+        redirect: "error",
+        signal: AbortSignal.timeout(15_000),
       });
+      if (!response.ok) return { fail: "http" };
+      const payload = await response.json();
+      if (!Array.isArray(payload)) return { fail: "http" };
+      for (const record of payload) {
+        const action = record?.event;
+        if (action !== "labeled" && action !== "unlabeled") continue;
+        if (record?.label?.name !== LABEL) continue;
+        const at = record.created_at;
+        if (typeof at !== "string" || at === "") return { fail: "http" };
+        const login = record.actor?.login;
+        events.push({
+          action,
+          at,
+          login: typeof login === "string" ? login : "",
+        });
+      }
+      const link = response.headers.get("link") ?? "";
+      const next = /<([^>]+)>\s*;\s*rel="next"/.exec(link);
+      if (!next) return { events };
+      const resolved = new URL(next[1], url);
+      if (resolved.origin !== origin) return { fail: "http" };
+      url = resolved.href;
     }
-    return { events };
   } catch {
     return { fail: "http" };
   }
+  return { fail: "http" };
 }
 function grant(events) {
   const last = events
@@ -150,17 +155,31 @@ function sectionLines(raw) {
   let text = typeof raw === "string" ? raw : "";
   while (text.charCodeAt(0) === 0xfeff) text = text.slice(1);
   text = text.replaceAll("\r\n", "\n").replaceAll("\r", "\n");
-  let fence = false;
+  let fenceMark = "";
   let comment = false;
   let capture = false;
   let seen = false;
   const lines = [];
   for (const line of text.split("\n")) {
-    if (!comment && FENCE.test(line)) {
-      fence = !fence;
-      continue;
+    if (!comment) {
+      const fence = FENCE.exec(line);
+      if (fence) {
+        const mark = fence[1];
+        if (!fenceMark) {
+          fenceMark = mark;
+          continue;
+        }
+        if (
+          mark[0] === fenceMark[0] &&
+          mark.length >= fenceMark.length &&
+          !fence[2].trim()
+        ) {
+          fenceMark = "";
+          continue;
+        }
+      }
     }
-    if (fence) continue;
+    if (fenceMark) continue;
     if (line.includes("<!--")) {
       comment = !line.includes("-->");
       continue;
