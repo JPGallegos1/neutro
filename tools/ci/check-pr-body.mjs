@@ -1,5 +1,8 @@
+import { execFileSync } from "node:child_process";
 import { readFileSync, realpathSync } from "node:fs";
 import { fileURLToPath } from "node:url";
+
+import { checkChangeEvidence } from "./pr-evidence.mjs";
 
 const REQUIRED_HEADINGS = [
   "Problema",
@@ -221,8 +224,28 @@ function parseH2Sections(text) {
   return sections;
 }
 
+export function authorSections(raw) {
+  return parseH2Sections(extractAuthorBody(raw));
+}
+
+export function withoutCode(text) {
+  const spans = codeSpans(text);
+  const parts = [];
+  let index = 0;
+  for (const span of spans) {
+    if (span[0] < index) {
+      continue;
+    }
+    parts.push(text.slice(index, span[0]));
+    parts.push("\n");
+    index = span[1];
+  }
+  parts.push(text.slice(index));
+  return parts.join("");
+}
+
 export function checkPrBody(raw) {
-  const sections = parseH2Sections(extractAuthorBody(raw));
+  const sections = authorSections(raw);
   const problems = [];
   let cursor = 0;
   for (const title of REQUIRED_HEADINGS) {
@@ -263,17 +286,63 @@ export function readPullRequestBody(env = process.env) {
   return { body: typeof env.PR_BODY === "string" ? env.PR_BODY : "" };
 }
 
+const SHA = /^[0-9a-f]{7,64}$/i;
+
+function readChangedPaths(env) {
+  const base = typeof env.BASE_SHA === "string" ? env.BASE_SHA : "";
+  const head = typeof env.HEAD_SHA === "string" ? env.HEAD_SHA : "";
+  if (base === "" && head === "") {
+    return { ok: true, paths: [] };
+  }
+  if (base === "" || head === "") {
+    return { ok: false, error: "BASE_SHA y HEAD_SHA van juntos." };
+  }
+  if (!SHA.test(base) || !SHA.test(head)) {
+    return {
+      ok: false,
+      error: "BASE_SHA y HEAD_SHA tienen que ser SHAs en hexadecimal.",
+    };
+  }
+  try {
+    const output = execFileSync(
+      "git",
+      ["diff", "--name-only", `${base}...${head}`],
+      { encoding: "utf8", stdio: ["ignore", "pipe", "pipe"] },
+    );
+    return {
+      ok: true,
+      paths: output
+        .split("\n")
+        .map((line) => line.trim())
+        .filter(Boolean),
+    };
+  } catch {
+    return {
+      ok: false,
+      error: "No se pudo leer el diff entre BASE_SHA y HEAD_SHA.",
+    };
+  }
+}
+
 function main() {
   const read = readPullRequestBody();
   if (read.error) {
     console.error("No se pudo leer el cuerpo desde el archivo del evento.");
     process.exit(1);
   }
-  const result = checkPrBody(read.body);
-  if (result.ok) {
+  const diff = readChangedPaths(process.env);
+  if (!diff.ok) {
+    console.error(diff.error);
+    process.exit(1);
+  }
+  const problems = [
+    ...checkPrBody(read.body).problems,
+    ...checkChangeEvidence(read.body, diff.paths).problems,
+  ];
+  if (problems.length === 0) {
     return;
   }
-  for (const problem of result.problems) {
+  for (const problem of problems) {
     console.error(problem);
   }
   process.exit(1);
