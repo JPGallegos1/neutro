@@ -1,0 +1,24 @@
+.cta-primary {
+  background: #0a0a0a;
+  color: #ffffff;
+  border: 1px solid var(--neutro-text);
+}
+
+.cta-primary:hover {
+  background: #262624;
+}
+
+.cta-primary:focus-visible {
+  outline: 2px solid #0a0a0a;
+  outline-offset: 3px;
+}
+
+button.site-action {
+  background: var(--neutro-text);
+  color: var(--neutro-bg);
+}
+
+.cta-primary:disabled {
+  background: #e7e7e4;
+  color: #5c5c58;
+}

@@ -55,6 +55,7 @@ docs/
 tools/
   ci/                   # Check de tamaño de PR
   oxlint/               # Regla neutro/no-comments
+  lint/                 # CTAs monocromáticos (cta-monochrome)
 ```
 
 Los paquetes internos exportan código fuente TypeScript y usan `workspace:*`. Vite compila ese código al construir la aplicación. Turborepo coordina las verificaciones y cachea el build. Las nuevas aplicaciones van en `apps/*`; las librerías compartidas, en `packages/*`.
