@@ -57,15 +57,16 @@ describe("site header black theme", () => {
     );
   });
 
-  it("marca el ítem activo de nav con aria-current y subrayado naranja", () => {
+  it("marca el ítem activo de nav con aria-current sin indicador de color", () => {
     assert.match(
       headerTemplate,
       /aria-current=\{navIsCurrent\(item\.href\) \? "page" : undefined\}/,
     );
-    assert.match(
+    assert.doesNotMatch(
       headerCss,
-      /\.site-header__nav-link\[aria-current="page"\]\s*\{[^}]*border-bottom:\s*1\.5px\s+solid\s+var\(--neutro-accent-orange\)/,
+      /\.site-header__nav-link\[aria-current="page"\]/,
     );
+    assert.doesNotMatch(headerCss, /neutro-accent-orange/);
   });
 
   it("puts the desktop nav on the right and omits header Instagram and theme toggle", () => {
