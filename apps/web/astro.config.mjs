@@ -11,6 +11,8 @@ const slashlessPaths = [
   "/terminos",
   "/alerta-estafa",
   "/trabajo",
+  "/web",
+  "/automatizacion-ia",
 ];
 
 const trabajoCasePaths = [

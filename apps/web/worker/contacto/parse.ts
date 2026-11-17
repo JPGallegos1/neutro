@@ -9,6 +9,7 @@ export type ContactLead = {
   pais: string;
   mensaje: string;
   submissionId: string;
+  origen?: string;
 };
 
 export type MailMessage = {
@@ -68,6 +69,7 @@ export const CONTACT_LINE_MAX = 100;
 export const CONTACT_EMAIL_MAX = 254;
 export const CONTACT_MESSAGE_MAX = 2000;
 export const CONTACT_TOKEN_MAX = 2048;
+export const CONTACT_ORIGEN_MAX = 500;
 export const CONTACT_HONEYPOT_FIELD = "website";
 
 const UUID_RE =
@@ -91,6 +93,7 @@ const ALLOWED_KEYS = new Set([
   "consent",
   "turnstileToken",
   "submissionId",
+  "origen",
   CONTACT_HONEYPOT_FIELD,
 ]);
 
@@ -122,6 +125,18 @@ function cleanMessage(value: unknown): string | null {
   if (normalized.length > CONTACT_MESSAGE_MAX) return null;
   if (MESSAGE_FORBIDDEN_CONTROL_RE.test(normalized)) return null;
   return normalized;
+}
+
+function cleanOrigen(value: unknown): string | null | undefined {
+  if (value === undefined || value === null) return undefined;
+  if (typeof value !== "string") return null;
+  const trimmed = value.trim();
+  if (trimmed.length === 0) return undefined;
+  if (trimmed.length > CONTACT_ORIGEN_MAX) return null;
+  if (CONTROL_RE.test(trimmed) || UNICODE_LINE_BREAK_RE.test(trimmed)) {
+    return null;
+  }
+  return trimmed;
 }
 
 function isSingleAddrSpec(value: string): boolean {
@@ -217,6 +232,9 @@ export function parseContactRequest(input: unknown): ParseResult {
     push(errors, CONTACT_HONEYPOT_FIELD, "invalid");
   }
 
+  const origen = cleanOrigen(body.origen);
+  if (origen === null) push(errors, "origen", "invalid");
+
   if (errors.length > 0) {
     return { ok: false, errors };
   }
@@ -230,6 +248,7 @@ export function parseContactRequest(input: unknown): ParseResult {
     pais: paisRaw,
     mensaje: mensaje!,
     submissionId,
+    ...(origen ? { origen } : {}),
   };
 
   return { ok: true, lead, turnstileToken };
