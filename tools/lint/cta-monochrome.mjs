@@ -82,10 +82,94 @@ const BANNED_VAR_RE =
   /--neutro-accent-orange(?:-strong)?|--neutro-on-orange|--neutro-accent-blue|--neutro-on-blue|--neutro-focus|--primary(?:-foreground)?|--accent(?:-foreground)?|--ring|--destructive\b/i;
 
 const CTA_CLASS_RE =
-  /(?:^|[^\w-])(?:[\w-]*(?:__)?(?:btn|cta|send|submit|load)(?:--|__|-)?[\w-]*|[\w-]*visit-link[\w-]*)(?:$|[^\w-])/i;
+  /(?:^|[^\w-])(?:[\w-]*(?:__)?(?:btn|cta|send|submit|load)(?:--|__|-)?[\w-]*|[\w-]*visit-link[\w-]*|contacto-channel__inner)(?:$|[^\w-])/i;
 
 const CTA_TYPE_RE =
   /(?:^|[^\w-])button(?:$|[^\w-])|\[type\s*=\s*["']?(?:submit|button)["']?\]/i;
+
+const COLOR_UTIL_PREFIXES = new Set([
+  "bg",
+  "text",
+  "border",
+  "outline",
+  "ring",
+  "fill",
+  "stroke",
+  "decoration",
+  "from",
+  "via",
+  "to",
+  "accent",
+  "caret",
+  "shadow",
+]);
+
+const MONO_PALETTES = new Set([
+  "black",
+  "white",
+  "transparent",
+  "current",
+  "inherit",
+  "gray",
+  "grey",
+  "zinc",
+  "neutral",
+  "stone",
+  "slate",
+]);
+
+const MONO_SEMANTIC = new Set([
+  "background",
+  "foreground",
+  "card",
+  "card-foreground",
+  "popover",
+  "popover-foreground",
+  "secondary",
+  "secondary-foreground",
+  "muted",
+  "muted-foreground",
+  "border",
+  "input",
+]);
+
+const MONO_NEUTRO = new Set([
+  "neutro-bg",
+  "neutro-surface",
+  "neutro-text",
+  "neutro-text-muted",
+  "neutro-border",
+]);
+
+const BANNED_SEMANTIC = new Set([
+  "primary",
+  "primary-foreground",
+  "accent",
+  "accent-foreground",
+  "destructive",
+  "destructive-foreground",
+  "ring",
+]);
+
+const CHROMATIC_TW_COLORS = new Set([
+  "red",
+  "orange",
+  "amber",
+  "yellow",
+  "lime",
+  "green",
+  "emerald",
+  "teal",
+  "cyan",
+  "sky",
+  "blue",
+  "indigo",
+  "violet",
+  "purple",
+  "fuchsia",
+  "pink",
+  "rose",
+]);
 
 const MESSAGE = "Los CTAs deben ser monocromáticos";
 
@@ -98,9 +182,59 @@ export function isCtaSelector(selector) {
     if (!s) return false;
     if (CTA_TYPE_RE.test(s)) return true;
     if (CTA_CLASS_RE.test(s)) return true;
-    if (/\ba\.contacto-channel__inner\b/i.test(s)) return true;
+    if (/\.contacto-channel__inner\b/i.test(s)) return true;
     return false;
   });
+}
+
+export function normalizeUtilityClass(rawClass) {
+  let cls = rawClass.trim();
+  if (!cls) return "";
+  while (true) {
+    const variant = cls.match(/^[\w-\[\]\/.]+:/);
+    if (!variant) break;
+    cls = cls.slice(variant[0].length);
+  }
+  const opacity = cls.match(/^(.*)\/(?:\d{1,3}|\[[^\]]+\])$/);
+  if (opacity) cls = opacity[1];
+  return cls;
+}
+
+export function isMonochromeUtilityClass(rawClass) {
+  const cls = normalizeUtilityClass(rawClass);
+  if (!cls) return true;
+  const dash = cls.indexOf("-");
+  if (dash === -1) return true;
+  const prefix = cls.slice(0, dash);
+  if (!COLOR_UTIL_PREFIXES.has(prefix)) return true;
+  const rest = cls.slice(dash + 1);
+  if (!rest) return true;
+  if (rest.startsWith("[") && rest.endsWith("]")) {
+    const inner = rest.slice(1, -1).trim();
+    if (!inner) return true;
+    if (/^(length|size|url)\b/i.test(inner)) return true;
+    if (/^\d/.test(inner) && !inner.includes("#") && !/^var\(/i.test(inner)) {
+      return true;
+    }
+    return isMonochromeColorValue(inner.replace(/_/g, " "));
+  }
+  if (BANNED_SEMANTIC.has(rest)) return false;
+  if (/^neutro-(?:accent|on|focus)\b/i.test(rest)) return false;
+  if (
+    MONO_SEMANTIC.has(rest) ||
+    MONO_NEUTRO.has(rest) ||
+    MONO_PALETTES.has(rest)
+  ) {
+    return true;
+  }
+  const paletteMatch = rest.match(/^([a-z]+)-(\d{2,3}|DEFAULT)$/i);
+  if (paletteMatch) {
+    const palette = paletteMatch[1].toLowerCase();
+    if (MONO_PALETTES.has(palette)) return true;
+    if (CHROMATIC_TW_COLORS.has(palette)) return false;
+  }
+  if (/^neutro-/i.test(rest)) return true;
+  return true;
 }
 
 function stripComments(css) {
@@ -337,30 +471,96 @@ export function lintCss(css, filePath = "fixture.css") {
   return findings;
 }
 
+function readAttr(tag, name) {
+  const re = new RegExp(
+    `\\b${name}\\s*=\\s*(?:"([^"]*)"|'([^']*)'|\`([^\`]*)\`|\\{[\`'"]([\\s\\S]*?)[\`'"]\\})`,
+    "i",
+  );
+  const match = tag.match(re);
+  if (!match) return "";
+  return match[1] ?? match[2] ?? match[3] ?? match[4] ?? "";
+}
+
+function isMarkupCta(tagName, tag) {
+  if (tagName === "button") return true;
+  if (tagName === "input") {
+    const type = readAttr(tag, "type").toLowerCase();
+    return type === "submit" || type === "button";
+  }
+  if (tagName === "a") {
+    const cls = `${readAttr(tag, "class")} ${readAttr(tag, "className")}`;
+    return CTA_CLASS_RE.test(` ${cls} `);
+  }
+  return false;
+}
+
+function splitClassList(value) {
+  return value
+    .split(/\s+/)
+    .map((part) => part.trim())
+    .filter(Boolean);
+}
+
+function lintStyleAttr(styleValue, filePath, tagPreview) {
+  const findings = [];
+  for (const decl of parseDeclarations(styleValue)) {
+    if (!COLOR_PROPS.has(decl.prop)) continue;
+    if (isMonochromeColorValue(decl.value)) continue;
+    findings.push({
+      file: filePath,
+      selector: tagPreview,
+      prop: `style.${decl.prop}`,
+      value: decl.value,
+      message: MESSAGE,
+    });
+  }
+  return findings;
+}
+
+function lintClassAttr(classValue, filePath, tagPreview) {
+  const findings = [];
+  for (const raw of splitClassList(classValue)) {
+    if (isMonochromeUtilityClass(raw)) continue;
+    findings.push({
+      file: filePath,
+      selector: tagPreview,
+      prop: "class",
+      value: raw,
+      message: MESSAGE,
+    });
+  }
+  return findings;
+}
+
+export function lintMarkup(source, filePath) {
+  const findings = [];
+  const tagRe = /<(button|a|input)\b([^>]*?)(\/?)>/gi;
+  for (const match of source.matchAll(tagRe)) {
+    const tagName = match[1].toLowerCase();
+    const attrs = match[2] ?? "";
+    const tag = `<${tagName}${attrs}>`;
+    if (!isMarkupCta(tagName, tag)) continue;
+    const preview = tag.replace(/\s+/g, " ").trim().slice(0, 120);
+    const classValue =
+      `${readAttr(tag, "class")} ${readAttr(tag, "className")}`.trim();
+    if (classValue) {
+      findings.push(...lintClassAttr(classValue, filePath, preview));
+    }
+    const styleValue = readAttr(tag, "style").trim();
+    if (styleValue) {
+      findings.push(...lintStyleAttr(styleValue, filePath, preview));
+    }
+  }
+  return findings;
+}
+
 export function lintSource(source, filePath) {
   const findings = [];
   for (const block of extractStyleBlocks(source, filePath)) {
     findings.push(...lintCss(block, filePath));
   }
   if (/\.(?:tsx|jsx|astro)$/.test(filePath)) {
-    const classHits =
-      source.match(
-        /(?:class(?:Name)?\s*=\s*["'`][^"'`]*\b(?:bg|text|border|ring|outline)-(?:primary|accent|destructive|ring)\b[^"'`]*)/gi,
-      ) ?? [];
-    for (const hit of classHits) {
-      if (
-        !/\bbutton\b|type=["']submit["']|__btn|__cta|__send|btn-/i.test(source)
-      ) {
-        continue;
-      }
-      findings.push({
-        file: filePath,
-        selector: hit.slice(0, 120),
-        prop: "class",
-        value: hit.slice(0, 120),
-        message: MESSAGE,
-      });
-    }
+    findings.push(...lintMarkup(source, filePath));
   }
   return findings;
 }
