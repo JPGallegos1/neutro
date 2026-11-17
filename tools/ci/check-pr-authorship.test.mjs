@@ -13,10 +13,22 @@ const LABEL = "excepcion-tamano-pr";
 const LOCKS =
   "bun.lock bun.lockb package-lock.json pnpm-lock.yaml yarn.lock".split(" ");
 function git(cwd, args) {
-  return execFileSync("git", ["-c", "commit.gpgsign=false", ...args], {
-    cwd,
-    encoding: "utf8",
-  }).trim();
+  return execFileSync(
+    "git",
+    [
+      "-c",
+      "commit.gpgsign=false",
+      "-c",
+      "user.email=ci@example.com",
+      "-c",
+      "user.name=ci",
+      ...args,
+    ],
+    {
+      cwd,
+      encoding: "utf8",
+    },
+  ).trim();
 }
 function repo() {
   const cwd = mkdtempSync(join(tmpdir(), "neutro-a-"));
