@@ -5,6 +5,7 @@ import {
   PROSPECT_CODES,
   PROSPECT_LANDING_ORIGIN,
   PROSPECT_UTM,
+  resolveProspectUtm,
 } from "./prospect-codes.ts";
 import {
   PROSPECT_REDIRECT_HEADERS,
@@ -14,9 +15,24 @@ import {
   resolveProspectRedirect,
 } from "./prospect-redirects.ts";
 
-describe("resolveProspectRedirect — valid codes", () => {
-  for (const code of Object.keys(PROSPECT_CODES)) {
-    it(`/p/${code} → home with outbound UTMs`, () => {
+const TEST_CODES = ["t001", "t002", "t003", "t004", "t005"] as const;
+
+const CHANNEL_CODES = [
+  { code: "wapp", source: "whatsapp" },
+  { code: "inst", source: "instagram" },
+  { code: "face", source: "facebook" },
+  { code: "form", source: "web" },
+] as const;
+
+describe("resolveProspectRedirect — test codes t001–t005", () => {
+  it("keeps t001–t005 in the allowlist", () => {
+    for (const code of TEST_CODES) {
+      assert.equal(Object.hasOwn(PROSPECT_CODES, code), true);
+    }
+  });
+
+  for (const code of TEST_CODES) {
+    it(`/p/${code} → home with test UTMs`, () => {
       const result = resolveProspectRedirect(`/p/${code}`);
       assert.ok(result);
       assert.equal(result.kind, "redirect");
@@ -62,13 +78,59 @@ describe("resolveProspectRedirect — valid codes", () => {
     const url = new URL(result.location);
     assert.equal(url.searchParams.get("utm_campaign"), "prueba-prospeccion");
   });
+});
 
-  it("real campaign default stays configured for non-test codes", () => {
+describe("resolveProspectRedirect — channel codes 2026-11-10", () => {
+  it("campaign defaults stay configured", () => {
     assert.equal(PROSPECT_UTM.campaign, "prospeccion-2026-11-10");
     assert.equal(PROSPECT_UTM.testCampaign, "prueba-prospeccion");
     assert.equal(PROSPECT_UTM.source, "whatsapp");
     assert.equal(PROSPECT_UTM.medium, "outbound");
   });
+
+  for (const { code, source } of CHANNEL_CODES) {
+    it(`/p/${code} → utm_source=${source}, campaign prospeccion-2026-11-10`, () => {
+      assert.equal(Object.hasOwn(PROSPECT_CODES, code), true);
+      assert.deepEqual(resolveProspectUtm(code), {
+        source,
+        medium: "outbound",
+        campaign: "prospeccion-2026-11-10",
+      });
+
+      const result = resolveProspectRedirect(`/p/${code}`);
+      assert.ok(result);
+      assert.equal(result.kind, "redirect");
+      if (result.kind !== "redirect") {
+        return;
+      }
+      assert.equal(result.status, 302);
+      assert.deepEqual(result.headers, PROSPECT_REDIRECT_HEADERS);
+
+      const url = new URL(result.location);
+      assert.equal(url.origin, PROSPECT_LANDING_ORIGIN);
+      assert.equal(url.pathname, "/");
+      assert.equal(url.searchParams.get("utm_source"), source);
+      assert.equal(url.searchParams.get("utm_medium"), "outbound");
+      assert.equal(
+        url.searchParams.get("utm_campaign"),
+        "prospeccion-2026-11-10",
+      );
+      assert.equal(url.searchParams.get("utm_content"), code);
+      assert.deepEqual(result.accessEvent, {
+        code,
+        source,
+        medium: "outbound",
+        campaign: "prospeccion-2026-11-10",
+      });
+    });
+
+    it(`/p/${code}/ trailing slash matches`, () => {
+      assert.deepEqual(
+        resolveProspectRedirect(`/p/${code}/`),
+        resolveProspectRedirect(`/p/${code}`),
+      );
+    });
+  }
 });
 
 describe("resolveProspectRedirect — unknown / invalid", () => {
@@ -128,6 +190,20 @@ describe("createProspectRedirectResponse", () => {
     assert.equal(
       response.headers.get("Cloudflare-CDN-Cache-Control"),
       "no-store",
+    );
+  });
+
+  it("channel code sets Location with channel source and campaign", () => {
+    const redirect = resolveProspectRedirect("/p/inst");
+    assert.ok(redirect);
+    assert.equal(redirect.kind, "redirect");
+    if (redirect.kind !== "redirect") {
+      return;
+    }
+    const response = createProspectRedirectResponse(redirect);
+    assert.equal(
+      response.headers.get("Location"),
+      `${PROSPECT_LANDING_ORIGIN}/?utm_source=instagram&utm_medium=outbound&utm_campaign=prospeccion-2026-11-10&utm_content=inst`,
     );
   });
 });
