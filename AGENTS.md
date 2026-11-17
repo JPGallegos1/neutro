@@ -37,7 +37,7 @@ No copies el contenido de un ADR al PR: linkealo.
   - Trade-offs
   - Verificación
 - Una idea por ítem; pensado para lectura rápida.
-- PR visuales: incluir slides o video (sin alargar el proceso en la descripción).
+- Si el diff toca UI, el cuerpo lleva `## Capturas` con al menos una imagen real (`![alt](url)` o `<img>`). Si toca un flujo, esa sección lleva un video (`.mp4`, `.webm`, `.mov` o un adjunto de GitHub). Una imagen no reemplaza ese video. La lista de paths está en [`tools/ci/pr-evidence.mjs`](tools/ci/pr-evidence.mjs). El comando es `node tools/ci/check-pr-body.mjs`. En CI recibe `BASE_SHA` y `HEAD_SHA`.
 - Si la autoría pasa de ~1000 LoC (lockfiles afuera), se divide en PRs apilados o secuenciales ([ADR 0004](docs/adr/0004-max-pr-files.md)).
 
 ## Verificación

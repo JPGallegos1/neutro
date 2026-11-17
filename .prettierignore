@@ -4,6 +4,7 @@ dist
 .turbo
 .wrangler
 pnpm-lock.yaml
+tools/ci/fixtures/
 apps/web/src/pages/alerta-estafa.astro
 apps/web/src/pages/cookies.astro
 apps/web/src/pages/nosotros.astro
