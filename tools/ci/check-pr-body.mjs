@@ -306,15 +306,12 @@ function readChangedPaths(env) {
   try {
     const output = execFileSync(
       "git",
-      ["diff", "--name-only", `${base}...${head}`],
+      ["diff", "--name-only", "-z", `${base}...${head}`],
       { encoding: "utf8", stdio: ["ignore", "pipe", "pipe"] },
     );
     return {
       ok: true,
-      paths: output
-        .split("\n")
-        .map((line) => line.trim())
-        .filter(Boolean),
+      paths: output.split("\0").filter(Boolean),
     };
   } catch {
     return {

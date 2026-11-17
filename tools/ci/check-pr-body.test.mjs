@@ -643,4 +643,38 @@ describe("check-pr-body.mjs como proceso", () => {
       rmSync(cwd, { recursive: true, force: true });
     }
   });
+
+  it("un path con ñ en el diff exige Capturas", () => {
+    const cwd = initRepo();
+    try {
+      const base = git(cwd, ["rev-parse", "HEAD"]);
+      const dir = join(cwd, "apps/web/src/pages");
+      mkdirSync(dir, { recursive: true });
+      writeFileSync(join(dir, "Diseño.astro"), "<h1></h1>\n");
+      commitAll(cwd, "diseno");
+      const head = git(cwd, ["rev-parse", "HEAD"]);
+      const without = runScript(
+        { BASE_SHA: base, HEAD_SHA: head, PR_BODY: validBody() },
+        [],
+        cwd,
+      );
+      assert.equal(without.status, 1);
+      assert.equal(
+        without.stderr,
+        "El diff cambia UI (apps/web/src/pages/Diseño.astro) y falta la sección «Capturas» con una imagen.\n",
+      );
+      const withImage = runScript(
+        {
+          BASE_SHA: base,
+          HEAD_SHA: head,
+          PR_BODY: `${validBody()}\n\n## Capturas\n\n![x](https://example.com/a.png)\n`,
+        },
+        [],
+        cwd,
+      );
+      assert.equal(withImage.status, 0, withImage.stderr);
+    } finally {
+      rmSync(cwd, { recursive: true, force: true });
+    }
+  });
 });
