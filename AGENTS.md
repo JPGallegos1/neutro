@@ -20,6 +20,21 @@ Versión de Node: ver [`.node-version`](.node-version). Versión de pnpm: campo 
 
 No copies el contenido de un ADR al PR: linkealo.
 
+## Reglas y mecanismos
+
+Canónica acá ([ADR 0007](docs/adr/0007-reglas-automaticas-y-verification-skill.md) apunta).
+
+| Regla                                                 | Mecanismo                                                                         |
+| ----------------------------------------------------- | --------------------------------------------------------------------------------- |
+| Autoría ≤1000 LoC, lockfiles afuera                   | `pnpm check:pr-authorship` ([ADR 0004](docs/adr/0004-max-pr-files.md))            |
+| Sin comentarios en el fuente                          | `pnpm lint` + `test:lint-rules` ([ADR 0003](docs/adr/0003-no-source-comments.md)) |
+| Cards Trabajo sin JS; botón/foco/`aria-live`; axe     | Playwright (Hamilton)                                                             |
+| Sitemap/canonical/title/description; links `noopener` | Contrato `dist` (Hamilton)                                                        |
+| Cuerpo First Principles                               | Skill + CI `Cuerpo del PR`                                                        |
+| Lint, typecheck, tests, build                         | `ci.yml`                                                                          |
+| 4 cards home + `/trabajo`                             | HTML vs [ADR 0005](docs/adr/0005-trabajo-routing-and-seo.md)                      |
+| Analytics apagado; cambio crítico                     | Skill / segundo verificador (Lucy)                                                |
+
 ## Secretos
 
 - El hook `tools/git-hooks/pre-commit` corre en cada commit: `gitleaks git --pre-commit --staged --redact` y bloquea `.env`, `.env.*`, `.dev.vars` y `.dev.vars.*` que no terminen en `.example`.
