@@ -129,4 +129,5 @@ Ejemplo (Tailwind, mismas ideas):
 ## Contenido
 
 - Español primero (rioplatense en UI y docs de producto).
+- Encargos a agentes de nube, y mensajes y reportes hacia Juan: siempre en español. Regla de criterio; sin check automático.
 - Versión en inglés solo cuando el español esté terminado.
